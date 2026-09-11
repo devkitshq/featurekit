@@ -1,0 +1,1076 @@
+{
+  "rows": [
+    {
+      "flagKey": "new-checkout",
+      "salt": "prod-salt",
+      "key": "user-1",
+      "bucket": 91142
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "prod-salt",
+      "key": "user-2",
+      "bucket": 40003
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "prod-salt",
+      "key": "user-100000",
+      "bucket": 1093
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "prod-salt",
+      "key": "0",
+      "bucket": 43102
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "prod-salt",
+      "key": "00",
+      "bucket": 810
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "prod-salt",
+      "key": "7",
+      "bucket": 67825
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "prod-salt",
+      "key": "07",
+      "bucket": 32137
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "prod-salt",
+      "key": "用户-1",
+      "bucket": 89688
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "prod-salt",
+      "key": "🎉-user",
+      "bucket": 93704
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "prod-salt",
+      "key": "Ωmega",
+      "bucket": 13540
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "prod-salt",
+      "key": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "bucket": 23599
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "prod-salt",
+      "key": "usr_7f3a9b2c-4d5e-6f70-8192-a3b4c5d6e7f8",
+      "bucket": 35825
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "prod-salt",
+      "key": "a@example.com",
+      "bucket": 35429
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "prod-salt",
+      "key": "A@EXAMPLE.COM",
+      "bucket": 27551
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "prod-salt",
+      "key": " leading",
+      "bucket": 60528
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "prod-salt",
+      "key": "trailing ",
+      "bucket": 50868
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "staging-salt",
+      "key": "user-1",
+      "bucket": 23968
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "staging-salt",
+      "key": "user-2",
+      "bucket": 37665
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "staging-salt",
+      "key": "user-100000",
+      "bucket": 76551
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "staging-salt",
+      "key": "0",
+      "bucket": 96086
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "staging-salt",
+      "key": "00",
+      "bucket": 34092
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "staging-salt",
+      "key": "7",
+      "bucket": 21408
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "staging-salt",
+      "key": "07",
+      "bucket": 69043
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "staging-salt",
+      "key": "用户-1",
+      "bucket": 67970
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "staging-salt",
+      "key": "🎉-user",
+      "bucket": 92125
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "staging-salt",
+      "key": "Ωmega",
+      "bucket": 95505
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "staging-salt",
+      "key": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "bucket": 85736
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "staging-salt",
+      "key": "usr_7f3a9b2c-4d5e-6f70-8192-a3b4c5d6e7f8",
+      "bucket": 37628
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "staging-salt",
+      "key": "a@example.com",
+      "bucket": 54320
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "staging-salt",
+      "key": "A@EXAMPLE.COM",
+      "bucket": 12605
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "staging-salt",
+      "key": " leading",
+      "bucket": 75096
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "staging-salt",
+      "key": "trailing ",
+      "bucket": 46393
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "",
+      "key": "user-1",
+      "bucket": 33431
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "",
+      "key": "user-2",
+      "bucket": 5802
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "",
+      "key": "user-100000",
+      "bucket": 499
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "",
+      "key": "0",
+      "bucket": 83907
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "",
+      "key": "00",
+      "bucket": 49866
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "",
+      "key": "7",
+      "bucket": 15177
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "",
+      "key": "07",
+      "bucket": 98914
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "",
+      "key": "用户-1",
+      "bucket": 54472
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "",
+      "key": "🎉-user",
+      "bucket": 77154
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "",
+      "key": "Ωmega",
+      "bucket": 22972
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "",
+      "key": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "bucket": 81925
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "",
+      "key": "usr_7f3a9b2c-4d5e-6f70-8192-a3b4c5d6e7f8",
+      "bucket": 30311
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "",
+      "key": "a@example.com",
+      "bucket": 30332
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "",
+      "key": "A@EXAMPLE.COM",
+      "bucket": 61170
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "",
+      "key": " leading",
+      "bucket": 91772
+    },
+    {
+      "flagKey": "new-checkout",
+      "salt": "",
+      "key": "trailing ",
+      "bucket": 41171
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "prod-salt",
+      "key": "user-1",
+      "bucket": 15483
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "prod-salt",
+      "key": "user-2",
+      "bucket": 85255
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "prod-salt",
+      "key": "user-100000",
+      "bucket": 57494
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "prod-salt",
+      "key": "0",
+      "bucket": 7172
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "prod-salt",
+      "key": "00",
+      "bucket": 37237
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "prod-salt",
+      "key": "7",
+      "bucket": 63406
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "prod-salt",
+      "key": "07",
+      "bucket": 94005
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "prod-salt",
+      "key": "用户-1",
+      "bucket": 59953
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "prod-salt",
+      "key": "🎉-user",
+      "bucket": 40344
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "prod-salt",
+      "key": "Ωmega",
+      "bucket": 6995
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "prod-salt",
+      "key": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "bucket": 55910
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "prod-salt",
+      "key": "usr_7f3a9b2c-4d5e-6f70-8192-a3b4c5d6e7f8",
+      "bucket": 57454
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "prod-salt",
+      "key": "a@example.com",
+      "bucket": 78644
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "prod-salt",
+      "key": "A@EXAMPLE.COM",
+      "bucket": 75425
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "prod-salt",
+      "key": " leading",
+      "bucket": 87939
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "prod-salt",
+      "key": "trailing ",
+      "bucket": 26826
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "staging-salt",
+      "key": "user-1",
+      "bucket": 87831
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "staging-salt",
+      "key": "user-2",
+      "bucket": 60067
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "staging-salt",
+      "key": "user-100000",
+      "bucket": 38677
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "staging-salt",
+      "key": "0",
+      "bucket": 25349
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "staging-salt",
+      "key": "00",
+      "bucket": 55723
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "staging-salt",
+      "key": "7",
+      "bucket": 51815
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "staging-salt",
+      "key": "07",
+      "bucket": 4046
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "staging-salt",
+      "key": "用户-1",
+      "bucket": 63156
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "staging-salt",
+      "key": "🎉-user",
+      "bucket": 21198
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "staging-salt",
+      "key": "Ωmega",
+      "bucket": 88677
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "staging-salt",
+      "key": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "bucket": 25113
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "staging-salt",
+      "key": "usr_7f3a9b2c-4d5e-6f70-8192-a3b4c5d6e7f8",
+      "bucket": 99783
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "staging-salt",
+      "key": "a@example.com",
+      "bucket": 51572
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "staging-salt",
+      "key": "A@EXAMPLE.COM",
+      "bucket": 11715
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "staging-salt",
+      "key": " leading",
+      "bucket": 63249
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "staging-salt",
+      "key": "trailing ",
+      "bucket": 79538
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "",
+      "key": "user-1",
+      "bucket": 49453
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "",
+      "key": "user-2",
+      "bucket": 81229
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "",
+      "key": "user-100000",
+      "bucket": 6382
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "",
+      "key": "0",
+      "bucket": 6579
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "",
+      "key": "00",
+      "bucket": 27906
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "",
+      "key": "7",
+      "bucket": 95691
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "",
+      "key": "07",
+      "bucket": 99544
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "",
+      "key": "用户-1",
+      "bucket": 55608
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "",
+      "key": "🎉-user",
+      "bucket": 31486
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "",
+      "key": "Ωmega",
+      "bucket": 99292
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "",
+      "key": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "bucket": 19530
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "",
+      "key": "usr_7f3a9b2c-4d5e-6f70-8192-a3b4c5d6e7f8",
+      "bucket": 71108
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "",
+      "key": "a@example.com",
+      "bucket": 81311
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "",
+      "key": "A@EXAMPLE.COM",
+      "bucket": 83221
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "",
+      "key": " leading",
+      "bucket": 35767
+    },
+    {
+      "flagKey": "billing.v2",
+      "salt": "",
+      "key": "trailing ",
+      "bucket": 41248
+    },
+    {
+      "flagKey": "a",
+      "salt": "prod-salt",
+      "key": "user-1",
+      "bucket": 24330
+    },
+    {
+      "flagKey": "a",
+      "salt": "prod-salt",
+      "key": "user-2",
+      "bucket": 57660
+    },
+    {
+      "flagKey": "a",
+      "salt": "prod-salt",
+      "key": "user-100000",
+      "bucket": 87774
+    },
+    {
+      "flagKey": "a",
+      "salt": "prod-salt",
+      "key": "0",
+      "bucket": 11879
+    },
+    {
+      "flagKey": "a",
+      "salt": "prod-salt",
+      "key": "00",
+      "bucket": 53470
+    },
+    {
+      "flagKey": "a",
+      "salt": "prod-salt",
+      "key": "7",
+      "bucket": 14308
+    },
+    {
+      "flagKey": "a",
+      "salt": "prod-salt",
+      "key": "07",
+      "bucket": 76261
+    },
+    {
+      "flagKey": "a",
+      "salt": "prod-salt",
+      "key": "用户-1",
+      "bucket": 59957
+    },
+    {
+      "flagKey": "a",
+      "salt": "prod-salt",
+      "key": "🎉-user",
+      "bucket": 10017
+    },
+    {
+      "flagKey": "a",
+      "salt": "prod-salt",
+      "key": "Ωmega",
+      "bucket": 8855
+    },
+    {
+      "flagKey": "a",
+      "salt": "prod-salt",
+      "key": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "bucket": 36868
+    },
+    {
+      "flagKey": "a",
+      "salt": "prod-salt",
+      "key": "usr_7f3a9b2c-4d5e-6f70-8192-a3b4c5d6e7f8",
+      "bucket": 76347
+    },
+    {
+      "flagKey": "a",
+      "salt": "prod-salt",
+      "key": "a@example.com",
+      "bucket": 93338
+    },
+    {
+      "flagKey": "a",
+      "salt": "prod-salt",
+      "key": "A@EXAMPLE.COM",
+      "bucket": 98224
+    },
+    {
+      "flagKey": "a",
+      "salt": "prod-salt",
+      "key": " leading",
+      "bucket": 80696
+    },
+    {
+      "flagKey": "a",
+      "salt": "prod-salt",
+      "key": "trailing ",
+      "bucket": 1336
+    },
+    {
+      "flagKey": "a",
+      "salt": "staging-salt",
+      "key": "user-1",
+      "bucket": 84219
+    },
+    {
+      "flagKey": "a",
+      "salt": "staging-salt",
+      "key": "user-2",
+      "bucket": 72610
+    },
+    {
+      "flagKey": "a",
+      "salt": "staging-salt",
+      "key": "user-100000",
+      "bucket": 51417
+    },
+    {
+      "flagKey": "a",
+      "salt": "staging-salt",
+      "key": "0",
+      "bucket": 96955
+    },
+    {
+      "flagKey": "a",
+      "salt": "staging-salt",
+      "key": "00",
+      "bucket": 88425
+    },
+    {
+      "flagKey": "a",
+      "salt": "staging-salt",
+      "key": "7",
+      "bucket": 49415
+    },
+    {
+      "flagKey": "a",
+      "salt": "staging-salt",
+      "key": "07",
+      "bucket": 58423
+    },
+    {
+      "flagKey": "a",
+      "salt": "staging-salt",
+      "key": "用户-1",
+      "bucket": 55925
+    },
+    {
+      "flagKey": "a",
+      "salt": "staging-salt",
+      "key": "🎉-user",
+      "bucket": 40746
+    },
+    {
+      "flagKey": "a",
+      "salt": "staging-salt",
+      "key": "Ωmega",
+      "bucket": 9321
+    },
+    {
+      "flagKey": "a",
+      "salt": "staging-salt",
+      "key": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "bucket": 25511
+    },
+    {
+      "flagKey": "a",
+      "salt": "staging-salt",
+      "key": "usr_7f3a9b2c-4d5e-6f70-8192-a3b4c5d6e7f8",
+      "bucket": 26419
+    },
+    {
+      "flagKey": "a",
+      "salt": "staging-salt",
+      "key": "a@example.com",
+      "bucket": 5783
+    },
+    {
+      "flagKey": "a",
+      "salt": "staging-salt",
+      "key": "A@EXAMPLE.COM",
+      "bucket": 25049
+    },
+    {
+      "flagKey": "a",
+      "salt": "staging-salt",
+      "key": " leading",
+      "bucket": 46237
+    },
+    {
+      "flagKey": "a",
+      "salt": "staging-salt",
+      "key": "trailing ",
+      "bucket": 89840
+    },
+    {
+      "flagKey": "a",
+      "salt": "",
+      "key": "user-1",
+      "bucket": 86855
+    },
+    {
+      "flagKey": "a",
+      "salt": "",
+      "key": "user-2",
+      "bucket": 50349
+    },
+    {
+      "flagKey": "a",
+      "salt": "",
+      "key": "user-100000",
+      "bucket": 69484
+    },
+    {
+      "flagKey": "a",
+      "salt": "",
+      "key": "0",
+      "bucket": 47248
+    },
+    {
+      "flagKey": "a",
+      "salt": "",
+      "key": "00",
+      "bucket": 18601
+    },
+    {
+      "flagKey": "a",
+      "salt": "",
+      "key": "7",
+      "bucket": 90905
+    },
+    {
+      "flagKey": "a",
+      "salt": "",
+      "key": "07",
+      "bucket": 62439
+    },
+    {
+      "flagKey": "a",
+      "salt": "",
+      "key": "用户-1",
+      "bucket": 47028
+    },
+    {
+      "flagKey": "a",
+      "salt": "",
+      "key": "🎉-user",
+      "bucket": 13254
+    },
+    {
+      "flagKey": "a",
+      "salt": "",
+      "key": "Ωmega",
+      "bucket": 86794
+    },
+    {
+      "flagKey": "a",
+      "salt": "",
+      "key": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "bucket": 92083
+    },
+    {
+      "flagKey": "a",
+      "salt": "",
+      "key": "usr_7f3a9b2c-4d5e-6f70-8192-a3b4c5d6e7f8",
+      "bucket": 14473
+    },
+    {
+      "flagKey": "a",
+      "salt": "",
+      "key": "a@example.com",
+      "bucket": 23451
+    },
+    {
+      "flagKey": "a",
+      "salt": "",
+      "key": "A@EXAMPLE.COM",
+      "bucket": 3360
+    },
+    {
+      "flagKey": "a",
+      "salt": "",
+      "key": " leading",
+      "bucket": 72112
+    },
+    {
+      "flagKey": "a",
+      "salt": "",
+      "key": "trailing ",
+      "bucket": 17237
+    },
+    {
+      "flagKey": "seeded",
+      "salt": "prod-salt",
+      "key": "user-1",
+      "seed": 0,
+      "bucket": 23467
+    },
+    {
+      "flagKey": "seeded",
+      "salt": "prod-salt",
+      "key": "user-2",
+      "seed": 0,
+      "bucket": 20154
+    },
+    {
+      "flagKey": "seeded",
+      "salt": "prod-salt",
+      "key": "user-100000",
+      "seed": 0,
+      "bucket": 17627
+    },
+    {
+      "flagKey": "seeded",
+      "salt": "prod-salt",
+      "key": "0",
+      "seed": 0,
+      "bucket": 25001
+    },
+    {
+      "flagKey": "seeded",
+      "salt": "prod-salt",
+      "key": "00",
+      "seed": 0,
+      "bucket": 82572
+    },
+    {
+      "flagKey": "seeded",
+      "salt": "prod-salt",
+      "key": "7",
+      "seed": 0,
+      "bucket": 75457
+    },
+    {
+      "flagKey": "seeded",
+      "salt": "prod-salt",
+      "key": "user-1",
+      "seed": 1,
+      "bucket": 35190
+    },
+    {
+      "flagKey": "seeded",
+      "salt": "prod-salt",
+      "key": "user-2",
+      "seed": 1,
+      "bucket": 75756
+    },
+    {
+      "flagKey": "seeded",
+      "salt": "prod-salt",
+      "key": "user-100000",
+      "seed": 1,
+      "bucket": 56765
+    },
+    {
+      "flagKey": "seeded",
+      "salt": "prod-salt",
+      "key": "0",
+      "seed": 1,
+      "bucket": 89277
+    },
+    {
+      "flagKey": "seeded",
+      "salt": "prod-salt",
+      "key": "00",
+      "seed": 1,
+      "bucket": 14089
+    },
+    {
+      "flagKey": "seeded",
+      "salt": "prod-salt",
+      "key": "7",
+      "seed": 1,
+      "bucket": 61026
+    },
+    {
+      "flagKey": "seeded",
+      "salt": "prod-salt",
+      "key": "user-1",
+      "seed": 42,
+      "bucket": 82288
+    },
+    {
+      "flagKey": "seeded",
+      "salt": "prod-salt",
+      "key": "user-2",
+      "seed": 42,
+      "bucket": 97971
+    },
+    {
+      "flagKey": "seeded",
+      "salt": "prod-salt",
+      "key": "user-100000",
+      "seed": 42,
+      "bucket": 4245
+    },
+    {
+      "flagKey": "seeded",
+      "salt": "prod-salt",
+      "key": "0",
+      "seed": 42,
+      "bucket": 94058
+    },
+    {
+      "flagKey": "seeded",
+      "salt": "prod-salt",
+      "key": "00",
+      "seed": 42,
+      "bucket": 72428
+    },
+    {
+      "flagKey": "seeded",
+      "salt": "prod-salt",
+      "key": "7",
+      "seed": 42,
+      "bucket": 59754
+    },
+    {
+      "flagKey": "seeded",
+      "salt": "prod-salt",
+      "key": "user-1",
+      "seed": 2147483647,
+      "bucket": 7313
+    },
+    {
+      "flagKey": "seeded",
+      "salt": "prod-salt",
+      "key": "user-2",
+      "seed": 2147483647,
+      "bucket": 36282
+    },
+    {
+      "flagKey": "seeded",
+      "salt": "prod-salt",
+      "key": "user-100000",
+      "seed": 2147483647,
+      "bucket": 76552
+    },
+    {
+      "flagKey": "seeded",
+      "salt": "prod-salt",
+      "key": "0",
+      "seed": 2147483647,
+      "bucket": 25642
+    },
+    {
+      "flagKey": "seeded",
+      "salt": "prod-salt",
+      "key": "00",
+      "seed": 2147483647,
+      "bucket": 90277
+    },
+    {
+      "flagKey": "seeded",
+      "salt": "prod-salt",
+      "key": "7",
+      "seed": 2147483647,
+      "bucket": 70027
+    }
+  ],
+  "hashes": [
+    {
+      "input": "",
+      "hash": 0
+    },
+    {
+      "input": "a",
+      "hash": 1009084850
+    },
+    {
+      "input": "user-1",
+      "hash": 4171401059
+    },
+    {
+      "input": "用户-1",
+      "hash": 2861058107
+    },
+    {
+      "input": "🎉",
+      "hash": 535530326
+    }
+  ],
+  "edges": [
+    {
+      "raw": 0,
+      "bucket": 0
+    },
+    {
+      "raw": 1,
+      "bucket": 0
+    },
+    {
+      "raw": 2147483648,
+      "bucket": 50000
+    },
+    {
+      "raw": 4294967295,
+      "bucket": 99999
+    }
+  ]
+}

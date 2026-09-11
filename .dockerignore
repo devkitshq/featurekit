@@ -1,0 +1,39 @@
+# What never belongs in the build context.
+#
+# Without this file the context is the whole checkout — including every
+# `node_modules` in it, which for `examples/mobile` alone is most of a gigabyte
+# sent to the daemon on every build. It is also a correctness matter, not only a
+# speed one: `COPY packages packages` and `COPY dashboard dashboard` would
+# otherwise carry a *host-built* `dist/` into the image, where it would be
+# whatever was last compiled on somebody's laptop rather than what this build
+# just produced.
+
+.git
+.github
+**/node_modules
+
+# Built on the host. The build stage compiles its own; shipping these would mean
+# the image contains output nobody can trace to a commit.
+dist
+**/dist
+**/*.tsbuildinfo
+
+# Not needed to build or run the server.
+tests
+conformance
+examples
+docs
+*.md
+!README.md
+
+# Expo leftovers, if anyone has run the mobile example.
+**/.expo
+examples/mobile/android
+examples/mobile/ios
+
+# Never.
+.env
+.env.*
+*.pem
+*.key
+.featurekit

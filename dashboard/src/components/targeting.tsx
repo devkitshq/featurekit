@@ -1,0 +1,736 @@
+/**
+ * The targeting editor.
+ *
+ * The order on screen is the evaluation order, and the page says so, because
+ * the single most common flag misconfiguration is a rule that never fires
+ * because something above it already matched:
+ *
+ *   prerequisites → individual targets → rules, in order → the default
+ *
+ * A rule serves **either** one variation **or** a rollout, never both — the
+ * database has a constraint saying so, and here it is a radio rather than a
+ * validation error after the fact.
+ */
+
+import { ChevronDown, ChevronUp, Plus, Trash2, Users } from "lucide-react";
+import type { Clause, FlagDefinition, FlagTarget, Rule, Segment } from "../lib/api";
+import { fromPercent, toPercent } from "../lib/api";
+import {
+  OPERATORS,
+  cn,
+  operatorInputKind,
+  parseValue,
+  variationLabel,
+} from "../lib/utils";
+import { Badge, Button, Input, Select } from "./ui";
+
+export interface TargetingValue {
+  rules: Rule[];
+  targets: FlagTarget[];
+  prerequisites: Array<{ flagKey: string; variation: number }>;
+  fallthroughVariation?: number;
+  fallthroughRollout?: Rule["rollout"];
+  offVariation: number | null;
+}
+
+export function TargetingEditor({
+  flag,
+  value,
+  onChange,
+  segments,
+  otherFlags,
+  disabled,
+}: {
+  flag: FlagDefinition;
+  value: TargetingValue;
+  onChange: (next: TargetingValue) => void;
+  segments: Segment[];
+  otherFlags: Array<{ key: string; variations: FlagDefinition["variations"] }>;
+  disabled: boolean;
+}) {
+  const patch = (next: Partial<TargetingValue>) => onChange({ ...value, ...next });
+
+  return (
+    <div className="space-y-4">
+      <Section
+        step="1"
+        title="Prerequisites"
+        hint="Checked first. If any is not serving the required variation, this flag serves its off variation."
+      >
+        {value.prerequisites.length === 0 ? (
+          <Empty>No prerequisites.</Empty>
+        ) : (
+          <div className="space-y-2">
+            {value.prerequisites.map((prerequisite, index) => {
+              const target = otherFlags.find((entry) => entry.key === prerequisite.flagKey);
+              return (
+                <div key={index} className="flex flex-wrap items-center gap-2">
+                  <Select
+                    disabled={disabled}
+                    className="w-56"
+                    value={prerequisite.flagKey}
+                    onChange={(event) =>
+                      patch({
+                        prerequisites: value.prerequisites.map((entry, at) =>
+                          at === index ? { ...entry, flagKey: event.target.value } : entry,
+                        ),
+                      })
+                    }
+                  >
+                    {otherFlags.map((entry) => (
+                      <option key={entry.key} value={entry.key}>
+                        {entry.key}
+                      </option>
+                    ))}
+                  </Select>
+                  <span className="text-xs text-muted">serves</span>
+                  <Select
+                    disabled={disabled}
+                    className="w-40"
+                    value={String(prerequisite.variation)}
+                    onChange={(event) =>
+                      patch({
+                        prerequisites: value.prerequisites.map((entry, at) =>
+                          at === index ? { ...entry, variation: Number(event.target.value) } : entry,
+                        ),
+                      })
+                    }
+                  >
+                    {(target?.variations ?? []).map((variation) => (
+                      <option key={variation.idx} value={variation.idx}>
+                        {variationLabel(variation)}
+                      </option>
+                    ))}
+                  </Select>
+                  <RemoveButton
+                    disabled={disabled}
+                    label="Remove prerequisite"
+                    onClick={() =>
+                      patch({ prerequisites: value.prerequisites.filter((_, at) => at !== index) })
+                    }
+                  />
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {otherFlags.length > 0 ? (
+          <AddButton
+            disabled={disabled}
+            label="Add prerequisite"
+            onClick={() =>
+              patch({
+                prerequisites: [
+                  ...value.prerequisites,
+                  { flagKey: otherFlags[0]!.key, variation: 0 },
+                ],
+              })
+            }
+          />
+        ) : null}
+      </Section>
+
+      <Section
+        step="2"
+        title="Individual targets"
+        hint="Named context keys, which beat every rule below. The escape hatch for one account, not a way to build a cohort."
+      >
+        {value.targets.length === 0 ? (
+          <Empty>Nobody is individually targeted.</Empty>
+        ) : (
+          <div className="space-y-3">
+            {value.targets.map((target, index) => (
+              <div key={index} className="rounded-md border border-border p-3">
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="text-xs text-muted">serve</span>
+                  <Select
+                    disabled={disabled}
+                    className="w-40"
+                    value={String(target.variation)}
+                    onChange={(event) =>
+                      patch({
+                        targets: value.targets.map((entry, at) =>
+                          at === index ? { ...entry, variation: Number(event.target.value) } : entry,
+                        ),
+                      })
+                    }
+                  >
+                    {flag.variations.map((variation) => (
+                      <option key={variation.idx} value={variation.idx}>
+                        {variationLabel(variation, flag.kind)}
+                      </option>
+                    ))}
+                  </Select>
+                  <span className="text-xs text-muted">to</span>
+                  <Input
+                    disabled={disabled}
+                    className="w-24"
+                    value={target.contextKind}
+                    onChange={(event) =>
+                      patch({
+                        targets: value.targets.map((entry, at) =>
+                          at === index ? { ...entry, contextKind: event.target.value } : entry,
+                        ),
+                      })
+                    }
+                  />
+                  <Badge tone="neutral">{target.keys.length} keys</Badge>
+                  <div className="ml-auto">
+                    <RemoveButton
+                      disabled={disabled}
+                      label="Remove target list"
+                      onClick={() =>
+                        patch({ targets: value.targets.filter((_, at) => at !== index) })
+                      }
+                    />
+                  </div>
+                </div>
+                <textarea
+                  disabled={disabled}
+                  rows={3}
+                  value={target.keys.join("\n")}
+                  onChange={(event) =>
+                    patch({
+                      targets: value.targets.map((entry, at) =>
+                        at === index
+                          ? {
+                              ...entry,
+                              keys: event.target.value
+                                .split(/[\n,]/)
+                                .map((key) => key.trim())
+                                .filter((key) => key.length > 0),
+                            }
+                          : entry,
+                      ),
+                    })
+                  }
+                  placeholder="one context key per line"
+                  className="w-full rounded-md border border-border bg-canvas px-2.5 py-1.5 font-mono text-xs"
+                />
+              </div>
+            ))}
+          </div>
+        )}
+        <AddButton
+          disabled={disabled}
+          label="Add target list"
+          onClick={() =>
+            patch({
+              targets: [...value.targets, { contextKind: "user", variation: 0, keys: [] }],
+            })
+          }
+        />
+      </Section>
+
+      <Section
+        step="3"
+        title="Rules"
+        hint="Evaluated top to bottom. The first rule whose clauses all match decides, and nothing below it runs."
+      >
+        {value.rules.length === 0 ? (
+          <Empty>No rules — everyone falls through to the default below.</Empty>
+        ) : (
+          <div className="space-y-3">
+            {value.rules.map((rule, index) => (
+              <RuleCard
+                key={index}
+                index={index}
+                total={value.rules.length}
+                rule={rule}
+                flag={flag}
+                segments={segments}
+                disabled={disabled}
+                onChange={(next) =>
+                  patch({ rules: value.rules.map((entry, at) => (at === index ? next : entry)) })
+                }
+                onRemove={() => patch({ rules: value.rules.filter((_, at) => at !== index) })}
+                onMove={(direction) => {
+                  const next = [...value.rules];
+                  const to = index + direction;
+                  if (to < 0 || to >= next.length) return;
+                  const [moved] = next.splice(index, 1);
+                  next.splice(to, 0, moved!);
+                  patch({ rules: next });
+                }}
+              />
+            ))}
+          </div>
+        )}
+        <AddButton
+          disabled={disabled}
+          label="Add rule"
+          onClick={() =>
+            patch({
+              rules: [
+                ...value.rules,
+                {
+                  clauses: [{ contextKind: "user", attribute: "", op: "in", values: [], negate: false }],
+                  variation: flag.variations.length - 1,
+                },
+              ],
+            })
+          }
+        />
+      </Section>
+
+      <Section
+        step="4"
+        title="Default"
+        hint="What everyone who reached this point gets. A single variation, or a percentage rollout bucketed by context key."
+      >
+        <OutcomeEditor
+          flag={flag}
+          disabled={disabled}
+          variation={value.fallthroughVariation}
+          rollout={value.fallthroughRollout}
+          onVariation={(variation) =>
+            onChange({ ...value, fallthroughVariation: variation, fallthroughRollout: undefined })
+          }
+          onRollout={(rollout) =>
+            onChange({ ...value, fallthroughRollout: rollout, fallthroughVariation: undefined })
+          }
+        />
+      </Section>
+
+      <Section
+        step="off"
+        title="Off variation"
+        hint="What everyone gets when the flag is off, or when a prerequisite fails. The kill switch serves this."
+      >
+        <Select
+          disabled={disabled}
+          className="w-56"
+          value={String(value.offVariation ?? 0)}
+          onChange={(event) => patch({ offVariation: Number(event.target.value) })}
+        >
+          {flag.variations.map((variation) => (
+            <option key={variation.idx} value={variation.idx}>
+              {variationLabel(variation, flag.kind)}
+            </option>
+          ))}
+        </Select>
+      </Section>
+    </div>
+  );
+}
+
+/* ──────────────────────────────── rules ─────────────────────────────── */
+
+function RuleCard({
+  index,
+  total,
+  rule,
+  flag,
+  segments,
+  disabled,
+  onChange,
+  onRemove,
+  onMove,
+}: {
+  index: number;
+  total: number;
+  rule: Rule;
+  flag: FlagDefinition;
+  segments: Segment[];
+  disabled: boolean;
+  onChange: (next: Rule) => void;
+  onRemove: () => void;
+  onMove: (direction: 1 | -1) => void;
+}) {
+  return (
+    <div className="rounded-md border border-border bg-canvas p-3">
+      <div className="mb-2 flex items-center gap-2">
+        <Badge tone="accent">rule {index + 1}</Badge>
+        <Input
+          disabled={disabled}
+          value={rule.description ?? ""}
+          placeholder="What this rule is for"
+          onChange={(event) => onChange({ ...rule, description: event.target.value })}
+          className="h-7 flex-1 text-xs"
+        />
+        <Button
+          variant="ghost"
+          size="icon"
+          disabled={disabled || index === 0}
+          aria-label="Move up"
+          onClick={() => onMove(-1)}
+        >
+          <ChevronUp className="size-3.5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          disabled={disabled || index === total - 1}
+          aria-label="Move down"
+          onClick={() => onMove(1)}
+        >
+          <ChevronDown className="size-3.5" />
+        </Button>
+        <RemoveButton disabled={disabled} label="Remove rule" onClick={onRemove} />
+      </div>
+
+      <div className="space-y-2">
+        {rule.clauses.map((clause, clauseIndex) => (
+          <ClauseRow
+            key={clauseIndex}
+            clause={clause}
+            first={clauseIndex === 0}
+            segments={segments}
+            disabled={disabled}
+            onChange={(next) =>
+              onChange({
+                ...rule,
+                clauses: rule.clauses.map((entry, at) => (at === clauseIndex ? next : entry)),
+              })
+            }
+            onRemove={() =>
+              onChange({ ...rule, clauses: rule.clauses.filter((_, at) => at !== clauseIndex) })
+            }
+          />
+        ))}
+        <AddButton
+          disabled={disabled}
+          label="Add condition"
+          onClick={() =>
+            onChange({
+              ...rule,
+              clauses: [
+                ...rule.clauses,
+                { contextKind: "user", attribute: "", op: "in", values: [], negate: false },
+              ],
+            })
+          }
+        />
+      </div>
+
+      <div className="mt-3 border-t border-border pt-3">
+        <OutcomeEditor
+          flag={flag}
+          disabled={disabled}
+          variation={rule.variation}
+          rollout={rule.rollout}
+          onVariation={(variation) => onChange({ ...rule, variation, rollout: undefined })}
+          onRollout={(rollout) => onChange({ ...rule, rollout, variation: undefined })}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ClauseRow({
+  clause,
+  first,
+  segments,
+  disabled,
+  onChange,
+  onRemove,
+}: {
+  clause: Clause;
+  first: boolean;
+  segments: Segment[];
+  disabled: boolean;
+  onChange: (next: Clause) => void;
+  onRemove: () => void;
+}) {
+  const inputKind = operatorInputKind(clause.op);
+  const asText = clause.values
+    .map((value) => (typeof value === "string" ? value : JSON.stringify(value)))
+    .join(", ");
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {/* Clauses within a rule are AND. Saying so beats a legend nobody reads. */}
+      <span className="w-10 shrink-0 text-right text-[11px] uppercase text-faint">
+        {first ? "if" : "and"}
+      </span>
+      <Input
+        disabled={disabled}
+        className="h-7 w-20 text-xs"
+        value={clause.contextKind}
+        onChange={(event) => onChange({ ...clause, contextKind: event.target.value })}
+        title="Context kind"
+      />
+      <Input
+        disabled={disabled}
+        className="h-7 w-36 text-xs"
+        placeholder="attribute"
+        value={clause.attribute}
+        onChange={(event) => onChange({ ...clause, attribute: event.target.value })}
+      />
+      <Button
+        variant={clause.negate ? "danger" : "ghost"}
+        size="sm"
+        disabled={disabled}
+        onClick={() => onChange({ ...clause, negate: !clause.negate })}
+        title="Negate this condition"
+      >
+        {clause.negate ? "not" : "is"}
+      </Button>
+      <Select
+        disabled={disabled}
+        className="h-7 w-36 text-xs"
+        value={clause.op}
+        onChange={(event) => onChange({ ...clause, op: event.target.value, values: [] })}
+      >
+        {OPERATORS.map((operator) => (
+          <option key={operator.value} value={operator.value}>
+            {operator.label}
+          </option>
+        ))}
+      </Select>
+
+      {inputKind === "segment" ? (
+        <Select
+          disabled={disabled}
+          className="h-7 w-48 text-xs"
+          value={typeof clause.values[0] === "string" ? clause.values[0] : ""}
+          onChange={(event) => onChange({ ...clause, values: [event.target.value] })}
+        >
+          <option value="">choose a segment…</option>
+          {segments.map((segment) => (
+            <option key={segment.key} value={segment.key}>
+              {segment.name}
+            </option>
+          ))}
+        </Select>
+      ) : (
+        <Input
+          disabled={disabled}
+          type={inputKind === "date" ? "datetime-local" : "text"}
+          className="h-7 flex-1 min-w-40 text-xs"
+          placeholder={inputKind === "number" ? "42" : "comma separated values"}
+          value={asText}
+          onChange={(event) => {
+            const raw = event.target.value;
+            const parts = raw
+              .split(",")
+              .map((part) => part.trim())
+              .filter((part) => part.length > 0);
+            const values =
+              inputKind === "number"
+                ? parts.map((part) => {
+                    try {
+                      return parseValue(part, "number");
+                    } catch {
+                      return part;
+                    }
+                  })
+                : parts;
+            onChange({ ...clause, values });
+          }}
+        />
+      )}
+      <RemoveButton disabled={disabled} label="Remove condition" onClick={onRemove} />
+    </div>
+  );
+}
+
+/* ─────────────────────── one variation, or a rollout ────────────────── */
+
+function OutcomeEditor({
+  flag,
+  disabled,
+  variation,
+  rollout,
+  onVariation,
+  onRollout,
+}: {
+  flag: FlagDefinition;
+  disabled: boolean;
+  variation: number | undefined;
+  rollout: Rule["rollout"] | undefined;
+  onVariation: (variation: number) => void;
+  onRollout: (rollout: Rule["rollout"]) => void;
+}) {
+  const isRollout = rollout !== undefined;
+  const slices =
+    rollout?.variations ??
+    flag.variations.map((entry, index) => ({
+      variationIndex: entry.idx,
+      weight: index === 0 ? 100_000 : 0,
+    }));
+  const total = slices.reduce((sum, slice) => sum + slice.weight, 0);
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-3">
+        <span className="text-xs text-muted">serve</span>
+        <div className="flex overflow-hidden rounded-md border border-border">
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => onVariation(variation ?? 0)}
+            className={cn(
+              "px-2.5 py-1 text-xs transition",
+              !isRollout ? "bg-accent text-accent-ink" : "text-muted hover:text-ink",
+            )}
+          >
+            one variation
+          </button>
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => onRollout({ contextKind: "user", variations: slices })}
+            className={cn(
+              "px-2.5 py-1 text-xs transition",
+              isRollout ? "bg-accent text-accent-ink" : "text-muted hover:text-ink",
+            )}
+          >
+            a percentage rollout
+          </button>
+        </div>
+      </div>
+
+      {isRollout ? (
+        <div className="space-y-2">
+          {flag.variations.map((entry) => {
+            const slice = slices.find((item) => item.variationIndex === entry.idx);
+            const percent = toPercent(slice?.weight ?? 0);
+            return (
+              <div key={entry.idx} className="flex items-center gap-3">
+                <span className="w-40 shrink-0 truncate text-xs">
+                  {variationLabel(entry, flag.kind)}
+                </span>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={0.1}
+                  disabled={disabled}
+                  value={percent}
+                  onChange={(event) => {
+                    const next = flag.variations.map((candidate) => {
+                      const existing = slices.find((item) => item.variationIndex === candidate.idx);
+                      return {
+                        variationIndex: candidate.idx,
+                        weight:
+                          candidate.idx === entry.idx
+                            ? fromPercent(Number(event.target.value))
+                            : (existing?.weight ?? 0),
+                      };
+                    });
+                    onRollout({ ...(rollout ?? { contextKind: "user" }), variations: next });
+                  }}
+                  className="h-1 flex-1 accent-[var(--color-accent)]"
+                />
+                <span className="w-14 shrink-0 text-right font-mono text-xs tabular-nums">
+                  {percent.toFixed(1)}%
+                </span>
+              </div>
+            );
+          })}
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="text-faint">
+              Bucketed by context key against this environment's salt — the same user keeps the same
+              arm across reloads and services.
+            </span>
+            <span className={cn("font-mono", total === 100_000 ? "text-on" : "text-danger")}>
+              {toPercent(total).toFixed(1)}% total
+            </span>
+          </div>
+        </div>
+      ) : (
+        <Select
+          disabled={disabled}
+          className="w-56"
+          value={String(variation ?? 0)}
+          onChange={(event) => onVariation(Number(event.target.value))}
+        >
+          {flag.variations.map((entry) => (
+            <option key={entry.idx} value={entry.idx}>
+              {variationLabel(entry, flag.kind)}
+            </option>
+          ))}
+        </Select>
+      )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────── pieces ─────────────────────────────── */
+
+function Section({
+  step,
+  title,
+  hint,
+  children,
+}: {
+  step: string;
+  title: string;
+  hint: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-card border border-border bg-surface">
+      <header className="flex items-start gap-3 border-b border-border px-4 py-3">
+        <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded bg-raised text-[10px] font-semibold text-muted">
+          {step}
+        </span>
+        <div>
+          <h3 className="text-sm font-semibold">{title}</h3>
+          <p className="mt-0.5 text-xs text-muted">{hint}</p>
+        </div>
+      </header>
+      <div className="space-y-2 p-4">{children}</div>
+    </section>
+  );
+}
+
+function Empty({ children }: { children: React.ReactNode }) {
+  return <p className="text-xs text-faint">{children}</p>;
+}
+
+function AddButton({
+  label,
+  onClick,
+  disabled,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled: boolean;
+}) {
+  return (
+    <Button variant="ghost" size="sm" disabled={disabled} onClick={onClick}>
+      <Plus className="size-3.5" />
+      {label}
+    </Button>
+  );
+}
+
+function RemoveButton({
+  label,
+  onClick,
+  disabled,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled: boolean;
+}) {
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      aria-label={label}
+      title={label}
+      disabled={disabled}
+      onClick={onClick}
+      className="hover:text-danger"
+    >
+      <Trash2 className="size-3.5" />
+    </Button>
+  );
+}
+
+/** Shown when a segment clause names a segment that no longer exists. */
+export function MissingSegmentWarning({ keys }: { keys: string[] }) {
+  if (keys.length === 0) return null;
+  return (
+    <div className="flex items-start gap-2 rounded-md border border-warn/40 bg-warn-soft px-3 py-2 text-xs text-warn">
+      <Users className="mt-px size-3.5 shrink-0" />
+      <span>
+        {keys.join(", ")} {keys.length === 1 ? "is" : "are"} referenced here but no longer exist. A
+        rule naming a missing segment fails closed — it will never match.
+      </span>
+    </div>
+  );
+}

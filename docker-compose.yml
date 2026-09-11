@@ -1,0 +1,36 @@
+# Local development only. Production runs Postgres and Redis somewhere that has
+# backups and an on-call rotation.
+#
+# `pg_partman` and `pg_cron` are not in the stock postgres image, so the
+# partition migration takes its documented fallback path here and
+# `featurekit_ensure_partitions()` is called by `npm run migrate`. That is the
+# same path a managed Postgres with a locked-down extension allow-list takes,
+# which makes it worth exercising by default rather than papering over.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: featurekit
+      POSTGRES_PASSWORD: featurekit
+      POSTGRES_DB: featurekit
+    ports: ["5432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U featurekit"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - featurekit-pg:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  featurekit-pg:

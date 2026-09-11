@@ -1,0 +1,41 @@
+{
+  "name": "featurekit-client",
+  "version": "0.1.0",
+  "description": "featurekit client-tier SDK \u2014 evaluated values, never the ruleset. One client, any JavaScript runtime.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.map"
+  ],
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {},
+  "keywords": [
+    "feature-flags",
+    "feature-toggles",
+    "featurekit"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/featurekit/featurekit.git",
+    "directory": "packages/client"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  }
+}

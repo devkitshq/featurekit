@@ -1,0 +1,101 @@
+# CI (§21, §16).
+#
+# The load-bearing line in this file is `FEATUREKIT_REQUIRE_CONTAINERS=1`.
+#
+# The integration and management-API suites skip when no container runtime is
+# reachable, so a laptop without a Docker daemon is not a broken checkout. That
+# is a convenience for developers and a trap for CI: a skipped tenant-isolation
+# suite is indistinguishable from a passing one, which is exactly how an IDOR
+# ships. In CI the skip is a failure.
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    name: typecheck + unit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - name: Unit tests (no containers)
+        run: npm test
+        env:
+          FEATUREKIT_SKIP_CONTAINERS: "1"
+
+  integration:
+    name: integration (real Postgres + Redis)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Integration and management-API tests
+        # A skip here fails the job. See the header comment.
+        run: npm test
+        env:
+          FEATUREKIT_REQUIRE_CONTAINERS: "1"
+
+  conformance:
+    name: cross-language conformance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: npm ci
+      - run: npm run build
+      # A second, independent implementation reading the same corpus. This is
+      # the only thing that makes "cross-language determinism" a fact rather
+      # than a design claim with one consumer.
+      - name: Python implementation against the corpus
+        run: python conformance/python/run.py
+      - name: The corpus still regenerates identically
+        # A corpus that drifts from its generator is a corpus nobody can trust.
+        run: |
+          node tools/gen-conformance.mjs
+          git diff --exit-code tests/conformance/
+
+  supply-chain:
+    name: package contents + audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Published package contents
+        # Asserts both packages ship no source maps and no fixtures, that
+        # `featurekit-client` has zero runtime dependencies — it goes into every
+        # browser bundle and every mobile binary — and that the evaluator in
+        # `src/sdk/` never reaches into the control plane beside it. That last
+        # one used to hold for free, when the evaluator was its own package; it
+        # is now one `../db/schema.js` away from being untrue (§20).
+        run: node tools/check-package.mjs
+      - name: Known vulnerabilities
+        run: npm audit --audit-level=high

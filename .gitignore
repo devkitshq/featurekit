@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.featurekit/
+.env
+__pycache__/
+*.pyc
+
+# demo scratch
+examples/**/.demo.json
+examples/**/.snapshot.json

@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+/**
+ * The token layer.
+ *
+ * Light and dark are one set of names with two sets of values, so a component
+ * says `bg-surface` and is correct in both. The alternative — `dark:` on every
+ * element — is two stylesheets maintained in one file, and one of them is
+ * always slightly wrong.
+ */
+@theme {
+  --color-canvas: oklch(0.16 0.008 265);
+  --color-surface: oklch(0.19 0.009 265);
+  --color-raised: oklch(0.23 0.01 265);
+  --color-border: oklch(0.29 0.012 265);
+  --color-border-strong: oklch(0.38 0.015 265);
+  --color-ink: oklch(0.95 0.005 265);
+  --color-muted: oklch(0.68 0.015 265);
+  --color-faint: oklch(0.54 0.015 265);
+
+  --color-accent: oklch(0.66 0.16 258);
+  --color-accent-ink: oklch(0.98 0.01 258);
+  --color-accent-soft: oklch(0.3 0.07 258);
+
+  --color-on: oklch(0.72 0.17 152);
+  --color-on-soft: oklch(0.28 0.06 152);
+  --color-off: oklch(0.55 0.02 265);
+  --color-danger: oklch(0.65 0.19 25);
+  --color-danger-soft: oklch(0.3 0.09 25);
+  --color-warn: oklch(0.78 0.15 85);
+  --color-warn-soft: oklch(0.3 0.07 85);
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+
+  --radius-card: 0.7rem;
+}
+
+/* A light theme for people who work in daylight. Same names, different values. */
+:root:not(.dark) {
+  --color-canvas: oklch(0.98 0.003 265);
+  --color-surface: oklch(1 0 0);
+  --color-raised: oklch(0.96 0.004 265);
+  --color-border: oklch(0.9 0.006 265);
+  --color-border-strong: oklch(0.8 0.01 265);
+  --color-ink: oklch(0.24 0.01 265);
+  --color-muted: oklch(0.46 0.015 265);
+  --color-faint: oklch(0.6 0.015 265);
+  --color-accent-soft: oklch(0.93 0.04 258);
+  --color-on-soft: oklch(0.92 0.05 152);
+  --color-danger-soft: oklch(0.94 0.05 25);
+  --color-warn-soft: oklch(0.94 0.06 85);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Focus is visible on everything, always. A dashboard is a keyboard tool. */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: 6px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@keyframes fk-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.fk-rise {
+  animation: fk-rise 0.16s ease-out;
+}

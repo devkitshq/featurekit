@@ -1,0 +1,105 @@
+{
+  "name": "featurekit",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./migrate": {
+      "types": "./dist/migrate.d.ts",
+      "default": "./dist/migrate.js"
+    },
+    "./secure-mode": {
+      "types": "./dist/secure-mode.d.ts",
+      "default": "./dist/secure-mode.js"
+    },
+    "./evaluation": {
+      "types": "./dist/sdk/evaluation/index.d.ts",
+      "default": "./dist/sdk/evaluation/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "dashboard/dist",
+    "drizzle",
+    "!dist/**/*.map"
+  ],
+  "workspaces": [
+    "packages/client"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "conformance": "node tools/gen-conformance.mjs",
+    "test:watch": "vitest",
+    "build": "tsc -b && npm run build:dashboard",
+    "typecheck": "tsc -b --force",
+    "bench": "npm run build && node tools/bench.mjs",
+    "demo": "node examples/server/server.js",
+    "demo:lan": "node examples/server/lan.js",
+    "start": "node dist/main.js",
+    "dev": "node --watch dist/main.js",
+    "migrate": "node scripts/migrate.mjs",
+    "migrate:check": "node scripts/migrate.mjs --check",
+    "check:package": "node tools/check-package.mjs",
+    "conformance:python": "python conformance/python/run.py",
+    "admin:user": "node scripts/admin-user.mjs",
+    "build:dashboard": "vite build --config dashboard/vite.config.ts",
+    "dashboard:dev": "vite --config dashboard/vite.config.ts",
+    "typecheck:dashboard": "tsc -p dashboard --noEmit"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/react": "^16.3.3",
+    "@types/node": "^22.10.2",
+    "@types/pg": "^8.23.1",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "clsx": "^2.1.1",
+    "drizzle-kit": "^0.31.10",
+    "happy-dom": "^20.14.0",
+    "lucide-react": "^1.41.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.3",
+    "tailwind-merge": "^3.6.0",
+    "tailwindcss": "^4.3.3",
+    "testcontainers": "^12.0.4",
+    "typescript": "^5.7.2",
+    "vite": "^8.2.2",
+    "vitest": "^5.0.0"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.2",
+    "featurekit": "file:.",
+    "ioredis": "^6.0.0",
+    "pino": "^10.3.1",
+    "postgres": "^3.4.9",
+    "prom-client": "^15.1.3",
+    "zod": "^4.5.4"
+  },
+  "description": "Feature flags with a control plane you run. Server-side: the control plane and the server-tier evaluator.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/featurekit/featurekit.git"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "keywords": [
+    "feature-flags",
+    "feature-toggles",
+    "featurekit",
+    "experimentation"
+  ]
+}

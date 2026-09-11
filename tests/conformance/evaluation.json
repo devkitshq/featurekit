@@ -1,0 +1,1100 @@
+{
+  "$comment": "Expected values are derived from the §9.1 precedence table by hand. Rollout expectations follow from the boundary buckets pinned in bucketing.json.",
+  "cases": [
+    {
+      "name": "flag absent from the snapshot serves the caller default",
+      "flagKey": "missing",
+      "snapshot": {
+        "version": 1,
+        "environmentKey": "production",
+        "salt": "conformance_salt",
+        "flags": {},
+        "segments": {}
+      },
+      "context": {
+        "key": "usr_1"
+      },
+      "defaultValue": "CALLER_DEFAULT",
+      "expected": {
+        "value": "CALLER_DEFAULT",
+        "variationIndex": null,
+        "reason": "FLAG_NOT_FOUND"
+      }
+    },
+    {
+      "name": "an off flag serves its off variation, outranking a matching rule",
+      "flagKey": "f",
+      "snapshot": {
+        "version": 1,
+        "environmentKey": "production",
+        "salt": "conformance_salt",
+        "flags": {
+          "f": {
+            "key": "f",
+            "version": 1,
+            "kind": "boolean",
+            "on": false,
+            "variations": [
+              false,
+              true
+            ],
+            "offVariation": 0,
+            "fallthrough": {
+              "variation": 0
+            },
+            "prerequisites": [],
+            "targets": [],
+            "rules": [
+              {
+                "id": "r0",
+                "variation": 1,
+                "clauses": [
+                  {
+                    "contextKind": "user",
+                    "attribute": "country",
+                    "op": "in",
+                    "values": [
+                      "DE"
+                    ],
+                    "negate": false
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "segments": {}
+      },
+      "context": {
+        "key": "usr_1",
+        "country": "DE"
+      },
+      "defaultValue": null,
+      "expected": {
+        "value": false,
+        "variationIndex": 0,
+        "reason": "OFF"
+      }
+    },
+    {
+      "name": "an off flag with no off variation serves the caller default",
+      "flagKey": "f",
+      "snapshot": {
+        "version": 1,
+        "environmentKey": "production",
+        "salt": "conformance_salt",
+        "flags": {
+          "f": {
+            "key": "f",
+            "version": 1,
+            "kind": "boolean",
+            "on": false,
+            "variations": [
+              false,
+              true
+            ],
+            "offVariation": null,
+            "fallthrough": {
+              "variation": 0
+            },
+            "prerequisites": [],
+            "targets": [],
+            "rules": []
+          }
+        },
+        "segments": {}
+      },
+      "context": {
+        "key": "usr_1"
+      },
+      "defaultValue": "CALLER_DEFAULT",
+      "expected": {
+        "value": "CALLER_DEFAULT",
+        "variationIndex": null,
+        "reason": "OFF"
+      }
+    },
+    {
+      "name": "an unmet prerequisite serves the off variation",
+      "flagKey": "f",
+      "snapshot": {
+        "version": 1,
+        "environmentKey": "production",
+        "salt": "conformance_salt",
+        "flags": {
+          "f": {
+            "key": "f",
+            "version": 1,
+            "kind": "boolean",
+            "on": true,
+            "variations": [
+              false,
+              true
+            ],
+            "offVariation": 0,
+            "fallthrough": {
+              "variation": 1
+            },
+            "prerequisites": [
+              {
+                "key": "p",
+                "variation": 1
+              }
+            ],
+            "targets": [],
+            "rules": []
+          },
+          "p": {
+            "key": "p",
+            "version": 1,
+            "kind": "boolean",
+            "on": true,
+            "variations": [
+              false,
+              true
+            ],
+            "offVariation": 0,
+            "fallthrough": {
+              "variation": 0
+            },
+            "prerequisites": [],
+            "targets": [],
+            "rules": []
+          }
+        },
+        "segments": {}
+      },
+      "context": {
+        "key": "usr_1"
+      },
+      "defaultValue": null,
+      "expected": {
+        "value": false,
+        "variationIndex": 0,
+        "reason": "PREREQUISITE_FAILED",
+        "prerequisiteKey": "p"
+      }
+    },
+    {
+      "name": "a met prerequisite lets evaluation continue to the fallthrough",
+      "flagKey": "f",
+      "snapshot": {
+        "version": 1,
+        "environmentKey": "production",
+        "salt": "conformance_salt",
+        "flags": {
+          "f": {
+            "key": "f",
+            "version": 1,
+            "kind": "boolean",
+            "on": true,
+            "variations": [
+              false,
+              true
+            ],
+            "offVariation": 0,
+            "fallthrough": {
+              "variation": 1
+            },
+            "prerequisites": [
+              {
+                "key": "p",
+                "variation": 1
+              }
+            ],
+            "targets": [],
+            "rules": []
+          },
+          "p": {
+            "key": "p",
+            "version": 1,
+            "kind": "boolean",
+            "on": true,
+            "variations": [
+              false,
+              true
+            ],
+            "offVariation": 0,
+            "fallthrough": {
+              "variation": 1
+            },
+            "prerequisites": [],
+            "targets": [],
+            "rules": []
+          }
+        },
+        "segments": {}
+      },
+      "context": {
+        "key": "usr_1"
+      },
+      "defaultValue": null,
+      "expected": {
+        "value": true,
+        "variationIndex": 1,
+        "reason": "FALLTHROUGH"
+      }
+    },
+    {
+      "name": "an individual target outranks a matching rule",
+      "flagKey": "f",
+      "snapshot": {
+        "version": 1,
+        "environmentKey": "production",
+        "salt": "conformance_salt",
+        "flags": {
+          "f": {
+            "key": "f",
+            "version": 1,
+            "kind": "boolean",
+            "on": true,
+            "variations": [
+              false,
+              true
+            ],
+            "offVariation": 0,
+            "fallthrough": {
+              "variation": 0
+            },
+            "prerequisites": [],
+            "targets": [
+              {
+                "contextKind": "user",
+                "variation": 1,
+                "keys": [
+                  "usr_josé"
+                ]
+              }
+            ],
+            "rules": [
+              {
+                "id": "r0",
+                "variation": 0,
+                "clauses": [
+                  {
+                    "contextKind": "user",
+                    "attribute": "country",
+                    "op": "in",
+                    "values": [
+                      "DE"
+                    ],
+                    "negate": false
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "segments": {}
+      },
+      "context": {
+        "key": "usr_josé",
+        "country": "DE"
+      },
+      "defaultValue": null,
+      "expected": {
+        "value": true,
+        "variationIndex": 1,
+        "reason": "TARGET_MATCH"
+      }
+    },
+    {
+      "name": "the first matching rule wins, and reports its index",
+      "flagKey": "f",
+      "snapshot": {
+        "version": 1,
+        "environmentKey": "production",
+        "salt": "conformance_salt",
+        "flags": {
+          "f": {
+            "key": "f",
+            "version": 1,
+            "kind": "boolean",
+            "on": true,
+            "variations": [
+              false,
+              true
+            ],
+            "offVariation": 0,
+            "fallthrough": {
+              "variation": 0
+            },
+            "prerequisites": [],
+            "targets": [],
+            "rules": [
+              {
+                "id": "r_a",
+                "variation": 0,
+                "clauses": [
+                  {
+                    "contextKind": "user",
+                    "attribute": "country",
+                    "op": "in",
+                    "values": [
+                      "FR"
+                    ],
+                    "negate": false
+                  }
+                ]
+              },
+              {
+                "id": "r_b",
+                "variation": 1,
+                "clauses": [
+                  {
+                    "contextKind": "user",
+                    "attribute": "country",
+                    "op": "in",
+                    "values": [
+                      "DE"
+                    ],
+                    "negate": false
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "segments": {}
+      },
+      "context": {
+        "key": "usr_1",
+        "country": "DE"
+      },
+      "defaultValue": null,
+      "expected": {
+        "value": true,
+        "variationIndex": 1,
+        "reason": "RULE_MATCH",
+        "ruleIndex": 1,
+        "ruleId": "r_b"
+      }
+    },
+    {
+      "name": "a rollout boundary bucket belongs to the LATER variation (b < cursor)",
+      "flagKey": "f",
+      "snapshot": {
+        "version": 1,
+        "environmentKey": "production",
+        "salt": "conformance_salt",
+        "flags": {
+          "f": {
+            "key": "f",
+            "version": 1,
+            "kind": "boolean",
+            "on": true,
+            "variations": [
+              false,
+              true
+            ],
+            "offVariation": 0,
+            "fallthrough": {
+              "rollout": {
+                "variations": [
+                  {
+                    "variationIndex": 1,
+                    "weight": 10000
+                  },
+                  {
+                    "variationIndex": 0,
+                    "weight": 90000
+                  }
+                ]
+              }
+            },
+            "prerequisites": [],
+            "targets": [],
+            "rules": []
+          }
+        },
+        "segments": {}
+      },
+      "context": {
+        "key": "probe_126047"
+      },
+      "defaultValue": null,
+      "expected": {
+        "value": false,
+        "variationIndex": 0,
+        "reason": "FALLTHROUGH"
+      }
+    },
+    {
+      "name": "the bucket one below the boundary takes the earlier variation",
+      "flagKey": "f",
+      "snapshot": {
+        "version": 1,
+        "environmentKey": "production",
+        "salt": "conformance_salt",
+        "flags": {
+          "f": {
+            "key": "f",
+            "version": 1,
+            "kind": "boolean",
+            "on": true,
+            "variations": [
+              false,
+              true
+            ],
+            "offVariation": 0,
+            "fallthrough": {
+              "rollout": {
+                "variations": [
+                  {
+                    "variationIndex": 1,
+                    "weight": 10000
+                  },
+                  {
+                    "variationIndex": 0,
+                    "weight": 90000
+                  }
+                ]
+              }
+            },
+            "prerequisites": [],
+            "targets": [],
+            "rules": []
+          }
+        },
+        "segments": {}
+      },
+      "context": {
+        "key": "probe_19185"
+      },
+      "defaultValue": null,
+      "expected": {
+        "value": true,
+        "variationIndex": 1,
+        "reason": "FALLTHROUGH"
+      }
+    },
+    {
+      "name": "the last bucket in the space still resolves",
+      "flagKey": "f",
+      "snapshot": {
+        "version": 1,
+        "environmentKey": "production",
+        "salt": "conformance_salt",
+        "flags": {
+          "f": {
+            "key": "f",
+            "version": 1,
+            "kind": "boolean",
+            "on": true,
+            "variations": [
+              false,
+              true
+            ],
+            "offVariation": 0,
+            "fallthrough": {
+              "rollout": {
+                "variations": [
+                  {
+                    "variationIndex": 0,
+                    "weight": 99999
+                  },
+                  {
+                    "variationIndex": 1,
+                    "weight": 1
+                  }
+                ]
+              }
+            },
+            "prerequisites": [],
+            "targets": [],
+            "rules": []
+          }
+        },
+        "segments": {}
+      },
+      "context": {
+        "key": "probe_114744"
+      },
+      "defaultValue": null,
+      "expected": {
+        "value": true,
+        "variationIndex": 1,
+        "reason": "FALLTHROUGH"
+      }
+    },
+    {
+      "name": "a rollout excludes a context that lacks the bucketing attribute",
+      "flagKey": "f",
+      "snapshot": {
+        "version": 1,
+        "environmentKey": "production",
+        "salt": "conformance_salt",
+        "flags": {
+          "f": {
+            "key": "f",
+            "version": 1,
+            "kind": "boolean",
+            "on": true,
+            "variations": [
+              false,
+              true
+            ],
+            "offVariation": 0,
+            "fallthrough": {
+              "variation": 0
+            },
+            "prerequisites": [],
+            "targets": [],
+            "rules": [
+              {
+                "id": "r0",
+                "rollout": {
+                  "bucketBy": "accountId",
+                  "variations": [
+                    {
+                      "variationIndex": 1,
+                      "weight": 100000
+                    }
+                  ]
+                },
+                "clauses": [
+                  {
+                    "contextKind": "user",
+                    "attribute": "country",
+                    "op": "in",
+                    "values": [
+                      "DE"
+                    ],
+                    "negate": false
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "segments": {}
+      },
+      "context": {
+        "key": "usr_1",
+        "country": "DE"
+      },
+      "defaultValue": null,
+      "expected": {
+        "value": false,
+        "variationIndex": 0,
+        "reason": "FALLTHROUGH"
+      }
+    },
+    {
+      "name": "a multi-context rollout buckets on the organization, not the user",
+      "flagKey": "f",
+      "snapshot": {
+        "version": 1,
+        "environmentKey": "production",
+        "salt": "conformance_salt",
+        "flags": {
+          "f": {
+            "key": "f",
+            "version": 1,
+            "kind": "boolean",
+            "on": true,
+            "variations": [
+              false,
+              true
+            ],
+            "offVariation": 0,
+            "fallthrough": {
+              "rollout": {
+                "contextKind": "organization",
+                "variations": [
+                  {
+                    "variationIndex": 1,
+                    "weight": 10000
+                  },
+                  {
+                    "variationIndex": 0,
+                    "weight": 90000
+                  }
+                ]
+              }
+            },
+            "prerequisites": [],
+            "targets": [],
+            "rules": []
+          }
+        },
+        "segments": {}
+      },
+      "context": {
+        "kind": "multi",
+        "user": {
+          "key": "usr_1"
+        },
+        "organization": {
+          "key": "probe_19185"
+        }
+      },
+      "defaultValue": null,
+      "expected": {
+        "value": true,
+        "variationIndex": 1,
+        "reason": "FALLTHROUGH"
+      }
+    },
+    {
+      "name": "a non-ASCII context key buckets by UTF-8 bytes",
+      "flagKey": "f",
+      "snapshot": {
+        "version": 1,
+        "environmentKey": "production",
+        "salt": "conformance_salt",
+        "flags": {
+          "f": {
+            "key": "f",
+            "version": 1,
+            "kind": "boolean",
+            "on": true,
+            "variations": [
+              false,
+              true
+            ],
+            "offVariation": 0,
+            "fallthrough": {
+              "rollout": {
+                "variations": [
+                  {
+                    "variationIndex": 1,
+                    "weight": 50000
+                  },
+                  {
+                    "variationIndex": 0,
+                    "weight": 50000
+                  }
+                ]
+              }
+            },
+            "prerequisites": [],
+            "targets": [],
+            "rules": []
+          }
+        },
+        "segments": {}
+      },
+      "context": {
+        "key": "usr_josé"
+      },
+      "defaultValue": null,
+      "expected": {
+        "value": false,
+        "variationIndex": 0,
+        "reason": "FALLTHROUGH"
+      }
+    },
+    {
+      "name": "a type mismatch serves the caller default rather than a wrong-typed value",
+      "flagKey": "f",
+      "snapshot": {
+        "version": 1,
+        "environmentKey": "production",
+        "salt": "conformance_salt",
+        "flags": {
+          "f": {
+            "key": "f",
+            "version": 1,
+            "kind": "boolean",
+            "on": true,
+            "variations": [
+              "not a boolean"
+            ],
+            "offVariation": 0,
+            "fallthrough": {
+              "variation": 0
+            },
+            "prerequisites": [],
+            "targets": [],
+            "rules": []
+          }
+        },
+        "segments": {}
+      },
+      "context": {
+        "key": "usr_1"
+      },
+      "defaultValue": false,
+      "expected": {
+        "value": false,
+        "variationIndex": null,
+        "reason": "ERROR",
+        "error": "WRONG_TYPE"
+      }
+    },
+    {
+      "name": "an out-of-range variation index serves the caller default",
+      "flagKey": "f",
+      "snapshot": {
+        "version": 1,
+        "environmentKey": "production",
+        "salt": "conformance_salt",
+        "flags": {
+          "f": {
+            "key": "f",
+            "version": 1,
+            "kind": "boolean",
+            "on": true,
+            "variations": [
+              false,
+              true
+            ],
+            "offVariation": 0,
+            "fallthrough": {
+              "variation": 9
+            },
+            "prerequisites": [],
+            "targets": [],
+            "rules": []
+          }
+        },
+        "segments": {}
+      },
+      "context": {
+        "key": "usr_1"
+      },
+      "defaultValue": false,
+      "expected": {
+        "value": false,
+        "variationIndex": null,
+        "reason": "ERROR",
+        "error": "VARIATION_OUT_OF_RANGE"
+      }
+    },
+    {
+      "name": "POSITIVE segment clause does not match while membership is unresolved",
+      "flagKey": "f",
+      "snapshot": {
+        "version": 1,
+        "environmentKey": "production",
+        "salt": "conformance_salt",
+        "flags": {
+          "f": {
+            "key": "f",
+            "version": 1,
+            "kind": "boolean",
+            "on": true,
+            "variations": [
+              false,
+              true
+            ],
+            "offVariation": 0,
+            "fallthrough": {
+              "variation": 0
+            },
+            "prerequisites": [],
+            "targets": [],
+            "rules": [
+              {
+                "id": "r0",
+                "variation": 1,
+                "clauses": [
+                  {
+                    "contextKind": "user",
+                    "attribute": "key",
+                    "op": "segmentMatch",
+                    "values": [
+                      "big"
+                    ],
+                    "negate": false
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "segments": {
+          "big": {
+            "kind": "unresolvable",
+            "version": 1
+          }
+        }
+      },
+      "context": {
+        "key": "usr_1"
+      },
+      "defaultValue": null,
+      "expected": {
+        "value": false,
+        "variationIndex": 0,
+        "reason": "FALLTHROUGH",
+        "unresolvedSegments": [
+          "big"
+        ]
+      }
+    },
+    {
+      "name": "NEGATED segment clause does not match while membership is unresolved",
+      "$comment": "The r2 leak. `NOT in big` with an unloaded cache evaluated the clause to false, negate flipped it to TRUE, and every unconfirmed user was served the gated feature. The rule must fail closed in BOTH polarities.",
+      "flagKey": "f",
+      "snapshot": {
+        "version": 1,
+        "environmentKey": "production",
+        "salt": "conformance_salt",
+        "flags": {
+          "f": {
+            "key": "f",
+            "version": 1,
+            "kind": "boolean",
+            "on": true,
+            "variations": [
+              false,
+              true
+            ],
+            "offVariation": 0,
+            "fallthrough": {
+              "variation": 0
+            },
+            "prerequisites": [],
+            "targets": [],
+            "rules": [
+              {
+                "id": "r0",
+                "variation": 1,
+                "clauses": [
+                  {
+                    "contextKind": "user",
+                    "attribute": "key",
+                    "op": "segmentMatch",
+                    "values": [
+                      "big"
+                    ],
+                    "negate": true
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "segments": {
+          "big": {
+            "kind": "unresolvable",
+            "version": 1
+          }
+        }
+      },
+      "context": {
+        "key": "usr_1"
+      },
+      "defaultValue": null,
+      "expected": {
+        "value": false,
+        "variationIndex": 0,
+        "reason": "FALLTHROUGH",
+        "unresolvedSegments": [
+          "big"
+        ]
+      }
+    },
+    {
+      "name": "an unresolved rule does not block a later resolvable rule",
+      "flagKey": "f",
+      "snapshot": {
+        "version": 1,
+        "environmentKey": "production",
+        "salt": "conformance_salt",
+        "flags": {
+          "f": {
+            "key": "f",
+            "version": 1,
+            "kind": "boolean",
+            "on": true,
+            "variations": [
+              false,
+              true
+            ],
+            "offVariation": 0,
+            "fallthrough": {
+              "variation": 0
+            },
+            "prerequisites": [],
+            "targets": [],
+            "rules": [
+              {
+                "id": "r0",
+                "variation": 0,
+                "clauses": [
+                  {
+                    "contextKind": "user",
+                    "attribute": "key",
+                    "op": "segmentMatch",
+                    "values": [
+                      "big"
+                    ],
+                    "negate": true
+                  }
+                ]
+              },
+              {
+                "id": "r1",
+                "variation": 1,
+                "clauses": [
+                  {
+                    "contextKind": "user",
+                    "attribute": "country",
+                    "op": "in",
+                    "values": [
+                      "DE"
+                    ],
+                    "negate": false
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "segments": {
+          "big": {
+            "kind": "unresolvable",
+            "version": 1
+          }
+        }
+      },
+      "context": {
+        "key": "usr_1",
+        "country": "DE"
+      },
+      "defaultValue": null,
+      "expected": {
+        "value": true,
+        "variationIndex": 1,
+        "reason": "RULE_MATCH",
+        "ruleIndex": 1,
+        "ruleId": "r1",
+        "unresolvedSegments": [
+          "big"
+        ]
+      }
+    },
+    {
+      "name": "an inline segment resolves exactly, and negate inverts a real miss",
+      "flagKey": "f",
+      "snapshot": {
+        "version": 1,
+        "environmentKey": "production",
+        "salt": "conformance_salt",
+        "flags": {
+          "f": {
+            "key": "f",
+            "version": 1,
+            "kind": "boolean",
+            "on": true,
+            "variations": [
+              false,
+              true
+            ],
+            "offVariation": 0,
+            "fallthrough": {
+              "variation": 0
+            },
+            "prerequisites": [],
+            "targets": [],
+            "rules": [
+              {
+                "id": "r0",
+                "variation": 1,
+                "clauses": [
+                  {
+                    "contextKind": "user",
+                    "attribute": "key",
+                    "op": "segmentMatch",
+                    "values": [
+                      "beta"
+                    ],
+                    "negate": true
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "segments": {
+          "beta": {
+            "kind": "inline",
+            "version": 1,
+            "members": [
+              "usr_other"
+            ]
+          }
+        }
+      },
+      "context": {
+        "key": "usr_1"
+      },
+      "defaultValue": null,
+      "expected": {
+        "value": true,
+        "variationIndex": 1,
+        "reason": "RULE_MATCH",
+        "ruleIndex": 0,
+        "ruleId": "r0"
+      }
+    },
+    {
+      "name": "exclusion beats inclusion in a segment",
+      "flagKey": "f",
+      "snapshot": {
+        "version": 1,
+        "environmentKey": "production",
+        "salt": "conformance_salt",
+        "flags": {
+          "f": {
+            "key": "f",
+            "version": 1,
+            "kind": "boolean",
+            "on": true,
+            "variations": [
+              false,
+              true
+            ],
+            "offVariation": 0,
+            "fallthrough": {
+              "variation": 0
+            },
+            "prerequisites": [],
+            "targets": [],
+            "rules": [
+              {
+                "id": "r0",
+                "variation": 1,
+                "clauses": [
+                  {
+                    "contextKind": "user",
+                    "attribute": "key",
+                    "op": "segmentMatch",
+                    "values": [
+                      "beta"
+                    ],
+                    "negate": false
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "segments": {
+          "beta": {
+            "kind": "inline",
+            "version": 1,
+            "members": [
+              "usr_1"
+            ],
+            "excluded": [
+              "usr_1"
+            ]
+          }
+        }
+      },
+      "context": {
+        "key": "usr_1"
+      },
+      "defaultValue": null,
+      "expected": {
+        "value": false,
+        "variationIndex": 0,
+        "reason": "FALLTHROUGH"
+      }
+    }
+  ]
+}
