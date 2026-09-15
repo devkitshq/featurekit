@@ -1,131 +1,186 @@
 /**
- * The primitives.
- *
- * Written here rather than pulled from a component library, for the same reason
- * the control plane has no HTTP framework: there are a dozen of them, they are
- * each twenty lines, and owning them means the dashboard has no runtime
- * dependency that can break its own styling in a minor release.
+ * UI Primitives & shadcn Component System for FeatureKit Admin Panel
  */
 
 import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useId,
   useMemo,
   useRef,
   useState,
-  type ButtonHTMLAttributes,
-  type InputHTMLAttributes,
   type ReactNode,
   type SelectHTMLAttributes,
-  type TextareaHTMLAttributes,
+  type HTMLAttributes,
 } from "react";
-import { AlertTriangle, Check, Copy, Info, Loader2, X } from "lucide-react";
-import { cn } from "../../lib/utils";
+import {
+  AlertTriangle,
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  Copy,
+  Info,
+  Loader2,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
-/* ─────────────────────────────── button ────────────────────────────── */
+// Re-export official shadcn CLI components
+export { Button, buttonVariants } from "@/components/ui/button";
+export { Badge, badgeVariants } from "@/components/ui/badge";
+export {
+  Card as RawCard,
+  CardHeader,
+  CardFooter,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
+export { Input } from "@/components/ui/input";
+export { Textarea } from "@/components/ui/textarea";
+export {
+  Table,
+  TableHeader,
+  TableBody,
+  TableFooter,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableCaption,
+} from "@/components/ui/table";
+export {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuCheckboxItem,
+  DropdownMenuRadioItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuGroup,
+  DropdownMenuPortal,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuRadioGroup,
+} from "@/components/ui/dropdown-menu";
+export { Separator } from "@/components/ui/separator";
+export {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
+export { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+export { Skeleton } from "@/components/ui/skeleton";
+export {
+  Alert,
+  AlertTitle,
+  AlertDescription,
+} from "@/components/ui/alert";
 
-type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "subtle";
-type ButtonSize = "sm" | "md" | "icon";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog as ShadcnDialog,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
-const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
-  primary: "bg-accent text-accent-ink hover:brightness-110 border-transparent",
-  secondary: "bg-raised text-ink border-border hover:border-border-strong",
-  ghost: "bg-transparent text-muted border-transparent hover:bg-raised hover:text-ink",
-  danger: "bg-danger text-white border-transparent hover:brightness-110",
-  subtle: "bg-transparent text-muted border-border hover:text-ink hover:border-border-strong",
-};
+/* ──────────────────────────────── Card ──────────────────────────────── */
 
-const BUTTON_SIZES: Record<ButtonSize, string> = {
-  sm: "h-7 px-2.5 text-xs gap-1.5",
-  md: "h-9 px-3.5 text-sm gap-2",
-  icon: "h-8 w-8 justify-center",
-};
-
-export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: ButtonVariant;
-  size?: ButtonSize;
-  loading?: boolean;
-}
-
-export function Button({
-  variant = "secondary",
-  size = "md",
-  loading = false,
-  className,
+export function Card({
+  title,
+  description,
+  actions,
   children,
-  disabled,
-  ...rest
-}: ButtonProps) {
+  className,
+  ...props
+}: {
+  title?: ReactNode;
+  description?: ReactNode;
+  actions?: ReactNode;
+  children?: ReactNode;
+  className?: string;
+} & Omit<HTMLAttributes<HTMLDivElement>, "title">) {
   return (
-    <button
-      {...rest}
-      // A button that is busy must not be clickable twice: the second click is
-      // the duplicate write nobody meant to make.
-      disabled={disabled === true || loading}
+    <div
       className={cn(
-        "inline-flex items-center rounded-md border font-medium transition",
-        "disabled:opacity-50 disabled:pointer-events-none",
-        BUTTON_VARIANTS[variant],
-        BUTTON_SIZES[size],
+        "rounded-xl border border-border bg-card text-card-foreground shadow-sm transition-all overflow-hidden",
         className,
       )}
+      {...props}
     >
-      {loading ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : null}
-      {children}
-    </button>
+      {title !== undefined ? (
+        <header className="flex items-start justify-between gap-4 border-b border-border/70 px-4 py-3.5 bg-muted/20">
+          <div className="min-w-0">
+            <h2 className="text-sm font-semibold tracking-tight text-foreground">{title}</h2>
+            {description !== undefined ? (
+              <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+            ) : null}
+          </div>
+          {actions !== undefined ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
+        </header>
+      ) : null}
+      {children !== undefined ? <div className="p-4">{children}</div> : null}
+    </div>
   );
 }
 
-/* ─────────────────────────────── inputs ────────────────────────────── */
+/* ──────────────────────────────── Select ──────────────────────────────── */
 
-const FIELD_BASE =
-  "w-full rounded-md border border-border bg-canvas px-2.5 py-1.5 text-sm text-ink " +
-  "placeholder:text-faint focus:border-accent focus:outline-none disabled:opacity-60";
-
-export function Input({ className, ...rest }: InputHTMLAttributes<HTMLInputElement>) {
-  return <input {...rest} className={cn(FIELD_BASE, className)} />;
-}
-
-export function Textarea({ className, ...rest }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return <textarea {...rest} className={cn(FIELD_BASE, "font-mono text-xs", className)} />;
-}
-
-export function Select({ className, children, ...rest }: SelectHTMLAttributes<HTMLSelectElement>) {
+export function Select({
+  className,
+  children,
+  ...rest
+}: SelectHTMLAttributes<HTMLSelectElement>) {
   return (
-    <select {...rest} className={cn(FIELD_BASE, "pr-8", className)}>
-      {children}
-    </select>
+    <div className="relative w-full">
+      <select
+        {...rest}
+        className={cn(
+          "flex h-8 w-full appearance-none rounded-lg border border-input bg-background px-2.5 py-1 text-xs text-foreground shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-50 pr-8 cursor-pointer",
+          className,
+        )}
+      >
+        {children}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-2.5 top-2.5 size-3.5 text-muted-foreground" />
+    </div>
   );
 }
+
+/* ──────────────────────────────── Field ──────────────────────────────── */
 
 export function Field({
   label,
   hint,
   error,
   children,
+  className,
 }: {
-  label: string;
-  hint?: string;
-  error?: string | null;
+  label: ReactNode;
+  hint?: ReactNode;
+  error?: ReactNode | null;
   children: ReactNode;
+  className?: string;
 }) {
   return (
-    <label className="block space-y-1.5">
-      <span className="text-xs font-medium text-muted">{label}</span>
+    <label className={cn("block space-y-1.5", className)}>
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
       {children}
       {error != null ? (
-        <span className="block text-xs text-danger">{error}</span>
+        <span className="block text-xs font-medium text-destructive">{error}</span>
       ) : hint !== undefined ? (
-        <span className="block text-xs text-faint">{hint}</span>
+        <span className="block text-xs text-muted-foreground/80">{hint}</span>
       ) : null}
     </label>
   );
 }
 
-/* ─────────────────────────────── switch ────────────────────────────── */
+/* ──────────────────────────────── Switch ──────────────────────────────── */
 
 export function Switch({
   checked,
@@ -138,7 +193,7 @@ export function Switch({
   onChange: (next: boolean) => void;
   disabled?: boolean;
   label: string;
-  tone?: "accent" | "on";
+  tone?: "accent" | "on" | "default";
 }) {
   return (
     <button
@@ -149,96 +204,25 @@ export function Switch({
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={cn(
-        "relative h-5 w-9 shrink-0 rounded-full border transition disabled:opacity-50",
+        "relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50",
         checked
           ? tone === "on"
-            ? "border-on bg-on/80"
-            : "border-accent bg-accent"
-          : "border-border-strong bg-raised",
+            ? "bg-emerald-600 dark:bg-emerald-500"
+            : "bg-primary"
+          : "bg-input",
       )}
     >
       <span
         className={cn(
-          "absolute top-0.5 size-3.5 rounded-full bg-white transition-all",
-          checked ? "left-4.5" : "left-0.5",
+          "pointer-events-none block size-4 rounded-full bg-background shadow-lg ring-0 transition-transform",
+          checked ? "translate-x-4" : "translate-x-0",
         )}
       />
     </button>
   );
 }
 
-/* ─────────────────────────────── badges ────────────────────────────── */
-
-type BadgeTone = "neutral" | "accent" | "on" | "off" | "danger" | "warn";
-
-const BADGE_TONES: Record<BadgeTone, string> = {
-  neutral: "bg-raised text-muted border-border",
-  accent: "bg-accent-soft text-accent border-transparent",
-  on: "bg-on-soft text-on border-transparent",
-  off: "bg-raised text-faint border-border",
-  danger: "bg-danger-soft text-danger border-transparent",
-  warn: "bg-warn-soft text-warn border-transparent",
-};
-
-export function Badge({
-  tone = "neutral",
-  className,
-  children,
-  title,
-}: {
-  tone?: BadgeTone;
-  className?: string;
-  children: ReactNode;
-  title?: string;
-}) {
-  return (
-    <span
-      title={title}
-      className={cn(
-        "inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[11px] font-medium",
-        BADGE_TONES[tone],
-        className,
-      )}
-    >
-      {children}
-    </span>
-  );
-}
-
-/* ──────────────────────────────── card ─────────────────────────────── */
-
-export function Card({
-  title,
-  description,
-  actions,
-  children,
-  className,
-}: {
-  title?: ReactNode;
-  description?: ReactNode;
-  actions?: ReactNode;
-  children?: ReactNode;
-  className?: string;
-}) {
-  return (
-    <section className={cn("rounded-card border border-border bg-surface", className)}>
-      {title !== undefined ? (
-        <header className="flex items-start justify-between gap-4 border-b border-border px-4 py-3">
-          <div className="min-w-0">
-            <h2 className="text-sm font-semibold text-ink">{title}</h2>
-            {description !== undefined ? (
-              <p className="mt-0.5 text-xs text-muted">{description}</p>
-            ) : null}
-          </div>
-          {actions !== undefined ? <div className="flex shrink-0 gap-2">{actions}</div> : null}
-        </header>
-      ) : null}
-      {children !== undefined ? <div className="p-4">{children}</div> : null}
-    </section>
-  );
-}
-
-/* ─────────────────────────────── dialog ────────────────────────────── */
+/* ──────────────────────────────── Dialog ──────────────────────────────── */
 
 export function Dialog({
   open,
@@ -251,64 +235,43 @@ export function Dialog({
 }: {
   open: boolean;
   onClose: () => void;
-  title: string;
-  description?: string;
+  title: ReactNode;
+  description?: ReactNode;
   children?: ReactNode;
   footer?: ReactNode;
-  width?: "sm" | "md" | "lg";
+  width?: "sm" | "md" | "lg" | "xl";
 }) {
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
-
-  if (!open) return null;
-  const widths = { sm: "max-w-sm", md: "max-w-lg", lg: "max-w-3xl" };
+  const widths = {
+    sm: "sm:max-w-sm",
+    md: "sm:max-w-lg",
+    lg: "sm:max-w-2xl",
+    xl: "sm:max-w-4xl",
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 pt-[10vh]">
-      {/* Click-away closes; a click inside must not. */}
-      <div className="absolute inset-0" onClick={onClose} aria-hidden />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        className={cn(
-          "fk-rise relative w-full rounded-card border border-border bg-surface shadow-2xl",
-          widths[width],
-        )}
-      >
-        <header className="flex items-start justify-between gap-4 border-b border-border px-4 py-3">
-          <div>
-            <h2 className="text-sm font-semibold">{title}</h2>
-            {description !== undefined ? (
-              <p className="mt-0.5 text-xs text-muted">{description}</p>
-            ) : null}
-          </div>
-          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close">
-            <X className="size-4" />
-          </Button>
-        </header>
-        {children !== undefined ? <div className="space-y-3 px-4 py-4">{children}</div> : null}
+    <ShadcnDialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <DialogContent className={cn("gap-0 p-0 overflow-hidden", widths[width])}>
+        <DialogHeader className="border-b border-border/70 px-5 py-4 bg-muted/20">
+          <DialogTitle className="text-sm font-semibold">{title}</DialogTitle>
+          {description !== undefined ? (
+            <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+              {description}
+            </DialogDescription>
+          ) : null}
+        </DialogHeader>
+        {children !== undefined ? <div className="p-5 space-y-3.5">{children}</div> : null}
         {footer !== undefined ? (
-          <footer className="flex justify-end gap-2 border-t border-border px-4 py-3">{footer}</footer>
+          <DialogFooter className="border-t border-border/70 px-5 py-3 bg-muted/20 flex items-center justify-end gap-2">
+            {footer}
+          </DialogFooter>
         ) : null}
-      </div>
-    </div>
+      </DialogContent>
+    </ShadcnDialog>
   );
 }
 
-/**
- * A confirmation that names its target.
- *
- * "Are you sure?" is not a confirmation — it asks about nothing. Every
- * destructive path in this dashboard goes through here with the thing it is
- * about to do written out.
- */
+/* ───────────────────────────── Confirm Dialog ────────────────────────── */
+
 export function ConfirmDialog({
   open,
   onClose,
@@ -335,12 +298,13 @@ export function ConfirmDialog({
       width="sm"
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" size="sm" onClick={onClose} disabled={busy}>
             Cancel
           </Button>
           <Button
-            variant={destructive ? "danger" : "primary"}
-            loading={busy}
+            variant={destructive ? "destructive" : "default"}
+            size="sm"
+            disabled={busy}
             onClick={() => {
               setBusy(true);
               void Promise.resolve(onConfirm()).finally(() => {
@@ -349,40 +313,44 @@ export function ConfirmDialog({
               });
             }}
           >
+            {busy ? <Loader2 className="size-3.5 animate-spin" /> : null}
             {confirmLabel}
           </Button>
         </>
       }
     >
-      <div className="text-sm text-muted">{body}</div>
+      <div className="text-xs text-muted-foreground leading-relaxed">{body}</div>
     </Dialog>
   );
 }
 
-/* ──────────────────────────────── tabs ─────────────────────────────── */
+/* ──────────────────────────────── Tabs ──────────────────────────────── */
 
 export function Tabs({
   tabs,
   active,
   onChange,
+  className,
 }: {
   tabs: Array<{ id: string; label: string; badge?: ReactNode }>;
   active: string;
   onChange: (id: string) => void;
+  className?: string;
 }) {
   return (
-    <div role="tablist" className="flex gap-1 border-b border-border">
+    <div role="tablist" className={cn("flex gap-1 border-b border-border", className)}>
       {tabs.map((tab) => (
         <button
           key={tab.id}
           role="tab"
+          type="button"
           aria-selected={tab.id === active}
           onClick={() => onChange(tab.id)}
           className={cn(
-            "-mb-px border-b-2 px-3 py-2 text-xs font-medium transition",
+            "-mb-px border-b-2 px-3.5 py-2 text-xs font-medium transition-colors cursor-pointer select-none",
             tab.id === active
-              ? "border-accent text-ink"
-              : "border-transparent text-muted hover:text-ink",
+              ? "border-primary text-foreground font-semibold"
+              : "border-transparent text-muted-foreground hover:text-foreground hover:border-border",
           )}
         >
           <span className="inline-flex items-center gap-1.5">
@@ -395,10 +363,15 @@ export function Tabs({
   );
 }
 
-/* ──────────────────────────── states, toasts ───────────────────────── */
+/* ─────────────────────────── States & Alerts ────────────────────────── */
 
 export function Spinner({ className }: { className?: string }) {
-  return <Loader2 className={cn("size-4 animate-spin text-muted", className)} aria-label="Loading" />;
+  return (
+    <Loader2
+      className={cn("size-4 animate-spin text-muted-foreground", className)}
+      aria-label="Loading"
+    />
+  );
 }
 
 export function EmptyState({
@@ -411,51 +384,66 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center gap-2 rounded-card border border-dashed border-border px-6 py-10 text-center">
-      <p className="text-sm font-medium text-ink">{title}</p>
-      {body !== undefined ? <p className="max-w-md text-xs text-muted">{body}</p> : null}
-      {action !== undefined ? <div className="pt-1">{action}</div> : null}
+    <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border bg-card/40 px-6 py-10 text-center">
+      <p className="text-sm font-medium text-foreground">{title}</p>
+      {body !== undefined ? (
+        <p className="max-w-md text-xs text-muted-foreground leading-relaxed">{body}</p>
+      ) : null}
+      {action !== undefined ? <div className="pt-2">{action}</div> : null}
     </div>
   );
 }
 
 export function ErrorNote({ children }: { children: ReactNode }) {
   return (
-    <div className="flex items-start gap-2 rounded-md border border-danger/40 bg-danger-soft px-3 py-2 text-xs text-danger">
-      <AlertTriangle className="mt-px size-3.5 shrink-0" />
-      <div className="min-w-0">{children}</div>
+    <div className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 px-3.5 py-2.5 text-xs text-destructive">
+      <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
+      <div className="min-w-0 leading-relaxed font-medium">{children}</div>
     </div>
   );
 }
 
 export function InfoNote({ children }: { children: ReactNode }) {
   return (
-    <div className="flex items-start gap-2 rounded-md border border-border bg-raised px-3 py-2 text-xs text-muted">
-      <Info className="mt-px size-3.5 shrink-0" />
-      <div className="min-w-0">{children}</div>
+    <div className="flex items-start gap-2.5 rounded-lg border border-border bg-muted/50 px-3.5 py-2.5 text-xs text-foreground">
+      <Info className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
+      <div className="min-w-0 leading-relaxed text-muted-foreground">{children}</div>
     </div>
   );
 }
 
-interface Toast {
+export function SuccessNote({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex items-start gap-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-2.5 text-xs text-emerald-600 dark:text-emerald-400">
+      <CheckCircle2 className="mt-0.5 size-3.5 shrink-0" />
+      <div className="min-w-0 leading-relaxed font-medium">{children}</div>
+    </div>
+  );
+}
+
+/* ──────────────────────────────── Toast ──────────────────────────────── */
+
+interface ToastItem {
   id: number;
-  tone: "ok" | "error";
+  tone: "ok" | "error" | "info";
   message: string;
 }
 
 const ToastContext = createContext<{
-  push: (tone: Toast["tone"], message: string) => void;
+  push: (tone: ToastItem["tone"], message: string) => void;
 } | null>(null);
 
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const [toasts, setToasts] = useState<Toast[]>([]);
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
   const next = useRef(0);
 
-  const push = useCallback((tone: Toast["tone"], message: string) => {
+  const push = useCallback((tone: ToastItem["tone"], message: string) => {
     const id = ++next.current;
     setToasts((current) => [...current, { id, tone, message }]);
-    // Errors stay longer: they are read, not glanced at.
-    setTimeout(() => setToasts((current) => current.filter((t) => t.id !== id)), tone === "error" ? 7000 : 3500);
+    setTimeout(
+      () => setToasts((current) => current.filter((t) => t.id !== id)),
+      tone === "error" ? 7000 : 3500,
+    );
   }, []);
 
   const value = useMemo(() => ({ push }), [push]);
@@ -463,23 +451,25 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div className="pointer-events-none fixed bottom-4 right-4 z-[60] flex w-80 flex-col gap-2">
+      <div className="pointer-events-none fixed bottom-4 right-4 z-[100] flex w-80 flex-col gap-2">
         {toasts.map((toast) => (
           <div
             key={toast.id}
             className={cn(
-              "fk-rise pointer-events-auto flex items-start gap-2 rounded-md border px-3 py-2 text-xs shadow-lg",
+              "fk-rise pointer-events-auto flex items-start gap-2.5 rounded-lg border p-3 text-xs shadow-lg transition-all",
               toast.tone === "error"
-                ? "border-danger/40 bg-danger-soft text-danger"
-                : "border-on/40 bg-on-soft text-on",
+                ? "border-destructive/40 bg-destructive/15 text-destructive"
+                : "border-emerald-500/40 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
             )}
           >
             {toast.tone === "error" ? (
-              <AlertTriangle className="mt-px size-3.5 shrink-0" />
+              <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
             ) : (
-              <Check className="mt-px size-3.5 shrink-0" />
+              <Check className="mt-0.5 size-3.5 shrink-0" />
             )}
-            <span className="min-w-0 break-words">{toast.message}</span>
+            <span className="min-w-0 flex-1 break-words font-medium leading-relaxed">
+              {toast.message}
+            </span>
           </div>
         ))}
       </div>
@@ -493,21 +483,23 @@ export function useToast() {
   return context;
 }
 
-/** A monospace key with a copy button — the thing people take from this UI. */
+/* ───────────────────────────── Copyable Key ──────────────────────────── */
+
 export function CopyableKey({ value, className }: { value: string; className?: string }) {
   const [copied, setCopied] = useState(false);
   const id = useId();
+
   return (
     <span className={cn("inline-flex items-center gap-1.5", className)}>
       <code
         id={id}
-        className="truncate rounded bg-raised px-1.5 py-0.5 font-mono text-[11px] text-muted"
+        className="truncate rounded-md bg-muted px-2 py-0.5 font-mono text-[11px] text-muted-foreground border border-border/70"
       >
         {value}
       </code>
       <Button
         variant="ghost"
-        size="icon"
+        size="icon-xs"
         aria-label="Copy"
         onClick={() => {
           void navigator.clipboard.writeText(value).then(() => {
@@ -516,7 +508,11 @@ export function CopyableKey({ value, className }: { value: string; className?: s
           });
         }}
       >
-        {copied ? <Check className="size-3.5 text-on" /> : <Copy className="size-3.5" />}
+        {copied ? (
+          <Check className="size-3 text-emerald-600 dark:text-emerald-400" />
+        ) : (
+          <Copy className="size-3" />
+        )}
       </Button>
     </span>
   );

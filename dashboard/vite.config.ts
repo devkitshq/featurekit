@@ -11,6 +11,7 @@
  * :5173, so without the proxy every dev request would be unauthenticated.
  */
 
+import path from "node:path";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
@@ -21,6 +22,12 @@ export default defineConfig({
   root: import.meta.dirname,
   base: "/admin/",
   plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: {
+      "@": path.resolve(import.meta.dirname, "./src"),
+      cn: path.resolve(import.meta.dirname, "./src/lib/utils"),
+    },
+  },
   build: {
     outDir: "dist",
     emptyOutDir: true,
