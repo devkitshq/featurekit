@@ -112,7 +112,7 @@ export function SegmentsPage() {
                 ) : undefined
               }
             >
-              <p className="text-sm text-muted">
+              <p className="text-sm text-muted-foreground">
                 {segment.memberCount === null
                   ? "membership resolved elsewhere"
                   : `${segment.memberCount.toLocaleString()} members`}
@@ -216,7 +216,7 @@ function CreateSegmentDialog({
       <Field label="Name">
         <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Beta testers" />
       </Field>
-      <label className="flex items-center gap-2 text-xs text-muted">
+      <label className="flex items-center gap-2 text-xs text-muted-foreground">
         <input
           type="checkbox"
           checked={external}

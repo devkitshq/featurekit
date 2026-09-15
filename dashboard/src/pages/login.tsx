@@ -35,23 +35,23 @@ export function LoginPage() {
     <div className="flex h-full items-center justify-center p-6">
       <div className="w-full max-w-sm">
         <div className="mb-6 flex items-center gap-2">
-          <span className="grid size-7 place-items-center rounded bg-accent text-sm font-bold text-accent-ink">
+          <span className="grid size-7 place-items-center rounded-md bg-primary text-sm font-bold text-primary-foreground">
             f
           </span>
           <div>
-            <h1 className="text-sm font-semibold">featurekit</h1>
-            <p className="text-xs text-muted">Feature flags and their consequences</p>
+            <h1 className="text-sm font-semibold text-foreground">featurekit</h1>
+            <p className="text-xs text-muted-foreground">Feature flags and their consequences</p>
           </div>
         </div>
 
         {session.needsSetup ? (
           <div className="space-y-3">
             <InfoNote>
-              <p className="font-medium text-ink">There are no accounts yet.</p>
+              <p className="font-semibold text-foreground">There are no accounts yet.</p>
               <p className="mt-1">
                 Create the first one from the machine running the control plane:
               </p>
-              <pre className="mt-2 overflow-x-auto rounded bg-canvas p-2 font-mono text-[11px]">
+              <pre className="mt-2 overflow-x-auto rounded bg-background p-2 font-mono text-[11px] text-muted-foreground">
                 npm run admin:user -- create you@example.com --role owner
               </pre>
               <p className="mt-2">
@@ -66,7 +66,7 @@ export function LoginPage() {
         ) : (
           <form
             onSubmit={submit}
-            className="space-y-3 rounded-card border border-border bg-surface p-4"
+            className="space-y-3 rounded-lg border border-border bg-card p-4 shadow-xs"
           >
             <Field label="Email">
               <Input

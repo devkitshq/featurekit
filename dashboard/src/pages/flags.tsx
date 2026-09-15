@@ -125,14 +125,14 @@ export function FlagsPage() {
     >
       {currentEnvironment?.isProduction === true ? (
         <InfoNote>
-          This is a <strong className="text-ink">production</strong> environment. Changes here reach
+          This is a <strong className="text-foreground font-semibold">production</strong> environment. Changes here reach
           real traffic within a few hundred milliseconds.
         </InfoNote>
       ) : null}
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-56 flex-1">
-          <Search className="pointer-events-none absolute left-2.5 top-2.5 size-3.5 text-faint" />
+          <Search className="pointer-events-none absolute left-2.5 top-2.5 size-3.5 text-muted-foreground" />
           <Input
             id="flag-search"
             placeholder="Search flags…  (press /)"
@@ -143,7 +143,7 @@ export function FlagsPage() {
           {query !== "" ? (
             <button
               onClick={() => setQuery("")}
-              className="absolute right-2 top-2 text-faint hover:text-ink"
+              className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
               aria-label="Clear search"
             >
               <X className="size-3.5" />
@@ -189,10 +189,10 @@ export function FlagsPage() {
           }
         />
       ) : (
-        <div className="overflow-hidden rounded-card border border-border">
+        <div className="overflow-hidden rounded-lg border border-border shadow-xs">
           <table className="w-full border-collapse text-sm">
             <thead>
-              <tr className="border-b border-border bg-surface text-left text-[11px] uppercase tracking-wide text-faint">
+              <tr className="border-b border-border bg-muted/40 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 <th className="w-14 px-3 py-2 font-medium">On</th>
                 <th className="px-3 py-2 font-medium">Flag</th>
                 <th className="w-40 px-3 py-2 font-medium">Serves</th>
@@ -242,7 +242,7 @@ export function FlagsPage() {
                 <>
                   {" "}
                   (
-                  <strong className="text-ink">
+                  <strong className="text-foreground">
                     {variationLabel(
                       killing.variations[killing.environment?.offVariation ?? 0],
                       killing.kind,
@@ -251,7 +251,7 @@ export function FlagsPage() {
                   )
                 </>
               ) : null}{" "}
-              in <strong className="text-ink">{environment}</strong>, within a few hundred
+              in <strong className="text-foreground">{environment}</strong>, within a few hundred
               milliseconds.
             </p>
             <p className="mt-2">
@@ -283,7 +283,7 @@ export function FlagsPage() {
           <>
             <p>
               It disappears from every environment's next snapshot, so any SDK still calling{" "}
-              <code className="font-mono text-ink">{archiving?.key}</code> starts getting the default
+              <code className="font-mono font-medium text-foreground">{archiving?.key}</code> starts getting the default
               its code passes.
             </p>
             <p className="mt-2">Archiving is reversible — the flag can be restored.</p>
@@ -321,7 +321,7 @@ function FlagRowView({
 }) {
   const state = flag.environment;
   return (
-    <tr className={cn("border-b border-border last:border-0 hover:bg-surface", flag.archived && "opacity-60")}>
+    <tr className={cn("border-b border-border last:border-0 hover:bg-muted/30", flag.archived && "opacity-60")}>
       <td className="px-3 py-2.5">
         <Switch
           checked={state?.enabled === true}
@@ -335,7 +335,7 @@ function FlagRowView({
         <div className="flex flex-wrap items-center gap-1.5">
           <Link
             to={`/flags/${encodeURIComponent(flag.key)}`}
-            className="font-medium hover:text-accent"
+            className="font-medium hover:text-accent-foreground"
           >
             {flag.name}
           </Link>
@@ -352,11 +352,11 @@ function FlagRowView({
             </Badge>
           ))}
         </div>
-        <p className="mt-0.5 font-mono text-[11px] text-faint">{flag.key}</p>
+        <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">{flag.key}</p>
       </td>
       <td className="px-3 py-2.5 text-xs">
         {state === null ? (
-          <span className="text-faint">not in this environment</span>
+          <span className="text-muted-foreground">not in this environment</span>
         ) : state.fallthroughRollout !== null ? (
           <span className="flex flex-wrap gap-1">
             {state.fallthroughRollout.map((slice) => (
@@ -366,24 +366,24 @@ function FlagRowView({
             ))}
           </span>
         ) : (
-          <span className="text-muted">
+          <span className="text-muted-foreground">
             {variationLabel(flag.variations[state.fallthroughVariation ?? 0], flag.kind)}
           </span>
         )}
       </td>
-      <td className="px-3 py-2.5 text-xs text-muted">
+      <td className="px-3 py-2.5 text-xs text-muted-foreground">
         {state === null ? null : (
           <span className="flex gap-2">
             {state.ruleCount > 0 ? <span>{state.ruleCount} rules</span> : null}
             {state.targetCount > 0 ? <span>{state.targetCount} targets</span> : null}
             {state.prerequisiteCount > 0 ? <span>{state.prerequisiteCount} prereq</span> : null}
             {state.ruleCount + state.targetCount + state.prerequisiteCount === 0 ? (
-              <span className="text-faint">—</span>
+              <span className="text-muted-foreground">—</span>
             ) : null}
           </span>
         )}
       </td>
-      <td className="px-3 py-2.5 text-xs text-faint" title={absoluteTime(state?.updatedAt)}>
+      <td className="px-3 py-2.5 text-xs text-muted-foreground" title={absoluteTime(state?.updatedAt)}>
         {state === null ? "—" : relativeTime(state.updatedAt)}
       </td>
       <td className="px-3 py-2.5">
@@ -567,10 +567,10 @@ function CreateFlagDialog({
       </div>
 
       <div className="space-y-2">
-        <span className="text-xs font-medium text-muted">Variations</span>
+        <span className="text-xs font-medium text-muted-foreground">Variations</span>
         {variations.map((value, index) => (
           <div key={index} className="flex items-center gap-2">
-            <span className="w-6 text-center font-mono text-[11px] text-faint">{index}</span>
+            <span className="w-6 text-center font-mono text-[11px] text-muted-foreground">{index}</span>
             {kind === "json" ? (
               <Textarea
                 rows={2}
@@ -613,16 +613,16 @@ function CreateFlagDialog({
             Add variation
           </Button>
         ) : (
-          <p className="text-[11px] text-faint">A boolean flag is always [false, true].</p>
+          <p className="text-[11px] text-muted-foreground">A boolean flag is always [false, true].</p>
         )}
       </div>
 
       <div className="flex flex-col gap-2 border-t border-border pt-3">
-        <label className="flex items-center gap-2 text-xs text-muted">
+        <label className="flex items-center gap-2 text-xs text-muted-foreground">
           <Switch checked={temporary} onChange={setTemporary} label="Temporary" />
           Temporary — a release toggle meant to be deleted after rollout
         </label>
-        <label className="flex items-center gap-2 text-xs text-muted">
+        <label className="flex items-center gap-2 text-xs text-muted-foreground">
           <Switch checked={clientAvailable} onChange={setClientAvailable} label="Client available" />
           Available to browsers — otherwise its existence never leaves the server
         </label>

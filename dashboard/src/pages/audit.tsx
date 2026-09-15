@@ -78,14 +78,14 @@ export function AuditPage() {
                   <div className="min-w-0">
                     <p className="flex flex-wrap items-center gap-2 text-sm">
                       <Badge tone={toneFor(entry.action)}>{entry.action}</Badge>
-                      <span className="font-mono text-xs">{entry.entityKey ?? "—"}</span>
+                      <span className="font-mono text-xs text-foreground">{entry.entityKey ?? "—"}</span>
                       {entry.comment !== null ? (
-                        <span className="truncate text-muted">{entry.comment}</span>
+                        <span className="truncate text-muted-foreground"> — {entry.comment}</span>
                       ) : null}
                     </p>
-                    <p className="mt-0.5 flex flex-wrap items-center gap-x-1 text-[11px] text-faint">
+                    <p className="mt-0.5 flex flex-wrap items-center gap-x-1 text-[11px] text-muted-foreground">
                       <span>{relativeTime(entry.createdAt)} ·</span>
-                      <span className="text-muted">
+                      <span className="text-foreground font-medium">
                         {entry.actorName ?? entry.actorEmail ?? entry.actorKind}
                       </span>
                       {entry.actorId !== null ? (
@@ -96,7 +96,7 @@ export function AuditPage() {
                       {entry.actorKind === "token" ? <span>via token</span> : null}
                     </p>
                   </div>
-                  <span className="shrink-0 text-[11px] text-faint">
+                  <span className="shrink-0 text-[11px] text-muted-foreground">
                     {absoluteTime(entry.createdAt)}
                   </span>
                 </button>
@@ -125,8 +125,8 @@ function toneFor(action: string): "on" | "danger" | "warn" | "neutral" {
 function Diff({ title, value }: { title: string; value: unknown }) {
   return (
     <div>
-      <p className="mb-1 text-[11px] uppercase tracking-wide text-faint">{title}</p>
-      <pre className="max-h-64 overflow-auto rounded-md border border-border bg-canvas p-2 font-mono text-[11px] text-muted">
+      <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{title}</p>
+      <pre className="max-h-64 overflow-auto rounded-md border border-border bg-background p-2 font-mono text-[11px] text-muted-foreground">
         {value === undefined || value === null ? "—" : JSON.stringify(value, null, 2)}
       </pre>
     </div>

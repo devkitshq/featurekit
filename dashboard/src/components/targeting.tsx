@@ -83,7 +83,7 @@ export function TargetingEditor({
                       </option>
                     ))}
                   </Select>
-                  <span className="text-xs text-muted">serves</span>
+                  <span className="text-xs text-muted-foreground">serves</span>
                   <Select
                     disabled={disabled}
                     className="w-40"
@@ -142,7 +142,7 @@ export function TargetingEditor({
             {value.targets.map((target, index) => (
               <div key={index} className="rounded-md border border-border p-3">
                 <div className="mb-2 flex items-center gap-2">
-                  <span className="text-xs text-muted">serve</span>
+                  <span className="text-xs text-muted-foreground">serve</span>
                   <Select
                     disabled={disabled}
                     className="w-40"
@@ -161,7 +161,7 @@ export function TargetingEditor({
                       </option>
                     ))}
                   </Select>
-                  <span className="text-xs text-muted">to</span>
+                  <span className="text-xs text-muted-foreground">to</span>
                   <Input
                     disabled={disabled}
                     className="w-24"
@@ -205,7 +205,7 @@ export function TargetingEditor({
                     })
                   }
                   placeholder="one context key per line"
-                  className="w-full rounded-md border border-border bg-canvas px-2.5 py-1.5 font-mono text-xs"
+                  className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
               </div>
             ))}
@@ -338,7 +338,7 @@ function RuleCard({
   onMove: (direction: 1 | -1) => void;
 }) {
   return (
-    <div className="rounded-md border border-border bg-canvas p-3">
+    <div className="rounded-md border border-border bg-background p-3">
       <div className="mb-2 flex items-center gap-2">
         <Badge tone="accent">rule {index + 1}</Badge>
         <Input
@@ -440,7 +440,7 @@ function ClauseRow({
   return (
     <div className="flex flex-wrap items-center gap-2">
       {/* Clauses within a rule are AND. Saying so beats a legend nobody reads. */}
-      <span className="w-10 shrink-0 text-right text-[11px] uppercase text-faint">
+      <span className="w-10 shrink-0 text-right text-[11px] font-medium uppercase text-muted-foreground">
         {first ? "if" : "and"}
       </span>
       <Input
@@ -554,15 +554,15 @@ function OutcomeEditor({
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-3">
-        <span className="text-xs text-muted">serve</span>
+        <span className="text-xs text-muted-foreground">serve</span>
         <div className="flex overflow-hidden rounded-md border border-border">
           <button
             type="button"
             disabled={disabled}
             onClick={() => onVariation(variation ?? 0)}
             className={cn(
-              "px-2.5 py-1 text-xs transition",
-              !isRollout ? "bg-accent text-accent-ink" : "text-muted hover:text-ink",
+              "px-2.5 py-1 text-xs font-medium transition",
+              !isRollout ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
             )}
           >
             one variation
@@ -572,8 +572,8 @@ function OutcomeEditor({
             disabled={disabled}
             onClick={() => onRollout({ contextKind: "user", variations: slices })}
             className={cn(
-              "px-2.5 py-1 text-xs transition",
-              isRollout ? "bg-accent text-accent-ink" : "text-muted hover:text-ink",
+              "px-2.5 py-1 text-xs font-medium transition",
+              isRollout ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
             )}
           >
             a percentage rollout
@@ -620,11 +620,11 @@ function OutcomeEditor({
             );
           })}
           <div className="flex items-center justify-between text-[11px]">
-            <span className="text-faint">
+            <span className="text-muted-foreground">
               Bucketed by context key against this environment's salt — the same user keeps the same
               arm across reloads and services.
             </span>
-            <span className={cn("font-mono", total === 100_000 ? "text-on" : "text-danger")}>
+            <span className={cn("font-mono", total === 100_000 ? "text-emerald-500" : "text-destructive")}>
               {toPercent(total).toFixed(1)}% total
             </span>
           </div>
@@ -661,14 +661,14 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-card border border-border bg-surface">
+    <section className="rounded-lg border border-border bg-card text-card-foreground shadow-xs">
       <header className="flex items-start gap-3 border-b border-border px-4 py-3">
-        <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded bg-raised text-[10px] font-semibold text-muted">
+        <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded bg-secondary text-[10px] font-semibold text-secondary-foreground">
           {step}
         </span>
         <div>
-          <h3 className="text-sm font-semibold">{title}</h3>
-          <p className="mt-0.5 text-xs text-muted">{hint}</p>
+          <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+          <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p>
         </div>
       </header>
       <div className="space-y-2 p-4">{children}</div>
@@ -677,7 +677,7 @@ function Section({
 }
 
 function Empty({ children }: { children: React.ReactNode }) {
-  return <p className="text-xs text-faint">{children}</p>;
+  return <p className="text-xs text-muted-foreground">{children}</p>;
 }
 
 function AddButton({
@@ -725,7 +725,7 @@ function RemoveButton({
 export function MissingSegmentWarning({ keys }: { keys: string[] }) {
   if (keys.length === 0) return null;
   return (
-    <div className="flex items-start gap-2 rounded-md border border-warn/40 bg-warn-soft px-3 py-2 text-xs text-warn">
+    <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-500 dark:text-amber-400">
       <Users className="mt-px size-3.5 shrink-0" />
       <span>
         {keys.join(", ")} {keys.length === 1 ? "is" : "are"} referenced here but no longer exist. A

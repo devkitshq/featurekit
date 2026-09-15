@@ -72,7 +72,7 @@ export function KeysPage() {
     >
       {currentEnvironment?.isProduction === true ? (
         <InfoNote>
-          These keys read <strong className="text-ink">production</strong>. A server key here grants
+          These keys read <strong className="text-foreground font-semibold">production</strong>. A server key here grants
           the full ruleset for it.
         </InfoNote>
       ) : null}
@@ -96,7 +96,7 @@ export function KeysPage() {
               <li key={key.id} className="flex items-center justify-between gap-3 py-2.5">
                 <div className="min-w-0">
                   <p className="flex items-center gap-2 text-sm">
-                    <KeyRound className="size-3.5 text-faint" />
+                    <KeyRound className="size-3.5 text-muted-foreground" />
                     {key.name ?? "unnamed"}
                     <Badge tone={key.kind === "server" ? "danger" : "accent"}>{key.kind}</Badge>
                     {key.revokedAt !== null ? <Badge tone="warn">revoked</Badge> : null}
@@ -105,7 +105,7 @@ export function KeysPage() {
                     {key.publicKey !== null ? (
                       <CopyableKey value={key.publicKey} />
                     ) : (
-                      <span className="text-[11px] text-faint">
+                      <span className="text-[11px] text-muted-foreground">
                         stored hashed — shown only when created
                       </span>
                     )}

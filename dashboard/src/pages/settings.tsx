@@ -82,9 +82,9 @@ function MembersCard() {
               <div className="min-w-0">
                 <p className="truncate text-sm">
                   {row.email}
-                  {row.id === me?.id ? <span className="ml-1 text-xs text-faint">(you)</span> : null}
+                  {row.id === me?.id ? <span className="ml-1 text-xs text-muted-foreground font-medium">(you)</span> : null}
                 </p>
-                <p className="text-[11px] text-faint">
+                <p className="text-[11px] text-muted-foreground">
                   {row.hasPassword ? "password set" : "token only"} · last login{" "}
                   <span title={absoluteTime(row.lastLoginAt)}>{relativeTime(row.lastLoginAt)}</span>
                 </p>
@@ -281,7 +281,7 @@ function TokensCard() {
             <li key={token.id} className="flex items-center justify-between gap-3 py-2">
               <div className="min-w-0">
                 <p className="truncate text-sm">{token.name ?? "unnamed"}</p>
-                <p className="text-[11px] text-faint">
+                <p className="text-[11px] text-muted-foreground">
                   {token.environmentIds === null
                     ? "every environment"
                     : `${token.environmentIds.length} environment(s)`}{" "}
@@ -406,10 +406,10 @@ function ProjectsCard() {
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="truncate text-sm font-medium">{p.name}</span>
-                    <span className="font-mono text-[11px] text-faint">({p.key})</span>
+                    <span className="font-mono text-[11px] text-muted-foreground">({p.key})</span>
                     {isActive ? <Badge tone="neutral">active</Badge> : null}
                   </div>
-                  <p className="text-[11px] text-faint">
+                  <p className="text-[11px] text-muted-foreground">
                     {p.environments.length === 1
                       ? "1 environment"
                       : `${p.environments.length} environments`}
@@ -555,7 +555,7 @@ function EnvironmentsCard() {
               {environment.name}
               {environment.isProduction ? <Badge tone="danger">production</Badge> : null}
             </span>
-            <span className="font-mono text-[11px] text-faint">
+            <span className="font-mono text-[11px] text-muted-foreground">
               snapshot v{environment.snapshotVersion}
             </span>
           </li>
@@ -588,7 +588,7 @@ function EnvironmentsCard() {
         <Field label="Name">
           <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Staging" />
         </Field>
-        <label className="flex items-center gap-2 text-xs text-muted">
+        <label className="flex items-center gap-2 text-xs text-muted-foreground">
           <input
             type="checkbox"
             checked={isProduction}

@@ -70,15 +70,15 @@ export function OverviewPage() {
                   <div className="min-w-0">
                     <Link
                       to={`/flags/${encodeURIComponent(flag.key)}`}
-                      className="truncate text-sm hover:text-accent"
+                      className="truncate text-sm font-medium hover:text-accent-foreground"
                     >
                       {flag.name}
                     </Link>
-                    <p className="truncate font-mono text-[11px] text-faint">{flag.key}</p>
+                    <p className="truncate font-mono text-[11px] text-muted-foreground">{flag.key}</p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
                     <Badge tone={flag.enabled ? "on" : "off"}>{flag.enabled ? "on" : "off"}</Badge>
-                    <span className="text-[11px] text-faint" title={absoluteTime(flag.updatedAt)}>
+                    <span className="text-[11px] text-muted-foreground" title={absoluteTime(flag.updatedAt)}>
                       {relativeTime(flag.updatedAt)}
                     </span>
                   </div>
@@ -100,25 +100,25 @@ export function OverviewPage() {
                   <span className="text-sm capitalize">{name}</span>
                   <span className="flex items-center gap-1.5 text-xs">
                     {check.state === "ok" ? (
-                      <CheckCircle2 className="size-3.5 text-on" />
+                      <CheckCircle2 className="size-3.5 text-emerald-500" />
                     ) : (
-                      <AlertTriangle className="size-3.5 text-warn" />
+                      <AlertTriangle className="size-3.5 text-amber-500" />
                     )}
-                    <span className={check.state === "ok" ? "text-on" : "text-warn"}>
+                    <span className={check.state === "ok" ? "text-emerald-500" : "text-amber-500"}>
                       {check.state}
                       {check.detail === undefined ? "" : ` · ${check.detail}`}
                     </span>
                   </span>
                 </div>
               ))}
-              <div className="flex items-center justify-between gap-3 border-t border-border pt-2 text-xs text-muted">
+              <div className="flex items-center justify-between gap-3 border-t border-border pt-2 text-xs text-muted-foreground">
                 <span>version</span>
-                <span className="font-mono">{health.data.version}</span>
+                <span className="font-mono text-foreground font-medium">{health.data.version}</span>
               </div>
               {health.data.partitionRunwayDays !== undefined ? (
-                <div className="flex items-center justify-between gap-3 text-xs text-muted">
+                <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
                   <span>partition runway</span>
-                  <span className="font-mono">{health.data.partitionRunwayDays} days</span>
+                  <span className="font-mono text-foreground font-medium">{health.data.partitionRunwayDays} days</span>
                 </div>
               ) : null}
             </div>
@@ -131,9 +131,9 @@ export function OverviewPage() {
 
 function Stat({ label, value, loading }: { label: string; value: number; loading: boolean }) {
   return (
-    <div className="rounded-card border border-border bg-surface px-4 py-3">
-      <p className="text-xs text-muted">{label}</p>
-      <p className="mt-1 text-2xl font-semibold tabular-nums">{loading ? "—" : value}</p>
+    <div className="rounded-lg border border-border bg-card px-4 py-3 shadow-xs">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">{loading ? "—" : value}</p>
     </div>
   );
 }

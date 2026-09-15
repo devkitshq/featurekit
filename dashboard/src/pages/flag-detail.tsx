@@ -160,7 +160,7 @@ export function FlagDetailPage() {
     <Page
       title={
         <span className="flex items-center gap-2">
-          <Link to="/flags" className="text-muted hover:text-ink" aria-label="Back to flags">
+          <Link to="/flags" className="text-muted-foreground hover:text-foreground" aria-label="Back to flags">
             <ArrowLeft className="size-4" />
           </Link>
           {flag.name}
@@ -194,20 +194,20 @@ export function FlagDetailPage() {
               label={`Toggle ${flag.key}`}
               onChange={(next) => void toggle.run(next)}
             />
-            <span className="text-xs text-muted">{live.enabled ? "on" : "off"}</span>
+            <span className="text-xs text-muted-foreground">{live.enabled ? "on" : "off"}</span>
           </div>
         </>
       }
     >
       {currentEnvironment?.isProduction === true ? (
         <InfoNote>
-          <strong className="text-ink">Production.</strong> A save here reaches every connected SDK
+          <strong className="text-foreground">Production.</strong> A save here reaches every connected SDK
           in under a second.
         </InfoNote>
       ) : null}
 
       {flag.description !== null && flag.description !== "" ? (
-        <p className="text-sm text-muted">{flag.description}</p>
+        <p className="text-sm text-muted-foreground">{flag.description}</p>
       ) : null}
 
       <Tabs tabs={TABS} active={tab} onChange={setTab} />
@@ -226,12 +226,12 @@ export function FlagDetailPage() {
 
           {save.error !== null ? <ErrorNote>{save.error.message}</ErrorNote> : null}
 
-          <div className="sticky bottom-0 flex items-center justify-between gap-3 rounded-card border border-border bg-surface/95 px-4 py-3 backdrop-blur">
-            <span className="text-xs text-muted">
+          <div className="sticky bottom-0 flex items-center justify-between gap-3 rounded-lg border border-border bg-card/95 px-4 py-3 backdrop-blur shadow-sm">
+            <span className="text-xs text-muted-foreground">
               {dirty ? (
                 <>
                   Unsaved changes. Saving writes version{" "}
-                  <span className="font-mono text-ink">{live.version + 1}</span>.
+                  <span className="font-mono font-semibold text-foreground">{live.version + 1}</span>.
                 </>
               ) : (
                 <>
@@ -296,8 +296,8 @@ export function FlagDetailPage() {
         body={
           <>
             <p>
-              Everyone in <strong className="text-ink">{environment}</strong> serves{" "}
-              <strong className="text-ink">
+              Everyone in <strong className="text-foreground font-semibold">{environment}</strong> serves{" "}
+              <strong className="text-foreground font-semibold">
                 {variationLabel(flag.variations[live.offVariation ?? 0], flag.kind)}
               </strong>{" "}
               immediately. Targeting is kept.
@@ -416,13 +416,13 @@ function ConflictDialog({
         </>
       }
     >
-      <p className="text-sm text-muted">
+      <p className="text-sm text-muted-foreground">
         The flag is now at version{" "}
-        <span className="font-mono text-ink">{current?.version ?? "?"}</span>. Loading theirs
+        <span className="font-mono font-semibold text-foreground">{current?.version ?? "?"}</span>. Loading theirs
         discards your unsaved changes; keeping yours lets you copy anything you need first — but
         saving will still be refused until you reload.
       </p>
-      <pre className="max-h-64 overflow-auto rounded-md border border-border bg-canvas p-3 font-mono text-[11px] text-muted">
+      <pre className="max-h-64 overflow-auto rounded-md border border-border bg-background p-3 font-mono text-[11px] text-muted-foreground">
         {JSON.stringify(current, null, 2)}
       </pre>
     </Dialog>
@@ -584,17 +584,17 @@ function PreviewDialog({
           </div>
           {result.examples.length > 0 ? (
             <div>
-              <p className="mb-1 text-[11px] uppercase tracking-wide text-faint">Who moves</p>
+              <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Who moves</p>
               <ul className="divide-y divide-border rounded-md border border-border">
                 {result.examples.map((example, index) => (
                   <li key={index} className="flex items-center justify-between gap-2 px-2 py-1.5 text-xs">
-                    <code className="truncate font-mono text-[11px] text-muted">
+                    <code className="truncate font-mono text-[11px] text-muted-foreground">
                       {JSON.stringify(example.context)}
                     </code>
                     <span className="shrink-0">
-                      <span className="text-faint">{valueLabel(example.before, flag.kind)}</span>
-                      <span className="mx-1 text-faint">→</span>
-                      <span className="text-ink">{valueLabel(example.after, flag.kind)}</span>
+                      <span className="text-muted-foreground">{valueLabel(example.before, flag.kind)}</span>
+                      <span className="mx-1 text-muted-foreground">→</span>
+                      <span className="font-medium text-foreground">{valueLabel(example.after, flag.kind)}</span>
                     </span>
                   </li>
                 ))}
@@ -690,7 +690,7 @@ function ScheduleTab({ flagKey }: { flagKey: string }) {
             <li key={row.id} className="flex items-center justify-between gap-3 py-2 text-sm">
               <div>
                 <p title={absoluteTime(row.executeAt)}>{relativeTime(row.executeAt)}</p>
-                <p className="text-[11px] text-faint">{absoluteTime(row.executeAt)}</p>
+                <p className="text-[11px] text-muted-foreground">{absoluteTime(row.executeAt)}</p>
               </div>
               <div className="flex items-center gap-2">
                 {row.executedAt !== null ? (
@@ -753,7 +753,7 @@ function RequestsTab({ flagKey }: { flagKey: string }) {
               <div className="mb-2 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <Badge tone={row.status === "pending" ? "accent" : "neutral"}>{row.status}</Badge>
-                  <span className="text-xs text-muted">{relativeTime(row.createdAt)}</span>
+                  <span className="text-xs text-muted-foreground">{relativeTime(row.createdAt)}</span>
                 </div>
                 {row.status === "pending" && can("writer") ? (
                   <div className="flex gap-2">
@@ -785,7 +785,7 @@ function RequestsTab({ flagKey }: { flagKey: string }) {
                 ) : null}
               </div>
               {row.comment !== null ? <p className="mb-2 text-sm">{row.comment}</p> : null}
-              <pre className="max-h-40 overflow-auto rounded bg-canvas p-2 font-mono text-[11px] text-muted">
+              <pre className="max-h-40 overflow-auto rounded bg-background p-2 font-mono text-[11px] text-muted-foreground">
                 {JSON.stringify(row.patch, null, 2)}
               </pre>
             </li>
@@ -825,10 +825,10 @@ function HistoryTab({ flagKey, onReverted }: { flagKey: string; onReverted: () =
                 <p className="text-sm">
                   <span className="font-medium">{entry.action}</span>
                   {entry.comment !== null ? (
-                    <span className="text-muted"> — {entry.comment}</span>
+                    <span className="text-muted-foreground"> — {entry.comment}</span>
                   ) : null}
                 </p>
-                <p className="text-[11px] text-faint" title={absoluteTime(entry.createdAt)}>
+                <p className="text-[11px] text-muted-foreground" title={absoluteTime(entry.createdAt)}>
                   {relativeTime(entry.createdAt)} · {entry.actorKind}
                 </p>
               </div>
@@ -921,13 +921,13 @@ function MetricsTab({
               <div key={label} className="space-y-1">
                 <div className="flex justify-between text-xs">
                   <span>{label}</span>
-                  <span className="font-mono tabular-nums text-muted">
+                  <span className="font-mono tabular-nums text-muted-foreground">
                     {count.toLocaleString()} · {((count / grand) * 100).toFixed(1)}%
                   </span>
                 </div>
-                <div className="h-1.5 overflow-hidden rounded-full bg-raised">
+                <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
                   <div
-                    className="h-full rounded-full bg-accent"
+                    className="h-full rounded-full bg-primary"
                     style={{ width: `${(count / grand) * 100}%` }}
                   />
                 </div>
@@ -941,9 +941,9 @@ function MetricsTab({
 
 function Stat({ label, value }: { label: string; value: number | string }) {
   return (
-    <div className="rounded-md border border-border bg-canvas px-2 py-1.5">
+    <div className="rounded-md border border-border bg-background px-2 py-1.5">
       <p className="text-lg font-semibold tabular-nums">{value}</p>
-      <p className="text-[11px] text-faint">{label}</p>
+      <p className="text-[11px] text-muted-foreground">{label}</p>
     </div>
   );
 }
@@ -961,14 +961,14 @@ function Distribution({
   const total = Object.values(counts).reduce((sum, value) => sum + value, 0) || 1;
   return (
     <div className="rounded-md border border-border p-2">
-      <p className="mb-1 text-[11px] uppercase tracking-wide text-faint">{title}</p>
+      <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{title}</p>
       <div className="space-y-1">
         {Object.entries(counts).map(([index, count]) => (
           <div key={index} className="flex items-center justify-between gap-2 text-xs">
             <span className="truncate">
               {variationLabel(flag.variations[Number(index)], flag.kind)}
             </span>
-            <span className="font-mono tabular-nums text-muted">
+            <span className="font-mono tabular-nums text-muted-foreground">
               {count} · {Math.round((count / total) * 100)}%
             </span>
           </div>
