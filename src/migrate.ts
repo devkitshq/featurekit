@@ -126,9 +126,17 @@ export async function migrate(options: MigrateOptions = {}): Promise<void> {
 export async function migrationStatus(options: MigrateOptions = {}): Promise<MigrationStatus> {
   const { db, close } = createDatabase({ url: urlFrom(options), maxConnections: 1 });
   try {
-    const applied = await db.execute(
-      sql`select count(*)::int as count from drizzle.__drizzle_migrations`,
-    );
+    let appliedCount = 0;
+    try {
+      const applied = await db.execute(
+        sql`select count(*)::int as count from drizzle.__drizzle_migrations`,
+      );
+      const count = (applied as unknown as Array<{ count?: unknown }>)[0]?.count;
+      appliedCount = typeof count === "number" ? count : 0;
+    } catch {
+      // The migrations table does not exist on an unmigrated database.
+      appliedCount = 0;
+    }
     let partitionRunwayDays: number | null = null;
     try {
       let runway: unknown;
@@ -144,9 +152,8 @@ export async function migrationStatus(options: MigrateOptions = {}): Promise<Mig
       // database has not been migrated — a status, not an error.
       partitionRunwayDays = null;
     }
-    const count = (applied as unknown as Array<{ count?: unknown }>)[0]?.count;
     return {
-      applied: typeof count === "number" ? count : 0,
+      applied: appliedCount,
       partitionRunwayDays,
     };
   } finally {
