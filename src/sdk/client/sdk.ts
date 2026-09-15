@@ -35,7 +35,7 @@ export interface SnapshotPersistence {
   save(snapshot: Snapshot): Promise<void> | void;
 }
 
-export interface FeaturekitSdkOptions {
+export interface FeatkitSdkOptions {
   sdkKey: string;
   baseUrl?: string;
   /**
@@ -62,9 +62,11 @@ export interface FeaturekitSdkOptions {
   onError?: (error: unknown) => void;
 }
 
+export type FeaturekitSdkOptions = FeatkitSdkOptions;
+
 type Listener = (payload: never) => void;
 
-export class FeaturekitSDK {
+export class FeatkitSDK {
   private snapshot: Snapshot | null = null;
   private segments = new SegmentIndex({});
   private currentState: SdkState = "initializing";
@@ -240,13 +242,13 @@ export class FeaturekitSDK {
    * ```
    *
    * **A context per call**, which is the signature difference from
-   * `featurekit-client`: this SDK holds the ruleset, so one instance answers
+   * `featkit-client`: this SDK holds the ruleset, so one instance answers
    * for every identity your process serves. Nothing is held per user and there
    * is no network call, so a request handler can evaluate for whoever it is
    * serving without an instance, a round trip, or a promise.
    *
    * **The default is required**, and it does two jobs. It states what happens
-   * when featurekit is unavailable — an optional default produces `undefined`
+   * when featkit is unavailable — an optional default produces `undefined`
    * in production during an outage, and `if (undefined)` is a silent wrong
    * answer nobody notices for a week. And its type is the expected type, so
    * `get("new-checkout", ctx, false)` is a `boolean` with no annotation.
@@ -267,7 +269,7 @@ export class FeaturekitSDK {
     const snapshot = this.snapshot;
     if (snapshot === null) {
       // No snapshot from any source. The caller's default is the answer, and
-      // `featurekit_sdk_default_served_total` is what should page.
+      // `featkit_sdk_default_served_total` is what should page.
       const detail: EvaluationDetail<T> = {
         value: defaultValue,
         variationIndex: null,

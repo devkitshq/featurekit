@@ -41,7 +41,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     credentials: "same-origin",
     headers: {
       ...(body === undefined ? {} : { "content-type": "application/json" }),
-      ...(method === "GET" ? {} : { "x-featurekit-csrf": "1" }),
+      ...(method === "GET" ? {} : { "x-featkit-csrf": "1" }),
     },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
@@ -282,7 +282,7 @@ const admin = "/v1/admin";
  */
 function enc(segment: string, what = "path segment"): string {
   if (segment === "") {
-    throw new Error(`featurekit: no ${what} selected — pick one before continuing`);
+    throw new Error(`featkit: no ${what} selected — pick one before continuing`);
   }
   return encodeURIComponent(segment);
 }

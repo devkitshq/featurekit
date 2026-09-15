@@ -1,7 +1,7 @@
 /**
  * Postgres and Redis, started for you in development (§11.1, §17).
  *
- * `new FeaturekitServer({ services: ["all"] }).start()` is supposed to be the
+ * `new FeatkitServer({ services: ["all"] }).start()` is supposed to be the
  * whole setup step. That promise only holds if the two dependencies appear
  * without a compose file, so this module does the one thing that makes it true:
  * probe what the configuration points at, and if nothing answers, start a
@@ -52,7 +52,7 @@ export interface DevServiceResolution {
 
 const POSTGRES_IMAGE = "postgres:16-alpine";
 const REDIS_IMAGE = "redis:7-alpine";
-const CREDENTIALS = { user: "featurekit", password: "featurekit", database: "featurekit" };
+const CREDENTIALS = { user: "featkit", password: "featkit", database: "featkit" };
 
 class DevServiceError extends Error {
   constructor(message: string) {
@@ -243,9 +243,9 @@ async function ensureContainer(options: {
 function unreachable(kind: string, url: string, explicit: boolean): DevServiceError {
   return new DevServiceError(
     explicit
-      ? `featurekit: cannot reach the ${kind} you configured (${redact(url)}).\n` +
-        `  It was given explicitly, so featurekit will not substitute a local container for it.`
-      : `featurekit: no ${kind} at ${redact(url)} and Docker is not available to start one.\n` +
+      ? `featkit: cannot reach the ${kind} you configured (${redact(url)}).\n` +
+        `  It was given explicitly, so featkit will not substitute a local container for it.`
+      : `featkit: no ${kind} at ${redact(url)} and Docker is not available to start one.\n` +
         `  Start one yourself (\`docker compose up -d\`) or pass ${kind === "Postgres" ? "databaseUrl" : "redisUrl"}.`,
   );
 }
@@ -268,7 +268,7 @@ export async function ensureDevPostgres(request: DevServiceRequest): Promise<Dev
     throw unreachable("Postgres", request.url, request.explicit);
   }
 
-  const name = `${request.label ?? "featurekit-dev"}-postgres`;
+  const name = `${request.label ?? "featkit-dev"}-postgres`;
   const { port } = await ensureContainer({
     name,
     image: POSTGRES_IMAGE,
@@ -297,7 +297,7 @@ export async function ensureDevRedis(request: DevServiceRequest): Promise<DevSer
     throw unreachable("Redis", request.url, request.explicit);
   }
 
-  const name = `${request.label ?? "featurekit-dev"}-redis`;
+  const name = `${request.label ?? "featkit-dev"}-redis`;
   const { port } = await ensureContainer({
     name,
     image: REDIS_IMAGE,

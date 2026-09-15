@@ -369,7 +369,7 @@ export class CuckooFilter {
 
 export interface CuckooBuildResult {
   filter: CuckooFilter;
-  /** Increments `featurekit_segment_filter_rebuild_total`. A rebuild loop that
+  /** Increments `featkit_segment_filter_rebuild_total`. A rebuild loop that
    *  nobody can see is how a compile-time bug becomes a production incident. */
   rebuilds: number;
   rebuildReasons: ("seed_retry" | "table_growth")[];

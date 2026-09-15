@@ -15,17 +15,30 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from featurekit import (  # noqa: E402
-    CuckooFilter,
-    HASH_SPACE,
-    SegmentIndex,
-    WEIGHT_SCALE,
-    bucket,
-    bucket_from_hash,
-    evaluate,
-    load_corpus,
-    murmur3_utf8,
-)
+try:
+    from featkit import (  # noqa: E402
+        CuckooFilter,
+        HASH_SPACE,
+        SegmentIndex,
+        WEIGHT_SCALE,
+        bucket,
+        bucket_from_hash,
+        evaluate,
+        load_corpus,
+        murmur3_utf8,
+    )
+except ImportError:
+    from featurekit import (  # noqa: E402
+        CuckooFilter,
+        HASH_SPACE,
+        SegmentIndex,
+        WEIGHT_SCALE,
+        bucket,
+        bucket_from_hash,
+        evaluate,
+        load_corpus,
+        murmur3_utf8,
+    )
 
 CORPUS = Path(__file__).resolve().parents[2] / "tests" / "conformance"
 
@@ -119,7 +132,7 @@ else:
 
 # ─────────────────────────────── report ────────────────────────────────────
 
-print(f"featurekit conformance (python): {checks} checks")
+print(f"featkit conformance (python): {checks} checks")
 if failures:
     print(f"\n{len(failures)} FAILED:\n")
     for failure in failures:

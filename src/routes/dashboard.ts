@@ -2,7 +2,7 @@
  * Serving the dashboard (dashboard/PLAN.md §3).
  *
  * The control plane serves its own UI at `/admin`. Not a second deployment, not
- * a second thing to run: if featurekit is up, the way to turn a flag off is up.
+ * a second thing to run: if featkit is up, the way to turn a flag off is up.
  *
  * A single-page bundle, so every path under `/admin` that is not a real file
  * answers with `index.html` and the client router takes it from there. That
@@ -83,7 +83,7 @@ const SECURITY_HEADERS: Readonly<Record<string, string>> = {
 };
 
 const NOT_BUILT = `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><title>featurekit</title>
+<html lang="en"><head><meta charset="utf-8"><title>featkit</title>
 <style>
   body { font: 15px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
          background: #0b0d10; color: #e6e9ef; margin: 0;

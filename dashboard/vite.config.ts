@@ -16,7 +16,8 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
-const CONTROL_PLANE = process.env["FEATUREKIT_URL"] ?? "http://127.0.0.1:3000";
+const CONTROL_PLANE =
+  process.env["FEATKIT_URL"] ?? process.env["FEATUREKIT_URL"] ?? "http://127.0.0.1:3000";
 
 export default defineConfig({
   root: import.meta.dirname,

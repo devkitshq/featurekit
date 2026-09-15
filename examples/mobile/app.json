@@ -1,10 +1,10 @@
 {
   "expo": {
     "name": "Acme Cloud",
-    "slug": "featurekit-example-mobile",
+    "slug": "featkit-example-mobile",
     "version": "0.1.0",
     "orientation": "portrait",
-    "scheme": "featurekit-example",
+    "scheme": "featkit-example",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "ios": {
@@ -12,7 +12,7 @@
     },
     "android": {
       "edgeToEdgeEnabled": true,
-      "package": "com.nillastudios.featurekitexamplemobile"
+      "package": "com.nillastudios.featkitexamplemobile"
     },
     "web": {
       "bundler": "metro"

@@ -336,7 +336,7 @@ class CuckooFilter:
 
     def __init__(self, data: bytes) -> None:
         if len(data) < 16 or data[0:4] != b"FKCF":
-            raise ValueError("not a featurekit cuckoo filter")
+            raise ValueError("not a featkit cuckoo filter")
         self.format_version = data[4]
         self.fingerprint_bits = data[5]
         self.buckets_log2 = data[6]

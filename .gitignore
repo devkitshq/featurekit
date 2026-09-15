@@ -3,6 +3,7 @@ dist/
 coverage/
 *.tsbuildinfo
 .featurekit/
+.featkit/
 .env
 __pycache__/
 *.pyc

@@ -1,6 +1,6 @@
 # The app
 
-A browser client using `featurekit-client`. Three files, no build step:
+A browser client using `featkit-client`. Three files, no build step:
 
 ```
 index.html    the page
@@ -36,7 +36,7 @@ discarded rather than applied over the newer one.
 context — and no promise, because the values are already in memory:
 
 ```js
-const fk = new FeaturekitClient({ clientKey, baseUrl, context: user, stream: true });
+const fk = new FeatkitClient({ clientKey, baseUrl, context: user, stream: true });
 await fk.ready();
 
 fk.get("new-checkout", false);          // boolean

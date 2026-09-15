@@ -29,8 +29,11 @@ let probed: string | null | undefined;
 export async function containerUnavailableReason(): Promise<string | null> {
   if (probed !== undefined) return probed;
 
-  if (process.env["FEATUREKIT_SKIP_CONTAINERS"] === "1") {
-    probed = "FEATUREKIT_SKIP_CONTAINERS=1";
+  if (
+    process.env["FEATKIT_SKIP_CONTAINERS"] === "1" ||
+    process.env["FEATUREKIT_SKIP_CONTAINERS"] === "1"
+  ) {
+    probed = "FEATKIT_SKIP_CONTAINERS=1";
     return probed;
   }
   try {
@@ -63,10 +66,12 @@ let announced = false;
 export function announceSkip(reason: string): void {
   if (announced) return;
   announced = true;
-  const required = process.env["FEATUREKIT_REQUIRE_CONTAINERS"] === "1";
+  const required =
+    process.env["FEATKIT_REQUIRE_CONTAINERS"] === "1" ||
+    process.env["FEATUREKIT_REQUIRE_CONTAINERS"] === "1";
   const message =
-    `\n  featurekit: integration tests SKIPPED — ${reason}.\n` +
-    `  Start a Docker daemon to run them, or set FEATUREKIT_REQUIRE_CONTAINERS=1 to fail instead.\n`;
+    `\n  featkit: integration tests SKIPPED — ${reason}.\n` +
+    `  Start a Docker daemon to run them, or set FEATKIT_REQUIRE_CONTAINERS=1 to fail instead.\n`;
   if (required) throw new Error(message);
   // eslint-disable-next-line no-console
   console.warn(message);
@@ -79,9 +84,9 @@ export async function startInfrastructure(): Promise<IntegrationContext> {
 
   const postgres = await new GenericContainer("postgres:16-alpine")
     .withEnvironment({
-      POSTGRES_USER: "featurekit",
-      POSTGRES_PASSWORD: "featurekit",
-      POSTGRES_DB: "featurekit",
+      POSTGRES_USER: "featkit",
+      POSTGRES_PASSWORD: "featkit",
+      POSTGRES_DB: "featkit",
     })
     .withExposedPorts(5432)
     .withWaitStrategy(Wait.forLogMessage(/database system is ready to accept connections/, 2))
@@ -95,7 +100,7 @@ export async function startInfrastructure(): Promise<IntegrationContext> {
   started.push(redis);
 
   return {
-    databaseUrl: `postgres://featurekit:featurekit@${postgres.getHost()}:${postgres.getMappedPort(5432)}/featurekit`,
+    databaseUrl: `postgres://featkit:featkit@${postgres.getHost()}:${postgres.getMappedPort(5432)}/featkit`,
     redisUrl: `redis://${redis.getHost()}:${redis.getMappedPort(6379)}`,
     stop: async () => {
       await Promise.all(started.map((c) => c.stop()));

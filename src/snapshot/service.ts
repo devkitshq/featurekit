@@ -92,7 +92,7 @@ export interface RecompileOptions {
  */
 class CompileFailure extends Error {
   constructor(override readonly cause: unknown) {
-    super("featurekit: snapshot compile failed");
+    super("featkit: snapshot compile failed");
     this.name = "CompileFailure";
   }
 }
@@ -219,7 +219,7 @@ export class SnapshotService {
       }
       // Redis is gone, Postgres is gone, and this node never held a snapshot for
       // this environment. There is genuinely nothing to serve.
-      throw new Error(`featurekit: could not obtain a snapshot for ${environmentId}`);
+      throw new Error(`featkit: could not obtain a snapshot for ${environmentId}`);
     }
   }
 

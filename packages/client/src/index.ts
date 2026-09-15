@@ -62,7 +62,7 @@ export interface SignaturePair {
   expiresAt: number;
 }
 
-export interface FeaturekitClientOptions {
+export interface FeatkitClientOptions {
   clientKey: string;
   baseUrl: string;
   context: EvaluationContextLike;
@@ -79,9 +79,11 @@ export interface FeaturekitClientOptions {
   stream?: boolean;
 }
 
+export type FeaturekitClientOptions = FeatkitClientOptions;
+
 type Listener = (payload: never) => void;
 
-export class FeaturekitClient {
+export class FeatkitClient {
   private values: Record<string, FlagValue> = {};
   private context: EvaluationContextLike;
   private currentState: ClientState = "initializing";
@@ -111,7 +113,7 @@ export class FeaturekitClient {
   private readonly readyPromise: Promise<void>;
   private isReady = false;
 
-  constructor(private readonly options: FeaturekitClientOptions) {
+  constructor(private readonly options: FeatkitClientOptions) {
     this.context = options.context;
     this.readyPromise = new Promise((resolve) => {
       this.readyResolve = resolve;
@@ -479,3 +481,5 @@ export class FeaturekitClient {
     }
   }
 }
+
+export { FeatkitClient as FeaturekitClient };

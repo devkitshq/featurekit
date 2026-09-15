@@ -360,7 +360,7 @@ export async function createSdkKey(
       expiresAt: input.expiresAt ?? null,
     })
     .returning({ id: sdkKeys.id });
-  if (row === undefined) throw new Error("featurekit: sdk key insert returned nothing");
+  if (row === undefined) throw new Error("featkit: sdk key insert returned nothing");
   return { id: row.id, key, kind: input.kind };
 }
 

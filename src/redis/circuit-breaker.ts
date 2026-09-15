@@ -27,7 +27,7 @@ export type CircuitState = "closed" | "open" | "half-open";
 
 export class CircuitOpenError extends Error {
   constructor(readonly openedFor: number) {
-    super(`featurekit: circuit open, failing fast (${openedFor}ms)`);
+    super(`featkit: circuit open, failing fast (${openedFor}ms)`);
     this.name = "CircuitOpenError";
   }
 }

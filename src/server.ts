@@ -26,8 +26,8 @@
 
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { createApp, type App, type FeaturekitService } from "./app.js";
-import { ConfigError, loadConfig, type FeaturekitConfig } from "./config/index.js";
+import { createApp, type App, type FeatkitService } from "./app.js";
+import { ConfigError, loadConfig, type FeatkitConfig } from "./config/index.js";
 import { type Database } from "./db/client.js";
 import { createMember, findMemberByEmail, updateMember } from "./repositories/members.js";
 import { PasswordError } from "./auth/passwords.js";
@@ -37,11 +37,11 @@ import { migrate } from "./migrate.js";
 import { applyFlagFile, environmentOf, type FlagFile } from "./provisioning.js";
 import { createSdkKey, listSdkKeys } from "./repositories/catalog.js";
 
-export type { FeaturekitService } from "./app.js";
+export type { FeatkitService, FeatkitService as FeaturekitService } from "./app.js";
 
-export interface FeaturekitServerOptions {
+export interface FeatkitServerOptions {
   /** Which parts of the system this process runs. Defaults to `["all"]`. */
-  services?: readonly FeaturekitService[];
+  services?: readonly FeatkitService[];
   port?: number;
   host?: string;
   databaseUrl?: string;
@@ -98,7 +98,7 @@ export interface FeaturekitServerOptions {
   /**
    * Re-apply configuration over flags that already exist.
    *
-   * Defaults to `FEATUREKIT_FLAGS_RESET=1`. This is the switch that overwrites
+   * Defaults to `FEATKIT_FLAGS_RESET=1`. This is the switch that overwrites
    * what somebody changed in the dashboard, so it is never the default.
    */
   flagsReset?: boolean;
@@ -107,7 +107,7 @@ export interface FeaturekitServerOptions {
    * Serve a browser app from a directory, in development (§2).
    *
    * Adds `/api/config` (the environment's client key and this server's URL) and
-   * `/sdk.js` (the built `featurekit-client` bundle) so a prototype needs no
+   * `/sdk.js` (the built `featkit-client` bundle) so a prototype needs no
    * bundler and no second process. `environmentKey` defaults to the one `flags`
    * names. Refused outside development — in production your app is served by
    * your app's infrastructure.
@@ -144,24 +144,28 @@ export interface FeaturekitServerOptions {
   env?: Record<string, string | undefined>;
 }
 
-export interface FeaturekitAddress {
+export type FeaturekitServerOptions = FeatkitServerOptions;
+
+export interface FeatkitAddress {
   host: string;
   port: number;
   url: string;
 }
 
-export class FeaturekitServer {
+export type FeaturekitAddress = FeatkitAddress;
+
+export class FeatkitServer {
   #app: App | null = null;
-  #address: FeaturekitAddress | null = null;
-  #config: FeaturekitConfig | null = null;
-  #starting: Promise<FeaturekitAddress> | null = null;
+  #address: FeatkitAddress | null = null;
+  #config: FeatkitConfig | null = null;
+  #starting: Promise<FeatkitAddress> | null = null;
   #appHost: AppHost | null = null;
 
-  constructor(private readonly options: FeaturekitServerOptions = {}) {}
+  constructor(private readonly options: FeatkitServerOptions = {}) {}
 
   /** The bound address. Throws before `start()` resolves — there isn't one yet. */
-  get address(): FeaturekitAddress {
-    if (this.#address === null) throw new Error("featurekit: server has not started");
+  get address(): FeatkitAddress {
+    if (this.#address === null) throw new Error("featkit: server has not started");
     return this.#address;
   }
 
@@ -171,7 +175,7 @@ export class FeaturekitServer {
 
   /** The assembled system: router, database handle, snapshot service, metrics. */
   get app(): App {
-    if (this.#app === null) throw new Error("featurekit: server has not started");
+    if (this.#app === null) throw new Error("featkit: server has not started");
     return this.#app;
   }
 
@@ -181,8 +185,8 @@ export class FeaturekitServer {
   }
 
   /** The resolved configuration, after defaults and any dev substitutions. */
-  get config(): FeaturekitConfig {
-    if (this.#config === null) throw new Error("featurekit: server has not started");
+  get config(): FeatkitConfig {
+    if (this.#config === null) throw new Error("featkit: server has not started");
     return this.#config;
   }
 
@@ -193,7 +197,7 @@ export class FeaturekitServer {
    * second socket, because "start it if it isn't started" is a thing test
    * helpers do and a race is a poor reward for it.
    */
-  async start(): Promise<FeaturekitAddress> {
+  async start(): Promise<FeatkitAddress> {
     if (this.#address !== null) return this.#address;
     this.#starting ??= this.#start();
     try {
@@ -203,10 +207,10 @@ export class FeaturekitServer {
     }
   }
 
-  async #start(): Promise<FeaturekitAddress> {
+  async #start(): Promise<FeatkitAddress> {
     const nodeEnv =
       this.options.nodeEnv ??
-      (process.env["NODE_ENV"] as FeaturekitServerOptions["nodeEnv"]) ??
+      (process.env["NODE_ENV"] as FeatkitServerOptions["nodeEnv"]) ??
       "development";
     const isProduction = nodeEnv === "production";
     const log = this.#logger();
@@ -221,13 +225,13 @@ export class FeaturekitServer {
     let databaseUrl =
       this.options.databaseUrl ??
       process.env["DATABASE_URL"] ??
-      "postgres://featurekit:featurekit@127.0.0.1:5432/featurekit";
+      "postgres://featkit:featkit@127.0.0.1:5432/featkit";
     let redisUrl =
       this.options.redisUrl ?? process.env["REDIS_URL"] ?? "redis://127.0.0.1:6379";
 
     const wantsDevServices = this.options.devServices ?? !isProduction;
     if (wantsDevServices && !isProduction) {
-      const label = this.options.label ?? "featurekit-dev";
+      const label = this.options.label ?? "featkit-dev";
       databaseUrl = (
         await ensureDevPostgres({ url: databaseUrl, explicit: databaseExplicit, label, log })
       ).url;
@@ -272,7 +276,9 @@ export class FeaturekitServer {
     // read by a human at a terminal; it travels up untouched.
     const config = loadConfig(env, {
       clientKeysExist:
-        this.options.clientKeysExist ?? process.env["FEATUREKIT_CLIENT_KEYS_EXIST"] === "1",
+        this.options.clientKeysExist ??
+        (process.env["FEATKIT_CLIENT_KEYS_EXIST"] === "1" ||
+          process.env["FEATUREKIT_CLIENT_KEYS_EXIST"] === "1"),
     });
     this.#config = config;
 
@@ -325,11 +331,11 @@ export class FeaturekitServer {
    */
   async #seedFirstAccount(
     db: Database,
-    config: FeaturekitConfig,
+    config: FeatkitConfig,
     log: (message: string) => void,
   ): Promise<void> {
-    const email = config.FEATUREKIT_ADMIN_EMAIL;
-    const password = config.FEATUREKIT_ADMIN_PASSWORD;
+    const email = config.FEATKIT_ADMIN_EMAIL ?? config.FEATUREKIT_ADMIN_EMAIL;
+    const password = config.FEATKIT_ADMIN_PASSWORD ?? config.FEATUREKIT_ADMIN_PASSWORD;
     if (email === undefined || password === undefined) return;
 
     try {
@@ -351,7 +357,7 @@ export class FeaturekitServer {
         // Loud, and not fatal: a control plane that refuses to serve flags
         // because a seed password was too short is a worse outage than a
         // dashboard nobody can log into yet.
-        log(`FEATUREKIT_ADMIN_PASSWORD rejected: ${error.message}`);
+        log(`FEATKIT_ADMIN_PASSWORD rejected: ${error.message}`);
         return;
       }
       throw error;
@@ -373,13 +379,16 @@ export class FeaturekitServer {
     if (file === undefined) return;
     if (isProduction) {
       throw new ConfigError(
-        "featurekit: `flags` applies definitions on start, which is a development " +
+        "featkit: `flags` applies definitions on start, which is a development " +
           "convenience. In production this is a deploy step — run the sync from CI " +
           "against a scoped token instead.",
       );
     }
 
-    const reset = this.options.flagsReset ?? process.env["FEATUREKIT_FLAGS_RESET"] === "1";
+    const reset =
+      this.options.flagsReset ??
+      (process.env["FEATKIT_FLAGS_RESET"] === "1" ||
+        process.env["FEATUREKIT_FLAGS_RESET"] === "1");
     const changes = await applyFlagFile(db, file, { reset });
     // Only what changed, so a restart that reconciles to nothing says nothing.
     const notable = changes.filter((change) => change.action !== "unchanged");
@@ -413,7 +422,7 @@ export class FeaturekitServer {
     if (app === undefined) return;
     if (isProduction) {
       throw new ConfigError(
-        "featurekit: `app` serves a directory for development. In production your " +
+        "featkit: `app` serves a directory for development. In production your " +
           "application is served by your application's infrastructure.",
       );
     }
@@ -421,7 +430,7 @@ export class FeaturekitServer {
     const environmentKey = app.environmentKey ?? this.options.flags?.environment.key;
     if (environmentKey === undefined) {
       throw new ConfigError(
-        "featurekit: `app` needs `environmentKey`, or a `flags` file that names one — " +
+        "featkit: `app` needs `environmentKey`, or a `flags` file that names one — " +
           "the page has to be given a key for some environment.",
       );
     }
@@ -434,7 +443,7 @@ export class FeaturekitServer {
             environment: { ...this.options.flags.environment, key: environmentKey },
           });
     if (environment === null) {
-      throw new ConfigError(`featurekit: no environment ${environmentKey} to serve an app for`);
+      throw new ConfigError(`featkit: no environment ${environmentKey} to serve an app for`);
     }
 
     const keys = await listSdkKeys(db, environment.id);
@@ -471,14 +480,14 @@ export class FeaturekitServer {
    * scrollback, CI artefact and screenshot from then on.
    */
   #summarise(
-    config: FeaturekitConfig,
+    config: FeatkitConfig,
     isProduction: boolean,
     log: (message: string) => void,
   ): void {
     if (isProduction) return;
     const url = this.#address?.url ?? "";
     if (config.DASHBOARD !== "off") {
-      const account = config.FEATUREKIT_ADMIN_EMAIL;
+      const account = config.FEATKIT_ADMIN_EMAIL ?? config.FEATUREKIT_ADMIN_EMAIL;
       log(
         `dashboard ${url}${config.DASHBOARD_PATH}` +
           (account === undefined ? "" : ` — sign in as ${account}`),
@@ -497,7 +506,7 @@ export class FeaturekitServer {
     const path =
       typeof this.options.devStateFile === "string"
         ? this.options.devStateFile
-        : join(process.cwd(), ".featurekit", "dev.json");
+        : join(process.cwd(), ".featkit", "dev.json");
     await mkdir(dirname(path), { recursive: true });
     await writeFile(
       path,
@@ -550,8 +559,9 @@ export class FeaturekitServer {
 
   #logger(): (message: string) => void {
     if (this.options.logLevel === "silent") return () => {};
-    return (message: string) => process.stdout.write(`featurekit: ${message}\n`);
+    return (message: string) => process.stdout.write(`featkit: ${message}\n`);
   }
 }
 
+export { FeatkitServer as FeaturekitServer };
 export { redact as redactUrl };

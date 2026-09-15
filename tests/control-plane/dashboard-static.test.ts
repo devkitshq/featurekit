@@ -25,7 +25,7 @@ describe("dashboard static serving", () => {
   let base: string;
 
   beforeAll(async () => {
-    const root = await mkdtemp(join(tmpdir(), "featurekit-dashboard-"));
+    const root = await mkdtemp(join(tmpdir(), "featkit-dashboard-"));
     dist = join(root, "dist");
     await mkdir(join(dist, "assets"), { recursive: true });
     await writeFile(join(dist, "index.html"), "<!doctype html><title>dash</title>", "utf8");

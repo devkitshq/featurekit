@@ -99,7 +99,7 @@ export async function createMember(
       passwordHash,
     })
     .returning(memberColumns);
-  if (row === undefined) throw new Error("featurekit: member insert returned nothing");
+  if (row === undefined) throw new Error("featkit: member insert returned nothing");
   return toMember(row);
 }
 
@@ -297,7 +297,7 @@ export async function createToken(
       expiresAt: input.expiresAt ?? null,
     })
     .returning({ id: accessTokens.id });
-  if (row === undefined) throw new Error("featurekit: token insert returned nothing");
+  if (row === undefined) throw new Error("featkit: token insert returned nothing");
   return { id: row.id, token };
 }
 

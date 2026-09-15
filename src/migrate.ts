@@ -1,5 +1,5 @@
 /**
- * `featurekit/migrate` — the migration step, as a function you can call (§9, §16).
+ * `featkit/migrate` — the migration step, as a function you can call (§9, §16).
  *
  * **Migrations are a deploy step, not something a booting node does.** Every
  * node running them on startup is a lock convoy at best: N nodes take the same
@@ -7,7 +7,7 @@
  * ACCESS EXCLUSIVE lock while the rest queue behind it — during a deploy, while
  * traffic is shifting.
  *
- * That advice was previously unfollowable for anyone who installed featurekit
+ * That advice was previously unfollowable for anyone who installed featkit
  * from npm. The separate step lived in `scripts/migrate.mjs`, and `scripts/` is
  * not in the published package — so `autoMigrate: true` was the only option a
  * dependency had, which is precisely the shape the advice argues against. This
@@ -15,15 +15,15 @@
  *
  * ```ts
  * // migrate.js, run as a deploy job before the new nodes start
- * import { migrate } from "featurekit/migrate";
+ * import { migrate } from "featkit/migrate";
  * await migrate();
  * ```
  *
  * ```bash
- * node -e 'import("featurekit/migrate").then(m => m.migrate())'
+ * node -e 'import("featkit/migrate").then(m => m.migrate())'
  * ```
  *
- * **A separate entry point because of what it does not load.** `featurekit`'s
+ * **A separate entry point because of what it does not load.** `featkit`'s
  * main entry is the control plane, so importing it to run one deploy job pulls
  * ioredis, pino, prom-client and the whole route layer. This reaches the
  * Postgres driver and Drizzle, because migrating is what it does, and nothing
@@ -47,7 +47,7 @@ const PACKAGE_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 /**
  * Any stable 64-bit constant; it only has to agree with the other callers.
  *
- * Exported because `FeaturekitServer` and any deploy job must take the *same*
+ * Exported because `FeatkitServer` and any deploy job must take the *same*
  * lock, or holding one is decoration.
  */
 export const MIGRATION_LOCK = 8_474_920_310_001n;
@@ -75,7 +75,7 @@ export interface MigrationStatus {
 function urlFrom(options: MigrateOptions | undefined): string {
   const url = options?.databaseUrl ?? process.env["DATABASE_URL"];
   if (url === undefined || url.length === 0) {
-    throw new Error("featurekit: migrate() needs a databaseUrl, or DATABASE_URL in the environment");
+    throw new Error("featkit: migrate() needs a databaseUrl, or DATABASE_URL in the environment");
   }
   return url;
 }
@@ -102,7 +102,11 @@ export async function migrate(options: MigrateOptions = {}): Promise<void> {
     try {
       await runMigrations(db, options.migrationsFolder ?? join(PACKAGE_ROOT, "drizzle"));
       const premake = options.partitionPremakeDays ?? DEFAULT_PARTITION_PREMAKE_DAYS;
-      await db.execute(sql`select featurekit_ensure_partitions(${premake})`);
+      try {
+        await db.execute(sql`select featkit_ensure_partitions(${premake})`);
+      } catch {
+        await db.execute(sql`select featurekit_ensure_partitions(${premake})`);
+      }
       log("migrations applied");
     } finally {
       await db.execute(sql`select pg_advisory_unlock(${MIGRATION_LOCK})`);
@@ -127,7 +131,12 @@ export async function migrationStatus(options: MigrateOptions = {}): Promise<Mig
     );
     let partitionRunwayDays: number | null = null;
     try {
-      const runway = await db.execute(sql`select featurekit_partition_runway_days() as days`);
+      let runway: unknown;
+      try {
+        runway = await db.execute(sql`select featkit_partition_runway_days() as days`);
+      } catch {
+        runway = await db.execute(sql`select featurekit_partition_runway_days() as days`);
+      }
       const days = (runway as unknown as Array<{ days?: unknown }>)[0]?.days;
       partitionRunwayDays = typeof days === "number" ? days : null;
     } catch {

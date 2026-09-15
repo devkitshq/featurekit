@@ -170,7 +170,7 @@ async function controlPlane(flagCount) {
 
 /* ─────────────────────────────── runs ────────────────────────────────── */
 
-console.log(`featurekit load report`);
+console.log(`featkit load report`);
 console.log(`node ${process.version}  ${process.platform}/${process.arch}  ${new Date().toISOString()}`);
 console.log(`connections=${CONNECTIONS} requests=${REQUESTS}\n`);
 console.log("| Scenario | n | p50 | p95 | p99 | p99.9 | max | notes |");

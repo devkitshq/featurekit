@@ -8,7 +8,7 @@
  *   node scripts/admin-user.mjs delete <email>
  *
  * The password is read from the terminal with echo off, or from
- * `FEATUREKIT_PASSWORD` for a non-interactive run. It is never taken as an
+ * `FEATKIT_PASSWORD` for a non-interactive run. It is never taken as an
  * argument: arguments are in `ps`, in shell history, and in CI logs.
  */
 
@@ -35,20 +35,24 @@ async function databaseUrl() {
     // A development server records the Postgres it resolved, which may be on a
     // port it chose. Without this the CLI would talk to a different database
     // than the server and report that the account it just made does not exist.
-    const state = JSON.parse(await readFile(join(process.cwd(), ".featurekit", "dev.json"), "utf8"));
+    const state = JSON.parse(
+      await readFile(join(process.cwd(), ".featkit", "dev.json"), "utf8").catch(() =>
+        readFile(join(process.cwd(), ".featurekit", "dev.json"), "utf8"),
+      ),
+    );
     if (typeof state.databaseUrl === "string") return state.databaseUrl;
   } catch {
     /* no dev state; fall through to the default */
   }
-  return "postgres://featurekit:featurekit@127.0.0.1:5432/featurekit";
+  return "postgres://featkit:featkit@127.0.0.1:5432/featkit";
 }
 
 /** Read a line with the terminal's echo turned off. */
 async function readPassword(prompt) {
-  const fromEnv = process.env["FEATUREKIT_PASSWORD"];
+  const fromEnv = process.env["FEATKIT_PASSWORD"] ?? process.env["FEATUREKIT_PASSWORD"];
   if (fromEnv !== undefined) return fromEnv;
   if (!process.stdin.isTTY) {
-    throw new Error("no TTY: set FEATUREKIT_PASSWORD to run this non-interactively");
+    throw new Error("no TTY: set FEATKIT_PASSWORD to run this non-interactively");
   }
 
   process.stdout.write(prompt);
@@ -147,7 +151,7 @@ try {
     default:
       console.log(
         [
-          "featurekit accounts",
+          "featkit accounts",
           "",
           "  node scripts/admin-user.mjs list",
           "  node scripts/admin-user.mjs create <email> [--role owner|admin|writer|reader]",
@@ -160,7 +164,7 @@ try {
   }
 } catch (error) {
   const message = error instanceof PasswordError ? error.message : String(error?.message ?? error);
-  process.stderr.write(`featurekit: ${message}\n`);
+  process.stderr.write(`featkit: ${message}\n`);
   process.exitCode = 1;
 } finally {
   await close();
@@ -172,6 +176,6 @@ function required(value, what) {
 }
 
 function fail(message) {
-  process.stderr.write(`featurekit: ${message}\n`);
+  process.stderr.write(`featkit: ${message}\n`);
   process.exit(1);
 }

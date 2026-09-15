@@ -20,9 +20,9 @@
  */
 
 import { ConfigError } from "./config/index.js";
-import { FeaturekitServer, type FeaturekitService } from "./server.js";
+import { FeatkitServer, type FeatkitService } from "./server.js";
 
-const SERVICES: readonly FeaturekitService[] = [
+const SERVICES: readonly FeatkitService[] = [
   "api",
   "stream",
   "events",
@@ -31,32 +31,34 @@ const SERVICES: readonly FeaturekitService[] = [
   "all",
 ];
 
-function servicesFromEnv(): readonly FeaturekitService[] | undefined {
-  const raw = process.env["FEATUREKIT_SERVICES"];
+function servicesFromEnv(): readonly FeatkitService[] | undefined {
+  const raw = process.env["FEATKIT_SERVICES"] ?? process.env["FEATUREKIT_SERVICES"];
   if (raw === undefined) return undefined;
   const requested = raw
     .split(",")
     .map((entry) => entry.trim())
     .filter((entry) => entry.length > 0);
-  const unknown = requested.filter((entry) => !SERVICES.includes(entry as FeaturekitService));
+  const unknown = requested.filter((entry) => !SERVICES.includes(entry as FeatkitService));
   if (unknown.length > 0) {
     // A typo here silently produces a process that serves nothing, and the
     // symptom — every request 404s — points nowhere near the cause.
     throw new ConfigError(
-      `featurekit: unknown FEATUREKIT_SERVICES entries: ${unknown.join(", ")}\n` +
+      `featkit: unknown FEATKIT_SERVICES entries: ${unknown.join(", ")}\n` +
         `  valid: ${SERVICES.join(", ")}`,
     );
   }
-  return requested as FeaturekitService[];
+  return requested as FeatkitService[];
 }
 
 async function main(): Promise<void> {
   const services = servicesFromEnv();
-  const server = new FeaturekitServer({
+  const server = new FeatkitServer({
     ...(services !== undefined ? { services } : {}),
     // Migrations are a deploy step here, not something a booting node does:
     // every node running them is a lock convoy during a rolling deploy.
-    autoMigrate: process.env["FEATUREKIT_AUTO_MIGRATE"] === "1",
+    autoMigrate:
+      process.env["FEATKIT_AUTO_MIGRATE"] === "1" ||
+      process.env["FEATUREKIT_AUTO_MIGRATE"] === "1",
     devServices: false,
   });
 
@@ -69,7 +71,7 @@ async function main(): Promise<void> {
       process.stderr.write(`${error.message}\n`);
       process.exit(78); // EX_CONFIG
     }
-    process.stderr.write(`featurekit: failed to start: ${String(error)}\n`);
+    process.stderr.write(`featkit: failed to start: ${String(error)}\n`);
     process.exit(1);
   }
 
@@ -79,7 +81,7 @@ async function main(): Promise<void> {
     if (stopping) {
       // Second signal: the operator has decided waiting is worse than dropping
       // connections. Honour that.
-      process.stderr.write(`featurekit: ${signal} during shutdown, exiting now\n`);
+      process.stderr.write(`featkit: ${signal} during shutdown, exiting now\n`);
       process.exit(130);
     }
     stopping = true;

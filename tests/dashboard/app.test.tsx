@@ -189,8 +189,8 @@ describe("dashboard shell", () => {
 
     const mutation = calls.findLast((call) => call.method === "POST");
     const read = calls.findLast((call) => call.method === "GET");
-    expect(mutation?.headers["x-featurekit-csrf"]).toBe("1");
-    expect(read?.headers["x-featurekit-csrf"]).toBeUndefined();
+    expect(mutation?.headers["x-featkit-csrf"]).toBe("1");
+    expect(read?.headers["x-featkit-csrf"]).toBeUndefined();
   });
 
   it("creates and deletes projects via API client with CSRF", async () => {
@@ -209,10 +209,10 @@ describe("dashboard shell", () => {
     const { A } = await import("../../dashboard/src/lib/api");
     await A.createProject("new-proj", "New Proj");
     const createCall = calls.findLast((call) => call.method === "POST" && call.url.includes("/admin/projects"));
-    expect(createCall?.headers["x-featurekit-csrf"]).toBe("1");
+    expect(createCall?.headers["x-featkit-csrf"]).toBe("1");
 
     await A.deleteProject("acme");
     const deleteCall = calls.findLast((call) => call.method === "DELETE" && call.url.includes("/admin/projects/acme"));
-    expect(deleteCall?.headers["x-featurekit-csrf"]).toBe("1");
+    expect(deleteCall?.headers["x-featkit-csrf"]).toBe("1");
   });
 });

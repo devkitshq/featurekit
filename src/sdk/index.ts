@@ -13,9 +13,13 @@
 
 export * from "./evaluation/index.js";
 
-export { FeaturekitSDK } from "./client/sdk.js";
+export {
+  FeatkitSDK,
+  FeatkitSDK as FeaturekitSDK,
+} from "./client/sdk.js";
 export type {
-  FeaturekitSdkOptions,
+  FeatkitSdkOptions,
+  FeatkitSdkOptions as FeaturekitSdkOptions,
   SdkState,
   SnapshotPersistence,
 } from "./client/sdk.js";

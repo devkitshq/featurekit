@@ -1,4 +1,4 @@
-import { FeaturekitServer } from "featurekit";
+import { FeatkitServer } from "featkit";
 import flags from "./flags.js";
 
 /**
@@ -8,13 +8,13 @@ import flags from "./flags.js";
  */
 const host = process.env.HOST ?? "127.0.0.1";
 
-const server = new FeaturekitServer({
+const server = new FeatkitServer({
   services: ["all"],
   port: 3000,
   host,
 
   // Flag definitions live in the repository and are applied on start. Existing
-  // flags keep whatever the dashboard says: FEATUREKIT_FLAGS_RESET=1 overrides.
+  // flags keep whatever the dashboard says: FEATKIT_FLAGS_RESET=1 overrides.
   flags,
 
   // The browser app next door, served on its own port with a client key.
@@ -38,8 +38,8 @@ const server = new FeaturekitServer({
   // The first dashboard account, created if it does not exist and never
   // overwritten if it does.
   env: {
-    FEATUREKIT_ADMIN_EMAIL: "you@example.com",
-    FEATUREKIT_ADMIN_PASSWORD: "password12345",
+    FEATKIT_ADMIN_EMAIL: "you@example.com",
+    FEATKIT_ADMIN_PASSWORD: "password12345",
   },
 });
 
@@ -48,6 +48,6 @@ try {
 } catch (error) {
   // The two ordinary failures are "this port is taken" and "Docker is not
   // running". Both deserve a sentence rather than a stack trace.
-  process.stderr.write(`\nfeaturekit: ${String(error.message ?? error)}\n\n`);
+  process.stderr.write(`\nfeatkit: ${String(error.message ?? error)}\n\n`);
   process.exit(1);
 }

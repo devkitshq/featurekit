@@ -5,7 +5,7 @@
  * when nobody has time to work out whether they were implemented:
  *
  * - a request must be findable from the *caller's* trace, not only from
- *   featurekit's own request id;
+ *   featkit's own request id;
  * - no error response may carry anything an attacker did not already know.
  */
 
@@ -108,10 +108,10 @@ describe("the error surface", () => {
 
   it("never returns an exception message, however it was thrown", async () => {
     const secrets = [
-      new Error("connection postgres://user:hunter2@db/featurekit refused"),
+      new Error("connection postgres://user:hunter2@db/featkit refused"),
       new TypeError("Cannot read properties of undefined (reading 'sdkKey')"),
       "a bare string with fk_srv_leaked in it",
-      { message: "object thrown", stack: "at /srv/featurekit/src/secret.ts:12" },
+      { message: "object thrown", stack: "at /srv/featkit/src/secret.ts:12" },
     ];
 
     for (const [index, thrown] of secrets.entries()) {

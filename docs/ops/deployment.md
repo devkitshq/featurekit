@@ -32,7 +32,7 @@ it — during a deploy, while traffic is shifting.
 
 The script takes a Postgres advisory lock first, so two concurrent runs (a
 retried deploy, two CI jobs) are safe: the second waits and then finds nothing
-to do. It also calls `featurekit_ensure_partitions(7)`, because a deploy that
+to do. It also calls `featkit_ensure_partitions(7)`, because a deploy that
 leaves the analytics table without partitions has not finished — it has just not
 failed yet.
 
@@ -43,11 +43,11 @@ npm run migrate:check      # report applied count and partition runway
 
 Those two are repository scripts. As an installed dependency, the same thing is
 a function — `scripts/` is not in the published package, and for a while that
-made the advice on this page unfollowable for anyone who had `npm i featurekit`
+made the advice on this page unfollowable for anyone who had `npm i featkit`
 rather than a checkout:
 
 ```js
-import { migrate, migrationStatus } from "featurekit/migrate";
+import { migrate, migrationStatus } from "featkit/migrate";
 
 await migrate();                                   // apply
 const { applied, partitionRunwayDays } = await migrationStatus();
@@ -55,7 +55,7 @@ const { applied, partitionRunwayDays } = await migrationStatus();
 
 It reads `DATABASE_URL` or takes `{ databaseUrl }`, and refuses to default to
 anything: a deploy job with a missing variable migrating the wrong database is
-worse than a failed deploy. `FeaturekitServer`'s `autoMigrate` calls the same
+worse than a failed deploy. `FeatkitServer`'s `autoMigrate` calls the same
 function, so the boot-time path and the deploy step apply the same SQL under the
 same advisory lock rather than being two implementations that drift.
 

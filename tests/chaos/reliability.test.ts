@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { FeaturekitSDK, bucket, buildCuckooFilter, evaluate, SegmentIndex } from "../../src/sdk/index.js";
+import { FeatkitSDK, bucket, buildCuckooFilter, evaluate, SegmentIndex } from "../../src/sdk/index.js";
 import type { CompiledFlag, Snapshot } from "../../src/sdk/index.js";
 import { Router } from "../../src/http/router.js";
 import { HttpServer } from "../../src/http/server.js";
@@ -11,7 +11,7 @@ import type { CompilerInput } from "../../src/snapshot/compile.js";
 /**
  * The chaos suite (§14).
  *
- * The property being sold: **featurekit failing should be invisible to your
+ * The property being sold: **featkit failing should be invisible to your
  * users.** §18 is explicit that shipping M4 without this suite would be
  * shipping the marketing copy without the thing it describes — so these assert
  * the reliability claim rather than restating it.
@@ -71,7 +71,7 @@ function input(state: { on: boolean; flagVersion: number }): CompilerInput {
 
 const servers: HttpServer[] = [];
 const services: SnapshotService[] = [];
-const sdks: FeaturekitSDK[] = [];
+const sdks: FeatkitSDK[] = [];
 
 async function controlPlane(store = new MemorySnapshotStore()) {
   const state = { on: true, flagVersion: 1 };
@@ -101,7 +101,7 @@ async function controlPlane(store = new MemorySnapshotStore()) {
 }
 
 function makeSdk(baseUrl: string, over = {}) {
-  const sdk = new FeaturekitSDK({
+  const sdk = new FeatkitSDK({
     sdkKey: KEY,
     baseUrl,
     environmentKey: "production",

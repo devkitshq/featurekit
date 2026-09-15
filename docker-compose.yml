@@ -3,7 +3,7 @@
 #
 # `pg_partman` and `pg_cron` are not in the stock postgres image, so the
 # partition migration takes its documented fallback path here and
-# `featurekit_ensure_partitions()` is called by `npm run migrate`. That is the
+# `featkit_ensure_partitions()` is called by `npm run migrate`. That is the
 # same path a managed Postgres with a locked-down extension allow-list takes,
 # which makes it worth exercising by default rather than papering over.
 
@@ -11,17 +11,17 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: featurekit
-      POSTGRES_PASSWORD: featurekit
-      POSTGRES_DB: featurekit
+      POSTGRES_USER: featkit
+      POSTGRES_PASSWORD: featkit
+      POSTGRES_DB: featkit
     ports: ["5432:5432"]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U featurekit"]
+      test: ["CMD-SHELL", "pg_isready -U featkit"]
       interval: 2s
       timeout: 3s
       retries: 20
     volumes:
-      - featurekit-pg:/var/lib/postgresql/data
+      - featkit-pg:/var/lib/postgresql/data
 
   redis:
     image: redis:7-alpine
@@ -33,4 +33,4 @@ services:
       retries: 20
 
 volumes:
-  featurekit-pg:
+  featkit-pg:

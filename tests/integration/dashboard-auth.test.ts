@@ -151,7 +151,7 @@ describe.skipIf(reason !== null)("dashboard authentication", () => {
 
     const with_ = await fetch(`${base}/v1/admin/projects`, {
       method: "POST",
-      headers: { cookie, "content-type": "application/json", "x-featurekit-csrf": "1" },
+      headers: { cookie, "content-type": "application/json", "x-featkit-csrf": "1" },
       body: JSON.stringify({ key: "csrf-probe", name: "CSRF probe" }),
     });
     expect(with_.status).toBe(200);
@@ -165,7 +165,7 @@ describe.skipIf(reason !== null)("dashboard authentication", () => {
 
     const response = await fetch(`${base}/v1/admin/auth/logout`, {
       method: "POST",
-      headers: { cookie, "x-featurekit-csrf": "1" },
+      headers: { cookie, "x-featkit-csrf": "1" },
     });
     expect(response.status).toBe(200);
 
@@ -182,7 +182,7 @@ describe.skipIf(reason !== null)("dashboard authentication", () => {
 
     const changed = await fetch(`${base}/v1/admin/auth/password`, {
       method: "POST",
-      headers: { cookie: laptop, "content-type": "application/json", "x-featurekit-csrf": "1" },
+      headers: { cookie: laptop, "content-type": "application/json", "x-featkit-csrf": "1" },
       body: JSON.stringify({ currentPassword: PASSWORD, newPassword: "a-much-longer-secret-1" }),
     });
     expect(changed.status).toBe(200);
@@ -205,7 +205,7 @@ describe.skipIf(reason !== null)("dashboard authentication", () => {
     const cookie = cookieFrom(await login(EMAIL, "a-much-longer-secret-1"));
     const response = await fetch(`${base}/v1/admin/auth/password`, {
       method: "POST",
-      headers: { cookie, "content-type": "application/json", "x-featurekit-csrf": "1" },
+      headers: { cookie, "content-type": "application/json", "x-featkit-csrf": "1" },
       body: JSON.stringify({ currentPassword: "a-much-longer-secret-1", newPassword: "short" }),
     });
     expect(response.status).toBe(400);

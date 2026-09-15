@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { FeaturekitClient } from "featurekit-client";
+import { FeatkitClient } from "featkit-client";
 import { Router } from "../../src/http/router.js";
 import { HttpServer } from "../../src/http/server.js";
 import { MemorySnapshotStore } from "../../src/redis/memory-store.js";
@@ -90,7 +90,7 @@ function input(version = 1): CompilerInput {
 
 const servers: HttpServer[] = [];
 const services: SnapshotService[] = [];
-const clients: FeaturekitClient[] = [];
+const clients: FeatkitClient[] = [];
 
 async function controlPlane(over: Partial<Parameters<typeof registerClientRoutes>[1]> = {}) {
   const store = new MemorySnapshotStore();
@@ -118,14 +118,14 @@ async function controlPlane(over: Partial<Parameters<typeof registerClientRoutes
   return { baseUrl: `http://${host}:${port}`, snapshots, store };
 }
 
-function makeClient(over: Partial<ConstructorParameters<typeof FeaturekitClient>[0]>) {
-  const client = new FeaturekitClient({
+function makeClient(over: Partial<ConstructorParameters<typeof FeatkitClient>[0]>) {
+  const client = new FeatkitClient({
     clientKey: CLIENT_KEY,
     baseUrl: "http://127.0.0.1:1",
     context: { key: "usr_1" },
     stream: false,
     ...over,
-  } as ConstructorParameters<typeof FeaturekitClient>[0]);
+  } as ConstructorParameters<typeof FeatkitClient>[0]);
   clients.push(client);
   return client;
 }

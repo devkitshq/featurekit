@@ -36,14 +36,18 @@ const host = developmentHost();
  * Overridable, because the one case `hostUri` cannot answer for you is a
  * device on a different network from the server. Put either in `.env`:
  *
- *   EXPO_PUBLIC_FEATUREKIT_URL=http://192.168.1.24:3000
- *   EXPO_PUBLIC_FEATUREKIT_CONFIG_URL=http://192.168.1.24:4000/api/config
+ *   EXPO_PUBLIC_FEATKIT_URL=http://192.168.1.24:3000
+ *   EXPO_PUBLIC_FEATKIT_CONFIG_URL=http://192.168.1.24:4000/api/config
  */
 export const CONTROL_PLANE_URL =
-  process.env.EXPO_PUBLIC_FEATUREKIT_URL ?? `http://${host}:3000`;
+  process.env.EXPO_PUBLIC_FEATKIT_URL ??
+  process.env.EXPO_PUBLIC_FEATUREKIT_URL ??
+  `http://${host}:3000`;
 
 export const CONFIG_URL =
-  process.env.EXPO_PUBLIC_FEATUREKIT_CONFIG_URL ?? `http://${host}:4000/api/config`;
+  process.env.EXPO_PUBLIC_FEATKIT_CONFIG_URL ??
+  process.env.EXPO_PUBLIC_FEATUREKIT_CONFIG_URL ??
+  `http://${host}:4000/api/config`;
 
 export const DASHBOARD_URL = `${CONTROL_PLANE_URL}/admin`;
 

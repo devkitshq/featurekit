@@ -42,7 +42,7 @@ export async function nextSnapshotVersion(db: Database, environmentId: string): 
 
   const version = rows[0]?.version;
   if (version === undefined) {
-    throw new Error(`featurekit: no environment ${environmentId} to version`);
+    throw new Error(`featkit: no environment ${environmentId} to version`);
   }
   return version;
 }
@@ -96,9 +96,16 @@ export async function pingDatabase(db: Database): Promise<void> {
  */
 export async function partitionRunwayDays(db: Database): Promise<number> {
   try {
-    const result = (await db.execute(
-      sql`select featurekit_partition_runway_days() as days`,
-    )) as unknown as Array<{ days: number | string | null }>;
+    let result: Array<{ days: number | string | null }>;
+    try {
+      result = (await db.execute(
+        sql`select featkit_partition_runway_days() as days`,
+      )) as unknown as Array<{ days: number | string | null }>;
+    } catch {
+      result = (await db.execute(
+        sql`select featurekit_partition_runway_days() as days`,
+      )) as unknown as Array<{ days: number | string | null }>;
+    }
     const raw = result[0]?.days;
     if (raw === null || raw === undefined) return -1;
     const days = typeof raw === "string" ? Number.parseInt(raw, 10) : raw;

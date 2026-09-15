@@ -20,7 +20,7 @@
  */
 
 import { createDatabase, type Database } from "./db/client.js";
-import { commaList, secureModeSecrets, type FeaturekitConfig } from "./config/index.js";
+import { commaList, secureModeSecrets, type FeatkitConfig } from "./config/index.js";
 import { createLogger, type Logger } from "./observability/logger.js";
 import { Metrics } from "./observability/metrics.js";
 import { Router } from "./http/router.js";
@@ -78,7 +78,9 @@ const CLIENT_ROUTES = new Set(["/v1/client/state", "/v1/client/stream"]);
  * open by memory and file descriptors, rollup is bounded by Postgres write
  * throughput — and the split is how they stop competing for the same node.
  */
-export type FeaturekitService = "api" | "stream" | "events" | "rollup" | "scheduler" | "all";
+export type FeatkitService = "api" | "stream" | "events" | "rollup" | "scheduler" | "all";
+export type FeaturekitService = FeatkitService;
+export type { FeatkitConfig, FeatkitConfig as FeaturekitConfig };
 
 /**
  * Which service owns which route.
@@ -87,7 +89,7 @@ export type FeaturekitService = "api" | "stream" | "events" | "rollup" | "schedu
  * `/metrics` are registered by every process whatever it runs, because a
  * rollup-only node still has to answer its orchestrator.
  */
-const ROUTE_SERVICE: Readonly<Record<string, FeaturekitService>> = {
+const ROUTE_SERVICE: Readonly<Record<string, FeatkitService>> = {
   "/v1/snapshot/:envKey": "api",
   "/v1/stream/:envKey": "stream",
   "/v1/events": "events",
@@ -104,7 +106,7 @@ const ROUTE_SERVICE: Readonly<Record<string, FeaturekitService>> = {
  * is a 404, which is the truth: this process does not serve it.
  */
 class ServiceRouter extends Router {
-  constructor(private readonly enabled: ReadonlySet<FeaturekitService>) {
+  constructor(private readonly enabled: ReadonlySet<FeatkitService>) {
     super();
   }
 
@@ -117,22 +119,22 @@ class ServiceRouter extends Router {
 
 export interface CreateAppOptions {
   /** Defaults to `["all"]`: one process that does everything. */
-  services?: readonly FeaturekitService[];
+  services?: readonly FeatkitService[];
 }
 
-function serviceSet(services: readonly FeaturekitService[] | undefined): Set<FeaturekitService> {
+function serviceSet(services: readonly FeatkitService[] | undefined): Set<FeatkitService> {
   const requested = services === undefined || services.length === 0 ? ["all" as const] : services;
   if (requested.includes("all")) {
-    return new Set<FeaturekitService>(["api", "stream", "events", "rollup", "scheduler"]);
+    return new Set<FeatkitService>(["api", "stream", "events", "rollup", "scheduler"]);
   }
   return new Set(requested);
 }
 
-export function createApp(config: FeaturekitConfig, options: CreateAppOptions = {}): App {
+export function createApp(config: FeatkitConfig, options: CreateAppOptions = {}): App {
   const services = serviceSet(options.services);
   const logger = createLogger({
     level: config.LOG_LEVEL,
-    base: { service: "featurekit", env: config.NODE_ENV },
+    base: { service: "featkit", env: config.NODE_ENV },
   });
   const metrics = new Metrics();
 
@@ -560,7 +562,7 @@ function parseRateLimitOverrides(
  * per-identity ceiling relative to its cost. `/v1/stream` is limited on
  * *connection attempts*, which is what a reconnect storm consists of.
  */
-function rateLimitRules(config: FeaturekitConfig): Map<string, RateLimitRule> {
+function rateLimitRules(config: FeatkitConfig): Map<string, RateLimitRule> {
   const perMinute = (limit: number): RateLimitRule => ({ limit, windowMs: 60_000 });
   return new Map<string, RateLimitRule>([
     ["/v1/client/state", perMinute(config.RATE_LIMIT_CLIENT_STATE_PER_MIN)],

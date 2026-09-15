@@ -127,7 +127,7 @@ not a defect, but the plan's figures should be restated as a range.
 
 `buildCuckooFilter` retries once with an incremented seed, then doubles the
 table, reporting `rebuilds` and reasons so
-`featurekit_segment_filter_rebuild_total` can see it. Verified at 1M members
+`featkit_segment_filter_rebuild_total` can see it. Verified at 1M members
 and at a true alpha=0.8 saturation (1,677,721 members): **zero rebuilds**.
 
 ## Roaring wire format

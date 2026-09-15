@@ -3,13 +3,13 @@
 `src/sdk/client/sdk.ts` · §11.2, §14
 
 ```ts
-import { FeaturekitSDK } from "featurekit";
+import { FeatkitSDK } from "featkit";
 
-const fk = new FeaturekitSDK({
-  sdkKey: process.env.FEATUREKIT_SDK_KEY!,
+const fk = new FeatkitSDK({
+  sdkKey: process.env.FEATKIT_SDK_KEY!,
   baseUrl: "https://flags.internal.acme.com",
   bootstrap: snapshotJson,
-  persist: { kind: "file", path: ".featurekit/snapshot.json" },
+  persist: { kind: "file", path: ".featkit/snapshot.json" },
   mode: "streaming",
 });
 
@@ -36,7 +36,7 @@ values, and 10,000 evaluations against a dead server in well under a frame.
 
 An optional default produces `undefined` in production during an outage, and
 `if (undefined)` is a silent wrong answer nobody notices for a week. Requiring it
-forces every call site to state what happens when featurekit is unavailable — the
+forces every call site to state what happens when featkit is unavailable — the
 one decision a flag SDK must not make on your behalf.
 
 ## Zero runtime dependencies

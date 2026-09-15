@@ -1,5 +1,5 @@
 /**
- * `featurekit/secure-mode` is a public contract, so it is tested as one.
+ * `featkit/secure-mode` is a public contract, so it is tested as one.
  *
  * The gap this closes was real: secure mode is mandatory in production, the
  * signature has to be minted by the customer's own backend, and until now
@@ -24,7 +24,7 @@ const SECRETS = ["a-secret-at-least-thirty-two-characters"] as const;
 const OPTIONS = { secrets: SECRETS, maxTtlSeconds: 86_400 };
 const soon = (): number => Math.floor(Date.now() / 1000) + 3600;
 
-describe("featurekit/secure-mode", () => {
+describe("featkit/secure-mode", () => {
   it("signs a context the server's own verifier accepts", () => {
     const context = { key: "u-ana", plan: "free", tenureMonths: 2 };
     const expiresAt = soon();

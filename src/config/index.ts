@@ -29,7 +29,7 @@ export const configSchema = z
     HOST: z.string().default("127.0.0.1"),
     DATABASE_URL: z
       .url()
-      .default("postgres://featurekit:featurekit@localhost:5432/featurekit"),
+      .default("postgres://featkit:featkit@localhost:5432/featkit"),
     REDIS_URL: z.url().default("redis://localhost:6379"),
     /** TLS to a managed Redis. A `rediss://` URL implies it; this forces it. */
     REDIS_TLS: z.coerce.boolean().default(false),
@@ -113,6 +113,8 @@ export const configSchema = z
      * How a fresh deployment gets a login without a shell. Both must be set;
      * the password obeys the same policy as one typed into the UI.
      */
+    FEATKIT_ADMIN_EMAIL: z.string().optional(),
+    FEATKIT_ADMIN_PASSWORD: z.string().optional(),
     FEATUREKIT_ADMIN_EMAIL: z.string().optional(),
     FEATUREKIT_ADMIN_PASSWORD: z.string().optional(),
 
@@ -202,7 +204,8 @@ export const configSchema = z
     },
   );
 
-export type FeaturekitConfig = z.infer<typeof configSchema>;
+export type FeatkitConfig = z.infer<typeof configSchema>;
+export type FeaturekitConfig = FeatkitConfig;
 
 export interface LoadConfigOptions {
   /**
@@ -226,13 +229,13 @@ const REQUIRED_IN_PRODUCTION = ["DATABASE_URL", "REDIS_URL", "ADMIN_TOKEN"] as c
 export function loadConfig(
   env: Record<string, string | undefined> = process.env,
   options: LoadConfigOptions = {},
-): FeaturekitConfig {
+): FeatkitConfig {
   const parsed = configSchema.safeParse(env);
   if (!parsed.success) {
     const issues = parsed.error.issues
       .map((i) => `  ${i.path.join(".") || "(root)"}: ${i.message}`)
       .join("\n");
-    throw new ConfigError(`featurekit: invalid configuration\n${issues}`);
+    throw new ConfigError(`featkit: invalid configuration\n${issues}`);
   }
   const config = parsed.data;
 
@@ -248,7 +251,7 @@ export function loadConfig(
     }
     if (missing.length > 0) {
       throw new ConfigError(
-        `featurekit: NODE_ENV=production requires these to be set explicitly, ` +
+        `featkit: NODE_ENV=production requires these to be set explicitly, ` +
           `and the development defaults must never silently apply:\n` +
           missing.map((k) => `  ${k}`).join("\n"),
       );
@@ -273,6 +276,6 @@ export function commaList(value: string | undefined): string[] {
  * Rotation without a flag day: signing uses the first, verification tries all,
  * so rotation becomes two ordinary deploys (§16).
  */
-export function secureModeSecrets(config: FeaturekitConfig): string[] {
+export function secureModeSecrets(config: FeatkitConfig): string[] {
   return commaList(config.SECURE_MODE_SECRET);
 }

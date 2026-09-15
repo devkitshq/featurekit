@@ -146,7 +146,7 @@ export const SESSION_COOKIE = "fk_session";
  * no CORS headers, so that preflight fails. Together with `SameSite=Strict`
  * this is the whole CSRF story, and it needs no token store.
  */
-export const CSRF_HEADER = "x-featurekit-csrf";
+export const CSRF_HEADER = "x-featkit-csrf";
 
 export interface AdminRouteDeps {
   db: Database;
@@ -216,7 +216,12 @@ async function authenticate(ctx: RequestContext, deps: AdminRouteDeps): Promise<
 
   // A cookie is attached by the browser whoever caused the request, so a
   // mutation has to prove the caller could read the response too.
-  if (ctx.method !== "GET" && ctx.method !== "HEAD" && ctx.header(CSRF_HEADER) === undefined) {
+  if (
+    ctx.method !== "GET" &&
+    ctx.method !== "HEAD" &&
+    ctx.header(CSRF_HEADER) === undefined &&
+    ctx.header("x-featurekit-csrf") === undefined
+  ) {
     throw new HttpError(403, "CSRF_HEADER_REQUIRED", `${CSRF_HEADER} is required for cookie auth`);
   }
 

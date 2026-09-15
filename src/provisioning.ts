@@ -207,7 +207,7 @@ const FILE_PRINCIPAL: Principal = {
   kind: "token",
   tokenId: "config-as-code",
   memberId: "00000000-0000-0000-0000-000000000000",
-  memberEmail: "config-as-code@featurekit",
+  memberEmail: "config-as-code@featkit",
   role: "owner",
   environmentIds: null,
 };
@@ -230,7 +230,7 @@ export async function applyFlagFile(
   if (!parsed.success) {
     // Every problem at once, in the shape the API would have reported.
     throw new ProvisioningError(
-      `featurekit: the flag file is not valid\n${parsed.error.issues
+      `featkit: the flag file is not valid\n${parsed.error.issues
         .map((issue) => `  ${issue.path.join(".") || "(root)"}: ${issue.message}`)
         .join("\n")}`,
     );
@@ -266,7 +266,7 @@ export async function applyFlagFile(
     changes.push({ action: "unchanged", entity: `environment ${environment.key}` });
   }
   if (environmentRow === null) {
-    throw new ProvisioningError(`featurekit: could not resolve environment ${environment.key}`);
+    throw new ProvisioningError(`featkit: could not resolve environment ${environment.key}`);
   }
 
   /* flags */
@@ -295,7 +295,7 @@ export async function applyFlagFile(
     });
     if (target === null) {
       throw new ProvisioningError(
-        `featurekit: ${flag.key} has no configuration in ${environment.key} — ` +
+        `featkit: ${flag.key} has no configuration in ${environment.key} — ` +
           `it was created before that environment existed`,
       );
     }

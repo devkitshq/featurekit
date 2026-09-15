@@ -27,7 +27,7 @@ function config(over: Record<string, string> = {}) {
     LOG_LEVEL: "silent",
     HOST: "127.0.0.1",
     PORT: "0",
-    DATABASE_URL: "postgres://featurekit:featurekit@127.0.0.1:59999/none",
+    DATABASE_URL: "postgres://featkit:featkit@127.0.0.1:59999/none",
     REDIS_URL: "redis://127.0.0.1:59998",
     ...over,
   });
@@ -71,8 +71,8 @@ describe("the app boots with nothing behind it", () => {
     const { base } = await start();
     await fetch(`${base}/live`);
     const body = await (await fetch(`${base}/metrics`)).text();
-    expect(body).toContain("featurekit_http_requests_total");
-    expect(body).toContain("featurekit_snapshot_degraded_serves_total");
+    expect(body).toContain("featkit_http_requests_total");
+    expect(body).toContain("featkit_snapshot_degraded_serves_total");
   });
 
   it("labels metrics with the route pattern, never the request path", async () => {

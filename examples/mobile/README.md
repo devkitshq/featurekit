@@ -4,19 +4,19 @@ A React Native app — Expo, TypeScript — reading the same flags as
 [`../app`](../app), from the same control plane, over the same SDK.
 
 ```bash
-npm i featurekit-client
+npm i featkit-client
 ```
 
 ```
 src/config.ts       where the server is, and how the app gets a client key
-src/featurekit.ts   the streaming fetch (the one React Native-specific file)
+src/featkit.ts      the streaming fetch (the one React Native-specific file)
 src/App.tsx         provider, personas, the screen
 src/components/     checkout, values panel, event log, persona switcher
 ```
 
 ## There is no React Native SDK — and no React SDK
 
-`featurekit-client` is one client with no framework bindings, and it is the same
+`featkit-client` is one client with no framework bindings, and it is the same
 package a web app installs. Two things this app supplies that a browser supplies
 for itself, plus one small file:
 
@@ -29,7 +29,7 @@ is correct but not live.
 WinterCG fetch with real streaming, so it is passed straight through:
 
 ```ts
-new FeaturekitClient({ ...options, fetchImpl: expoFetch as unknown as typeof fetch });
+new FeatkitClient({ ...options, fetchImpl: expoFetch as unknown as typeof fetch });
 ```
 
 That is the entire React Native adaptation.
@@ -38,8 +38,8 @@ That is the entire React Native adaptation.
 host Expo's own bundler was reached on, which is your machine's address on the
 network, and points the SDK at `:3000` there.
 
-**A React adapter, twenty lines.** [`src/featurekit.ts`](./src/featurekit.ts) is
-`useFlag`, `useAllValues` and `useFeaturekitState`, all `useSyncExternalStore`
+**A React adapter, twenty lines.** [`src/featkit.ts`](./src/featkit.ts) is
+`useFlag`, `useAllValues` and `useFeatkitState`, all `useSyncExternalStore`
 over `detail()` and `on("change")`. It is copied verbatim from
 [`docs/client-tier/adapters.md`](../../docs/client-tier/adapters.md) — read it
 once and you have seen the whole binding, which is the argument for not shipping
@@ -71,8 +71,8 @@ If they are not — a simulator behind a different interface, a VPN, a device on
 cellular — name the host yourself in `examples/mobile/.env`:
 
 ```
-EXPO_PUBLIC_FEATUREKIT_URL=http://192.168.1.24:3000
-EXPO_PUBLIC_FEATUREKIT_CONFIG_URL=http://192.168.1.24:4000/api/config
+EXPO_PUBLIC_FEATKIT_URL=http://192.168.1.24:3000
+EXPO_PUBLIC_FEATKIT_CONFIG_URL=http://192.168.1.24:4000/api/config
 ```
 
 Open the dashboard on your laptop at **http://127.0.0.1:3000/admin**
@@ -118,16 +118,16 @@ and it is where you would mint the secure-mode HMAC signature for the user you
 just authenticated:
 
 ```ts
-new FeaturekitClient({
+new FeatkitClient({
   clientKey: key,
   contextSignature: signature,
   contextSignatureExpiresAt: expiresAt,
-  onSignatureExpiring: () => fetch("/api/featurekit-signature").then((r) => r.json()),
+  onSignatureExpiring: () => fetch("/api/featkit-signature").then((r) => r.json()),
   …
 });
 ```
 
-On your backend, `featurekit/secure-mode` exports `signContext` and
+On your backend, `featkit/secure-mode` exports `signContext` and
 `contextHash` so the signature is three lines rather than a reimplementation.
 
 A production environment requires that signature, because the server evaluates
@@ -139,5 +139,5 @@ reason unsigned contexts work here.
 
 [`metro.config.js`](./metro.config.js) teaches Metro to watch and resolve out of
 the repository root, because this example depends on `../../packages/client`
-through a `file:` link. In your own app you `npm i featurekit-client` and the
+through a `file:` link. In your own app you `npm i featkit-client` and the
 default Expo config resolves it like anything else.

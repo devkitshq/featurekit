@@ -1,5 +1,5 @@
 {
-  "name": "featurekit",
+  "name": "featkit",
   "version": "0.1.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -51,9 +51,9 @@
     "check:package": "node tools/check-package.mjs",
     "conformance:python": "python conformance/python/run.py",
     "admin:user": "node scripts/admin-user.mjs",
-    "build:dashboard": "npm run build --workspace=@featurekit/dashboard",
-    "dashboard:dev": "npm run dev --workspace=@featurekit/dashboard",
-    "typecheck:dashboard": "npm run typecheck --workspace=@featurekit/dashboard"
+    "build:dashboard": "npm run build --workspace=@featkit/dashboard",
+    "dashboard:dev": "npm run dev --workspace=@featkit/dashboard",
+    "typecheck:dashboard": "npm run typecheck --workspace=@featkit/dashboard"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.1",
@@ -80,7 +80,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/featurekit/featurekit.git"
+    "url": "git+https://github.com/devkitshq/featkit.git"
   },
   "publishConfig": {
     "access": "public",
@@ -89,7 +89,7 @@
   "keywords": [
     "feature-flags",
     "feature-toggles",
-    "featurekit",
+    "featkit",
     "experimentation"
   ]
 }

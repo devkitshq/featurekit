@@ -8,7 +8,7 @@ GET  /v1/client/stream   SSE value updates for the connection's context
 ```
 
 ```ts
-const fk = new FeaturekitClient({
+const fk = new FeatkitClient({
   clientKey: PUBLIC_KEY,
   baseUrl: "https://flags.acme.com",
   context: { key: user.id, plan: user.plan },
@@ -37,7 +37,7 @@ user B with whatever the last `identify()` left behind.
 
 A backend using this SDK therefore wants **one instance per identity**, which
 costs a state round trip per identity. If that is the wrong trade — a request
-handler on a hot path, say — use `FeaturekitSDK` from `featurekit` instead: it
+handler on a hot path, say — use `FeatkitSDK` from `featkit` instead: it
 holds the compiled ruleset in memory and takes a context per call, so any number
 of identities are evaluated synchronously with no network at all.
 

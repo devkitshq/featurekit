@@ -371,7 +371,7 @@ describe.skipIf(reason !== null)("an attacker with a scoped token", () => {
     expect(scrape).not.toContain(serverSdkKey);
     expect(scrape).not.toContain(clientSdkKey);
     // The route pattern is there; the environment key in the path is not.
-    expect(scrape).toContain("featurekit_http_requests_total");
+    expect(scrape).toContain("featkit_http_requests_total");
   });
 
   it("does not echo a credential in any error response", async () => {

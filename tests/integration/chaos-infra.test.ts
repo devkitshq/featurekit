@@ -69,9 +69,9 @@ describe.skipIf(reason !== null)("infrastructure chaos", () => {
   beforeAll(async () => {
     postgres = await new GenericContainer("postgres:16-alpine")
       .withEnvironment({
-        POSTGRES_USER: "featurekit",
-        POSTGRES_PASSWORD: "featurekit",
-        POSTGRES_DB: "featurekit",
+        POSTGRES_USER: "featkit",
+        POSTGRES_PASSWORD: "featkit",
+        POSTGRES_DB: "featkit",
       })
       .withExposedPorts(5432)
       .withWaitStrategy(Wait.forLogMessage(/database system is ready to accept connections/, 2))
@@ -88,7 +88,7 @@ describe.skipIf(reason !== null)("infrastructure chaos", () => {
 
     redisUrl = `redis://${redis.getHost()}:${REDIS_HOST_PORT}`;
     handle = createDatabase({
-      url: `postgres://featurekit:featurekit@${postgres.getHost()}:${postgres.getMappedPort(5432)}/featurekit`,
+      url: `postgres://featkit:featkit@${postgres.getHost()}:${postgres.getMappedPort(5432)}/featkit`,
     });
     db = handle.db;
     await runMigrations(db);
@@ -271,16 +271,16 @@ describe.skipIf(reason !== null)("analytics when the partition is missing", () =
   beforeAll(async () => {
     postgres = await new GenericContainer("postgres:16-alpine")
       .withEnvironment({
-        POSTGRES_USER: "featurekit",
-        POSTGRES_PASSWORD: "featurekit",
-        POSTGRES_DB: "featurekit",
+        POSTGRES_USER: "featkit",
+        POSTGRES_PASSWORD: "featkit",
+        POSTGRES_DB: "featkit",
       })
       .withExposedPorts(5432)
       .withWaitStrategy(Wait.forLogMessage(/database system is ready to accept connections/, 2))
       .start();
 
     handle = createDatabase({
-      url: `postgres://featurekit:featurekit@${postgres.getHost()}:${postgres.getMappedPort(5432)}/featurekit`,
+      url: `postgres://featkit:featkit@${postgres.getHost()}:${postgres.getMappedPort(5432)}/featkit`,
     });
     db = handle.db;
     await runMigrations(db);
@@ -411,7 +411,7 @@ describe.skipIf(reason !== null)("analytics when the partition is missing", () =
 
   it("reports partition runway, which is what readiness gates on", async () => {
     const result = (await db.execute(
-      sql`select featurekit_partition_runway_days() as days`,
+      sql`select featkit_partition_runway_days() as days`,
     )) as unknown as Array<{ days: number | string | null }>;
     const days = Number(result[0]?.days ?? -1);
     // The migration premakes a week. Anything below two fails readiness.

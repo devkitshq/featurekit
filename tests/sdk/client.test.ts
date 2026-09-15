@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { FeaturekitSDK, type Snapshot } from "../../src/sdk/index.js";
+import { FeatkitSDK, type Snapshot } from "../../src/sdk/index.js";
 import { Router } from "../../src/http/router.js";
 import { HttpServer } from "../../src/http/server.js";
 import { MemorySnapshotStore } from "../../src/redis/memory-store.js";
@@ -68,7 +68,7 @@ function input(flagOn: boolean, keys = ["new-checkout"], flagVersion = 1): Compi
 
 const servers: HttpServer[] = [];
 const services: SnapshotService[] = [];
-const sdks: FeaturekitSDK[] = [];
+const sdks: FeatkitSDK[] = [];
 
 async function controlPlane(options: { flagOn?: boolean; maxStreams?: number } = {}) {
   const state = { flagOn: options.flagOn ?? true, keys: ["new-checkout"], flagVersion: 1 };
@@ -101,13 +101,13 @@ async function controlPlane(options: { flagOn?: boolean; maxStreams?: number } =
   return { baseUrl: `http://${host}:${port}`, snapshots, state, server, received };
 }
 
-function makeSdk(over: Partial<ConstructorParameters<typeof FeaturekitSDK>[0]>) {
-  const sdk = new FeaturekitSDK({
+function makeSdk(over: Partial<ConstructorParameters<typeof FeatkitSDK>[0]>) {
+  const sdk = new FeatkitSDK({
     sdkKey: KEY,
     environmentKey: "production",
     events: { enabled: false },
     ...over,
-  } as ConstructorParameters<typeof FeaturekitSDK>[0]);
+  } as ConstructorParameters<typeof FeatkitSDK>[0]);
   sdks.push(sdk);
   return sdk;
 }

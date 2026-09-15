@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest";
  * source compiles into an edge runtime and, eventually, a port to another
  * language.
  *
- * It now sits inside the `featurekit` package rather than in one of its own,
+ * It now sits inside the `featkit` package rather than in one of its own,
  * which makes this test load-bearing in a way it was not before: a package
  * boundary used to make `../../db/schema.js` inexpressible, and a directory
  * boundary does not.

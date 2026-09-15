@@ -20,7 +20,7 @@ below:
 
 **What the system does.** Nothing breaks. `/ready` reports `degraded` and the
 node stays in the load balancer deliberately — it can still serve snapshots
-from memory. `featurekit_snapshot_degraded_serves_total{source="memory"}` and
+from memory. `featkit_snapshot_degraded_serves_total{source="memory"}` and
 `{source="postgres"}` start climbing. Rate limiting tightens to a per-node
 local limit rather than disappearing.
 
@@ -37,7 +37,7 @@ local limit rather than disappearing.
 
 1. Confirm the blast radius: `curl -s $HOST/ready | jq .checks.redis`.
 2. Leave the nodes in rotation. Do **not** scale down or restart the fleet.
-3. Fix Redis. No featurekit action is needed on recovery — the next successful
+3. Fix Redis. No featkit action is needed on recovery — the next successful
    `get` repopulates the store and normal fan-out resumes.
 
 **Do not.** Do not fail readiness on Redis "to be safe": every node would leave
@@ -70,7 +70,7 @@ a change has nothing useful to add.
 
 **What is lost.** All writes. No flag changes, no kill switches through the API,
 no new SDK keys. Analytics buffers in memory and is dropped past
-`EVENT_BUFFER_MAX` (counted in `featurekit_events_dropped_total`).
+`EVENT_BUFFER_MAX` (counted in `featkit_events_dropped_total`).
 
 **If a flag must be turned off while Postgres is down.** The management API
 cannot help. Options, in order of preference:
@@ -84,8 +84,8 @@ cannot help. Options, in order of preference:
 
 ## Snapshot age is climbing / changes are not reaching SDKs
 
-**Alert.** `featurekit_snapshot_age_seconds` above ~5 minutes for an environment
-that is being changed, or `featurekit_snapshot_compile_failures_total` rising.
+**Alert.** `featkit_snapshot_age_seconds` above ~5 minutes for an environment
+that is being changed, or `featkit_snapshot_compile_failures_total` rising.
 
 **Diagnose, in order.**
 
@@ -106,7 +106,7 @@ that flag (a no-op PATCH with the current version is enough).
 
 ## Partition runway below two days
 
-**Alert.** `featurekit_partition_runway_days < 2`. Readiness also fails, which
+**Alert.** `featkit_partition_runway_days < 2`. Readiness also fails, which
 is intentional: this is the failure that otherwise appears as total analytics
 ingest failure at midnight with no warning.
 
@@ -116,7 +116,7 @@ not installed, is disabled, or the job is erroring.
 **Recover now (safe, idempotent):**
 
 ```sql
-SELECT featurekit_ensure_partitions(7);
+SELECT featkit_ensure_partitions(7);
 ```
 
 **Then fix the cause:**
@@ -136,8 +136,8 @@ exclusive lock on the busiest table in the system.
 
 ## Rollup backlog / analytics not appearing
 
-**Alert.** `featurekit_rollup_lag_seconds` climbing, or
-`featurekit_rollup_dlq_total` rising.
+**Alert.** `featkit_rollup_lag_seconds` climbing, or
+`featkit_rollup_dlq_total` rising.
 
 **Triage by reason label:**
 
@@ -155,8 +155,8 @@ restarting nodes that are serving flags correctly.
 
 ## SSE connections saturated
 
-**Alert.** `featurekit_stream_connections{tier="server"}` approaching
-`MAX_STREAM_CONNECTIONS`, or `featurekit_stream_rejections_total` rising.
+**Alert.** `featkit_stream_connections{tier="server"}` approaching
+`MAX_STREAM_CONNECTIONS`, or `featkit_stream_rejections_total` rising.
 
 **What the system does.** Above the cap it returns 503 with a message telling
 the SDK to fall back to polling, and the SDK takes the hint. The tier degrades
@@ -219,7 +219,7 @@ serving. The worst case is that changes stop propagating.
 1. Roll back the deployment. Migrations are forward-only (see
    `docs/ops/deployment.md`); a rollback of code is safe, a rollback of schema
    is not, which is why migrations are additive.
-2. Verify: `/ready` healthy, `featurekit_snapshot_age_seconds` falling.
+2. Verify: `/ready` healthy, `featkit_snapshot_age_seconds` falling.
 3. Verify propagation end to end with a no-op change on a test flag.
 
 ---

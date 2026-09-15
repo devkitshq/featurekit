@@ -1,13 +1,13 @@
 /**
  * Metro, told about the monorepo above it.
  *
- * This example lives inside the featurekit repository and depends on
- * `featurekit-client` through a `file:` link, so the package resolves to a
+ * This example lives inside the featkit repository and depends on
+ * `featkit-client` through a `file:` link, so the package resolves to a
  * symlink pointing at `packages/client`. Metro will not watch, or resolve out
  * of, a directory above the project root unless it is told to — so a rebuild of
  * the SDK would otherwise be invisible here.
  *
- * In your own app none of this file is needed: you `npm i featurekit-client`
+ * In your own app none of this file is needed: you `npm i featkit-client`
  * and the default Expo config resolves it like any other dependency.
  */
 

@@ -57,14 +57,14 @@ describe.skipIf(reason !== null)("disaster recovery", () => {
   let dump: string;
 
   const url = (container: StartedTestContainer) =>
-    `postgres://featurekit:featurekit@${container.getHost()}:${container.getMappedPort(5432)}/featurekit`;
+    `postgres://featkit:featkit@${container.getHost()}:${container.getMappedPort(5432)}/featkit`;
 
   async function postgres() {
     return new GenericContainer("postgres:16-alpine")
       .withEnvironment({
-        POSTGRES_USER: "featurekit",
-        POSTGRES_PASSWORD: "featurekit",
-        POSTGRES_DB: "featurekit",
+        POSTGRES_USER: "featkit",
+        POSTGRES_PASSWORD: "featkit",
+        POSTGRES_DB: "featkit",
       })
       .withExposedPorts(5432)
       .withWaitStrategy(Wait.forLogMessage(/database system is ready to accept connections/, 2))
@@ -120,8 +120,8 @@ describe.skipIf(reason !== null)("disaster recovery", () => {
     // The backup. `pg_dump` inside the container, exactly as an operator would.
     const dumped = await origin.exec([
       "pg_dump",
-      "--username=featurekit",
-      "--dbname=featurekit",
+      "--username=featkit",
+      "--dbname=featkit",
       "--no-owner",
     ]);
     expect(dumped.exitCode).toBe(0);
@@ -145,12 +145,12 @@ describe.skipIf(reason !== null)("disaster recovery", () => {
     await replica.exec([
       "sh",
       "-c",
-      `cat > /tmp/dump.sql <<'FEATUREKIT_DUMP_EOF'\n${dump}\nFEATUREKIT_DUMP_EOF`,
+      `cat > /tmp/dump.sql <<'FEATKIT_DUMP_EOF'\n${dump}\nFEATKIT_DUMP_EOF`,
     ]);
     const restored = await replica.exec([
       "psql",
-      "--username=featurekit",
-      "--dbname=featurekit",
+      "--username=featkit",
+      "--dbname=featkit",
       "--set=ON_ERROR_STOP=1",
       "--file=/tmp/dump.sql",
     ]);
@@ -197,7 +197,7 @@ describe.skipIf(reason !== null)("disaster recovery", () => {
     expect(partitioned[0]?.relkind).toBe("p"); // 'p' = partitioned table
 
     const runway = (await db.execute(
-      sql`select featurekit_partition_runway_days() as days`,
+      sql`select featkit_partition_runway_days() as days`,
     )) as unknown as Array<{ days: number | string }>;
     expect(Number(runway[0]?.days ?? -1)).toBeGreaterThanOrEqual(0);
   }, 120_000);

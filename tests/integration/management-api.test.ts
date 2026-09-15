@@ -8,7 +8,7 @@
  * if a real transaction rolls both back.
  *
  * Container-gated like the rest of `tests/integration`. In CI,
- * `FEATUREKIT_REQUIRE_CONTAINERS=1` turns a skip into a failure — a skipped
+ * `FEATKIT_REQUIRE_CONTAINERS=1` turns a skip into a failure — a skipped
  * authorization suite is indistinguishable from a passing one, which is how an
  * IDOR ships.
  */

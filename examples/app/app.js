@@ -1,14 +1,14 @@
 /**
- * The FeatureKit Browser Demo Application.
+ * The FeatKit Browser Demo Application.
  *
  * Demonstrates:
  * 1. Synchronous reads: `fk.get(...)`, `fk.get(...)`, `fk.get(...)` never await.
  * 2. Instant persona switching: `identify()` drops previous values before network answers.
- * 3. Live push updates: SSE stream reacts in real-time to changes made in FeatureKit Admin.
+ * 3. Live push updates: SSE stream reacts in real-time to changes made in FeatKit Admin.
  * 4. Zero rules leakage: Browser receives evaluated values and reasons, never targeting rules.
  */
 
-import { FeaturekitClient } from "/sdk.js";
+import { FeatkitClient } from "/sdk.js";
 
 const PERSONAS = {
   ana: { key: "u-ana", name: "Ana", plan: "free", tenureMonths: 2 },
@@ -29,8 +29,8 @@ if ($("dash-footer-link")) $("dash-footer-link").href = adminUrl;
 
 let currentPersona = "ana";
 
-// Initialize FeatureKit Browser SDK
-const fk = new FeaturekitClient({
+// Initialize FeatKit Browser SDK
+const fk = new FeatkitClient({
   clientKey,
   baseUrl,
   context: PERSONAS[currentPersona],
@@ -40,7 +40,7 @@ const fk = new FeaturekitClient({
 
 // SDK Connection State listener
 fk.on("state", (state) => {
-  console.log(`[FeatureKit SDK] Connection state changed: %c${state}`, "color: #3b82f6; font-weight: bold");
+  console.log(`[FeatKit SDK] Connection state changed: %c${state}`, "color: #3b82f6; font-weight: bold");
   const pill = $("state");
   pill.textContent = state;
   pill.dataset["state"] = state;
@@ -49,7 +49,7 @@ fk.on("state", (state) => {
 
 // Real-time SSE changes listener
 fk.on("change", (changedKeys) => {
-  console.log(`%c[FeatureKit SSE] Push received!%c Flags updated: ${changedKeys.join(", ")}`, "color: #10b981; font-weight: bold", "color: inherit");
+  console.log(`%c[FeatKit SSE] Push received!%c Flags updated: ${changedKeys.join(", ")}`, "color: #10b981; font-weight: bold", "color: inherit");
   for (const key of changedKeys) {
     const detail = fk.detail(key);
     console.log(`  └─ [${key}] =`, detail);
@@ -60,7 +60,7 @@ fk.on("change", (changedKeys) => {
 
 // Wait for initial evaluation
 await fk.ready();
-console.log(`[FeatureKit SDK] Ready. Initial evaluated flags for ${PERSONAS[currentPersona].name}:`, fk.allValues());
+console.log(`[FeatKit SDK] Ready. Initial evaluated flags for ${PERSONAS[currentPersona].name}:`, fk.allValues());
 log(`SDK ready for ${PERSONAS[currentPersona].name} (${PERSONAS[currentPersona].plan})`, "who");
 render();
 
@@ -163,7 +163,7 @@ function render() {
     <div class="pricing-note">
       ${discount > 0
         ? `Flag <code>loyalty-discount</code> evaluated to <strong>${discount}%</strong> based on your ${PERSONAS[currentPersona].plan} plan.`
-        : `Upgrade to Pro or Enterprise to unlock loyalty discounts via FeatureKit.`}
+        : `Upgrade to Pro or Enterprise to unlock loyalty discounts via FeatKit.`}
     </div>
   `;
 

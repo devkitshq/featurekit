@@ -104,7 +104,7 @@ describe("HttpServer", () => {
 
   it("never leaks an internal error message to the caller", async () => {
     const router = new Router().get("/boom", () => {
-      throw new Error("connection string postgres://user:hunter2@db/featurekit failed");
+      throw new Error("connection string postgres://user:hunter2@db/featkit failed");
     });
     const base = await serve(router);
     const response = await fetch(`${base}/boom`);

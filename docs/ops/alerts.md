@@ -14,35 +14,35 @@ Thresholds assume the defaults in `docs/control-plane/configuration.md`.
 
 ## Page — wake someone up
 
-### `featurekit_snapshot_age_seconds > 300` for any environment
+### `featkit_snapshot_age_seconds > 300` for any environment
 
 Changes are not reaching this node. Fires **before** users see anything wrong,
 because the currently-serving configuration is still valid — it is just frozen.
 
 ```promql
-max by (environment) (featurekit_snapshot_age_seconds) > 300
+max by (environment) (featkit_snapshot_age_seconds) > 300
 ```
 
 Runbook: *Snapshot age is climbing.*
 
-### `featurekit_sdk_default_served_total` rising across a fleet
+### `featkit_sdk_default_served_total` rising across a fleet
 
 SDKs are serving caller defaults, which means they hold no usable snapshot. This
 is the closest thing to a direct "users are getting wrong values" signal.
 
 ```promql
-sum(rate(featurekit_sdk_default_served_total[5m])) > 0
+sum(rate(featkit_sdk_default_served_total[5m])) > 0
 ```
 
 Fires **as** users are affected. Lagging by construction; it is the backstop for
 everything the earlier alerts missed.
 
-### `featurekit_partition_runway_days < 2`
+### `featkit_partition_runway_days < 2`
 
 Analytics ingest will begin failing when the last premade partition ends.
 
 ```promql
-min(featurekit_partition_runway_days) < 2
+min(featkit_partition_runway_days) < 2
 ```
 
 Fires days early. Runbook: *Partition runway below two days.*
@@ -50,16 +50,16 @@ Fires days early. Runbook: *Partition runway below two days.*
 ### Readiness failing on more than one node
 
 ```promql
-count(up{job="featurekit"} == 0) > 1
+count(up{job="featkit"} == 0) > 1
 ```
 
-### `featurekit_snapshot_compile_failures_total` rising
+### `featkit_snapshot_compile_failures_total` rising
 
 A configuration that will not compile. The previous snapshot keeps serving, so
 this fires before any user-visible effect — but changes are silently not landing.
 
 ```promql
-increase(featurekit_snapshot_compile_failures_total[10m]) > 0
+increase(featkit_snapshot_compile_failures_total[10m]) > 0
 ```
 
 ---
@@ -72,25 +72,25 @@ Redis is unavailable and nodes are serving from memory or Postgres. Correct
 behaviour, worth knowing about.
 
 ```promql
-sum(rate(featurekit_snapshot_degraded_serves_total[5m])) > 0
+sum(rate(featkit_snapshot_degraded_serves_total[5m])) > 0
 ```
 
 ### SSE connections near the cap
 
 ```promql
-featurekit_stream_connections > 0.8 * <MAX_STREAM_CONNECTIONS>
+featkit_stream_connections > 0.8 * <MAX_STREAM_CONNECTIONS>
 ```
 
 ### Rollup lag
 
 ```promql
-featurekit_rollup_lag_seconds > 900
+featkit_rollup_lag_seconds > 900
 ```
 
 ### Dead-letter queue receiving batches
 
 ```promql
-increase(featurekit_rollup_dlq_total[30m]) > 0
+increase(featkit_rollup_dlq_total[30m]) > 0
 ```
 
 Split by `reason`; `missing_partition` should page rather than ticket, since it
@@ -99,7 +99,7 @@ means the partition alert above was missed.
 ### Event drops sustained
 
 ```promql
-sum(rate(featurekit_events_dropped_total[15m])) > 0
+sum(rate(featkit_events_dropped_total[15m])) > 0
 ```
 
 Analytics loss is accepted, but a *sustained* rate means the buffer is
@@ -108,7 +108,7 @@ permanently undersized rather than absorbing a spike.
 ### Rate limiting rejecting real traffic
 
 ```promql
-sum by (route) (rate(featurekit_rate_limited_total[5m])) > 1
+sum by (route) (rate(featkit_rate_limited_total[5m])) > 1
 ```
 
 Either an abusive caller or a limit set too low for a legitimate one. Both are
@@ -117,15 +117,15 @@ worth a look; neither is a page.
 ### 5xx rate
 
 ```promql
-sum(rate(featurekit_http_requests_total{status="5xx"}[5m]))
-  / sum(rate(featurekit_http_requests_total[5m])) > 0.01
+sum(rate(featkit_http_requests_total{status="5xx"}[5m]))
+  / sum(rate(featkit_http_requests_total[5m])) > 0.01
 ```
 
 ---
 
 ## Deliberately absent
 
-**Per-flag alerting.** There is no `featurekit_evaluations_total{flag_key=...}`
+**Per-flag alerting.** There is no `featkit_evaluations_total{flag_key=...}`
 series, and there must not be: one time series per flag per variation per reason
 is a cardinality explosion that takes down the monitoring system first and this
 process second (§17). Per-flag numbers live in `evaluation_summaries`, which is

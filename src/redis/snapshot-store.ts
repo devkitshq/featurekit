@@ -2,7 +2,7 @@
  * The `SnapshotStore` port (§2, §6, §8).
  *
  * "Plugins are a class with one method" — notifkit had `Transport.send()`;
- * featurekit has `SnapshotStore` and `EventSink`. This one owns everything the
+ * featkit has `SnapshotStore` and `EventSink`. This one owns everything the
  * control plane keeps in Redis for the server tier: the compiled snapshot, the
  * patch history that makes SSE resume possible, the pub/sub channel that fans a
  * change out to every API node, and the compile lock that stops them all

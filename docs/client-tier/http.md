@@ -2,7 +2,7 @@
 
 `src/routes/client.ts` · §11.5, §14, §16
 
-There are two SDKs — `featurekit` for server-side JavaScript, `featurekit-client`
+There are two SDKs — `featkit` for server-side JavaScript, `featkit-client`
 for everything else that runs JavaScript. There is no Swift SDK, no Kotlin SDK,
 no Go SDK, and none is planned. The client tier is two HTTP endpoints and a
 JSON body; a language that can POST can implement it in an afternoon, and that
@@ -13,7 +13,7 @@ POST /v1/client/state    context in -> evaluated values out
 GET  /v1/client/stream   SSE value updates for that connection's context
 ```
 
-`featurekit-client` is a reference implementation of exactly this. When
+`featkit-client` is a reference implementation of exactly this. When
 something here is ambiguous, `packages/client/src/index.ts` is the answer.
 
 ## Authentication
@@ -165,12 +165,12 @@ the public client key could evaluate as any named account and read the flags
 targeted at it.
 
 Your own backend mints the signature, where the session is already trusted.
-`featurekit/secure-mode` exports both halves so nobody has to reimplement them:
+`featkit/secure-mode` exports both halves so nobody has to reimplement them:
 
 ```ts
-import { signContext, contextHash } from "featurekit/secure-mode";
+import { signContext, contextHash } from "featkit/secure-mode";
 
-app.get("/api/featurekit-signature", requireSession, (req, res) => {
+app.get("/api/featkit-signature", requireSession, (req, res) => {
   const context = { key: req.user.id, plan: req.user.plan };
   const expiresAt = Math.floor(Date.now() / 1000) + 3600;
   res.json({
@@ -180,7 +180,7 @@ app.get("/api/featurekit-signature", requireSession, (req, res) => {
 });
 ```
 
-A separate entry point from `featurekit` because of what it does not load: the
+A separate entry point from `featkit` because of what it does not load: the
 main entry is the control plane, so importing it pulls Drizzle, a Postgres
 driver, ioredis and pino into a service whose only job is signing a string.
 This one reaches `node:crypto` and nothing else, and `tools/check-package.mjs`

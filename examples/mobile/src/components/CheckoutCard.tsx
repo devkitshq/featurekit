@@ -10,7 +10,7 @@
 
 import { useState, type ReactNode } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
-import { useFlag } from "../featurekit";
+import { useFlag } from "../featkit";
 import type { Persona } from "../personas";
 import { mono, theme } from "../theme";
 import { Card, Divider, Pill } from "./ui";

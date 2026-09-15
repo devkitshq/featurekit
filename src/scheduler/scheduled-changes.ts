@@ -57,7 +57,7 @@ function systemPrincipal(memberId: string | null): Principal {
     kind: "token",
     tokenId: "scheduler",
     memberId: memberId ?? "00000000-0000-0000-0000-000000000000",
-    memberEmail: "scheduler@featurekit",
+    memberEmail: "scheduler@featkit",
     role: "owner",
     // The scheduler is not environment-scoped: it applies what a human already
     // had the authority to schedule, and that authority was checked then.

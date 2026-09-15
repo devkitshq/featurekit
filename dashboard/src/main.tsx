@@ -7,7 +7,7 @@ import { ToastProvider } from "./components/ui";
 import "./styles.css";
 
 const root = document.getElementById("root");
-if (root === null) throw new Error("featurekit: #root is missing from index.html");
+if (root === null) throw new Error("featkit: #root is missing from index.html");
 
 createRoot(root).render(
   <StrictMode>
