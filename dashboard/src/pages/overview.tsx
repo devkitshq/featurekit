@@ -37,19 +37,19 @@ export function OverviewPage() {
       description={
         scoped
           ? `${project} · ${environment}${currentEnvironment?.isProduction === true ? " · production" : ""}`
-          : "Pick a project to begin"
+          : "Select a project and environment to view activity"
       }
     >
       <div className="grid gap-4 sm:grid-cols-3">
-        <Stat label="Flags" value={list.length} loading={flags.loading} />
-        <Stat label="On in this environment" value={on} loading={flags.loading} />
+        <Stat label="Total flags" value={list.length} loading={flags.loading} />
+        <Stat label="Active in this environment" value={on} loading={flags.loading} />
         <Stat label="With targeting rules" value={targeted} loading={flags.loading} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card
-          title="Recently changed"
-          description="In this environment, newest first"
+          title="Recent updates"
+          description="Latest flag changes in this environment"
           actions={
             <Link
               to="/flags"
@@ -62,7 +62,10 @@ export function OverviewPage() {
           {recent.loading ? (
             <Spinner />
           ) : (recent.data?.flags?.length ?? 0) === 0 ? (
-            <EmptyState title="Nothing has changed here yet" />
+            <EmptyState
+              title="No recent changes"
+              body="Flag creations, updates, and toggle changes in this environment will appear here."
+            />
           ) : (
             <ul className="divide-y divide-border">
               {recent.data?.flags?.map((flag) => (
@@ -88,11 +91,11 @@ export function OverviewPage() {
           )}
         </Card>
 
-        <Card title="Control plane" description="What /health reports right now">
+        <Card title="System health" description="Real-time control plane and database status">
           {health.loading ? (
             <Spinner />
           ) : health.data === null ? (
-            <EmptyState title="Health is unreachable" />
+            <EmptyState title="Health check unreachable" body="Unable to connect to the health check endpoint." />
           ) : (
             <div className="space-y-2">
               {Object.entries(health.data.checks ?? {}).map(([name, check]) => (
@@ -112,12 +115,12 @@ export function OverviewPage() {
                 </div>
               ))}
               <div className="flex items-center justify-between gap-3 border-t border-border pt-2 text-xs text-muted-foreground">
-                <span>version</span>
+                <span>Version</span>
                 <span className="font-mono text-foreground font-medium">{health.data.version}</span>
               </div>
               {health.data.partitionRunwayDays !== undefined ? (
                 <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
-                  <span>partition runway</span>
+                  <span>Partition runway</span>
                   <span className="font-mono text-foreground font-medium">{health.data.partitionRunwayDays} days</span>
                 </div>
               ) : null}

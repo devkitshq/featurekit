@@ -33,7 +33,7 @@ const ROLES: Role[] = ["reader", "writer", "admin", "owner"];
 
 export function SettingsPage() {
   return (
-    <Page title="Settings" description="Projects, environments, accounts, tokens and health">
+    <Page title="Settings" description="Manage projects, environments, team members, access tokens, and security">
       <div className="grid gap-4 lg:grid-cols-2">
         <ProjectsCard />
         <EnvironmentsCard />
@@ -55,20 +55,20 @@ function MembersCard() {
   const members = useResource(() => A.members(), [], { enabled: can("admin") });
 
   if (!can("admin")) {
-    return <Card title="Members" description="Admins and owners can see the account list." />;
+    return <Card title="Team members" description="Administrator permissions are required to view and manage team members." />;
   }
 
   const rows = members.data?.members ?? [];
 
   return (
     <Card
-      title="Members"
-      description="Who can sign in, and what they may do"
+      title="Team members"
+      description="Manage account roles and permissions across your team"
       actions={
         can("owner") ? (
           <Button variant="secondary" size="sm" onClick={() => setInviting(true)}>
             <Plus className="size-3.5" />
-            Add
+            Add member
           </Button>
         ) : undefined
       }
@@ -80,41 +80,42 @@ function MembersCard() {
           {rows.map((row) => (
             <li key={row.id} className="flex items-center justify-between gap-3 py-2">
               <div className="min-w-0">
-                <p className="truncate text-sm">
+                <p className="truncate text-sm font-medium">
                   {row.email}
-                  {row.id === me?.id ? <span className="ml-1 text-xs text-muted-foreground font-medium">(you)</span> : null}
+                  {row.id === me?.id ? <span className="ml-1 text-xs text-muted-foreground font-normal">(you)</span> : null}
                 </p>
                 <p className="text-[11px] text-muted-foreground">
-                  {row.hasPassword ? "password set" : "token only"} · last login{" "}
+                  {row.hasPassword ? "Password configured" : "API token access only"} · Last login:{" "}
                   <span title={absoluteTime(row.lastLoginAt)}>{relativeTime(row.lastLoginAt)}</span>
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 {can("owner") ? (
                   <Select
-                    className="h-7 w-24 text-xs"
+                    className="h-7 w-24 text-xs capitalize"
                     value={row.role}
                     onChange={(event) => {
                       void A.updateMember(row.id, { role: event.target.value as Role })
-                        .then(() => toast.push("ok", `${row.email} is now ${event.target.value}`))
+                        .then(() => toast.push("ok", `Updated ${row.email} to ${event.target.value}`))
                         .catch((error: Error) => toast.push("error", error.message))
                         .finally(() => void members.reload());
                     }}
                   >
                     {ROLES.map((role) => (
-                      <option key={role} value={role}>
+                      <option key={role} value={role} className="capitalize">
                         {role}
                       </option>
                     ))}
                   </Select>
                 ) : (
-                  <Badge tone="neutral">{row.role}</Badge>
+                  <Badge tone="neutral" className="capitalize">{row.role}</Badge>
                 )}
                 {can("owner") && row.id !== me?.id ? (
                   <Button
                     variant="ghost"
                     size="icon"
                     aria-label={`Remove ${row.email}`}
+                    title={`Remove ${row.email}`}
                     className="hover:text-danger"
                     onClick={() => setRemoving(row)}
                   >
@@ -136,12 +137,11 @@ function MembersCard() {
       <ConfirmDialog
         open={removing !== null}
         onClose={() => setRemoving(null)}
-        title={`Remove ${removing?.email ?? ""}?`}
-        confirmLabel="Remove"
+        title={`Remove member "${removing?.email ?? ""}"?`}
+        confirmLabel="Remove member"
         body={
           <p>
-            Their sessions end immediately and their personal access tokens stop working. Audit
-            entries they wrote are kept.
+            Their active sessions will end immediately and their personal access tokens will be revoked. All existing audit log entries created by this account are preserved.
           </p>
         }
         onConfirm={async () => {
@@ -179,7 +179,7 @@ function InviteDialog({
       role,
       ...(password === "" ? {} : { password }),
     });
-    toast.push("ok", `${created.email} added`);
+    toast.push("ok", `Member ${created.email} added`);
     setEmail("");
     setPassword("");
     onCreated();
@@ -191,8 +191,8 @@ function InviteDialog({
     <Dialog
       open={open}
       onClose={onClose}
-      title="Add a member"
-      description="There is no email flow here: you set the first password and tell them, and they change it."
+      title="Add team member"
+      description="Create an account and assign an initial role. You can set an initial temporary password or leave it blank for token-only access."
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
@@ -209,21 +209,21 @@ function InviteDialog({
         </>
       }
     >
-      <Field label="Email">
-        <Input value={email} onChange={(event) => setEmail(event.target.value)} type="email" />
+      <Field label="Email address">
+        <Input value={email} onChange={(event) => setEmail(event.target.value)} type="email" placeholder="colleague@example.com" />
       </Field>
       <Field label="Role">
         <Select value={role} onChange={(event) => setRole(event.target.value as Role)}>
           {ROLES.map((entry) => (
-            <option key={entry} value={entry}>
-              {entry}
+            <option key={entry} value={entry} className="capitalize">
+              {entry.charAt(0).toUpperCase() + entry.slice(1)}
             </option>
           ))}
         </Select>
       </Field>
       <Field
         label="Initial password"
-        hint="At least 12 characters. Leave empty for an account that can only use access tokens."
+        hint="Must be at least 12 characters. Leave empty for an account using only personal access tokens."
       >
         <Input
           value={password}
@@ -262,8 +262,8 @@ function TokensCard() {
 
   return (
     <Card
-      title="Access tokens"
-      description="For CI and scripts. Yours only — nobody else can list them."
+      title="Personal access tokens"
+      description="Manage API tokens for CI/CD pipelines, automated scripts, and integrations"
       actions={
         <Button variant="secondary" size="sm" onClick={() => setCreating(true)}>
           <Plus className="size-3.5" />
@@ -274,24 +274,34 @@ function TokensCard() {
       {tokens.loading ? (
         <Spinner />
       ) : (tokens.data?.tokens?.length ?? 0) === 0 ? (
-        <EmptyState title="No tokens" body="A token authenticates the management API from a script." />
+        <EmptyState
+          title="No access tokens created yet"
+          body="Access tokens allow external scripts and CI/CD tools to authenticate with the management API."
+          action={
+            <Button variant="primary" size="sm" onClick={() => setCreating(true)}>
+              <Plus className="size-3.5" />
+              New token
+            </Button>
+          }
+        />
       ) : (
         <ul className="divide-y divide-border">
           {tokens.data?.tokens?.map((token) => (
             <li key={token.id} className="flex items-center justify-between gap-3 py-2">
               <div className="min-w-0">
-                <p className="truncate text-sm">{token.name ?? "unnamed"}</p>
+                <p className="truncate text-sm font-medium">{token.name ?? "unnamed token"}</p>
                 <p className="text-[11px] text-muted-foreground">
                   {token.environmentIds === null
-                    ? "every environment"
-                    : `${token.environmentIds.length} environment(s)`}{" "}
-                  · used {relativeTime(token.lastUsedAt)}
+                    ? "All environments"
+                    : `Scoped to ${token.environmentIds.length} environment(s)`}{" "}
+                  · Last used: {relativeTime(token.lastUsedAt)}
                 </p>
               </div>
               <Button
                 variant="ghost"
                 size="icon"
                 aria-label="Revoke token"
+                title="Revoke token"
                 className="hover:text-danger"
                 onClick={() => {
                   void A.revokeToken(token.id)
@@ -310,27 +320,28 @@ function TokensCard() {
       <Dialog
         open={creating}
         onClose={() => setCreating(false)}
-        title="New access token"
+        title="Create access token"
+        description="Generate an API token for management automation and CI/CD workflows."
         footer={
           <>
             <Button variant="ghost" onClick={() => setCreating(false)}>
               Cancel
             </Button>
             <Button variant="primary" loading={create.busy} onClick={() => void create.run()}>
-              Create
+              Create token
             </Button>
           </>
         }
       >
-        <Field label="Name">
-          <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="ci" />
+        <Field label="Token name" hint="Descriptive label (e.g. github-actions-ci)">
+          <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="github-actions-ci" />
         </Field>
         <Field
-          label="Scope"
-          hint="An unscoped token can touch every environment, production included."
+          label="Environment scope"
+          hint="Limit this token's access to a single environment or allow all environments."
         >
           <Select value={scope} onChange={(event) => setScope(event.target.value)}>
-            <option value="">every environment</option>
+            <option value="">All environments</option>
             {environments.map((environment) => (
               <option key={environment.id} value={environment.id}>
                 {environment.name}
@@ -344,8 +355,8 @@ function TokensCard() {
       <Dialog
         open={minted !== null}
         onClose={() => setMinted(null)}
-        title="Copy this token now"
-        description="It is stored hashed. This is the only time it will be shown."
+        title="Copy your access token"
+        description="Access tokens are hashed and stored securely. This is the only time your token will be displayed."
         footer={
           <Button variant="primary" onClick={() => setMinted(null)}>
             Done
@@ -373,7 +384,7 @@ function ProjectsCard() {
       key.trim(),
       name.trim() === "" ? key.trim() : name.trim(),
     );
-    toast.push("ok", `${created.key} created`);
+    toast.push("ok", `Project ${created.key} created`);
     setKey("");
     setName("");
     setCreating(false);
@@ -385,18 +396,18 @@ function ProjectsCard() {
   return (
     <Card
       title="Projects"
-      description="Projects and workspaces in this deployment"
+      description="Manage workspaces and applications in this deployment"
       actions={
         can("admin") ? (
           <Button variant="secondary" size="sm" onClick={() => setCreating(true)}>
             <Plus className="size-3.5" />
-            New
+            New project
           </Button>
         ) : undefined
       }
     >
       {projects.length === 0 ? (
-        <EmptyState title="No projects" body="Create a project to start managing flags." />
+        <EmptyState title="No projects created" body="Create a project to start organizing flags and environments." />
       ) : (
         <ul className="divide-y divide-border">
           {projects.map((p) => {
@@ -431,6 +442,7 @@ function ProjectsCard() {
                       variant="ghost"
                       size="icon"
                       aria-label={`Delete project ${p.key}`}
+                      title={`Delete project ${p.key}`}
                       className="hover:text-danger"
                       onClick={() => setDeleting(p)}
                     >
@@ -447,8 +459,8 @@ function ProjectsCard() {
       <Dialog
         open={creating}
         onClose={() => setCreating(false)}
-        title="New project"
-        description="A project groups environments, flags, and segments together."
+        title="Create project"
+        description="Projects group environments, feature flags, and segments together."
         footer={
           <>
             <Button variant="ghost" onClick={() => setCreating(false)}>
@@ -460,19 +472,19 @@ function ProjectsCard() {
               disabled={key.trim() === ""}
               onClick={() => void create.run()}
             >
-              Create
+              Create project
             </Button>
           </>
         }
       >
-        <Field label="Key" hint="Unique slug, e.g. web-app or billing">
+        <Field label="Project key" hint="Unique identifier (e.g. web-app or billing)">
           <Input
             value={key}
             onChange={(event) => setKey(event.target.value)}
             placeholder="web-app"
           />
         </Field>
-        <Field label="Name" hint="Human-readable project name">
+        <Field label="Project name" hint="Display name for your team">
           <Input
             value={name}
             onChange={(event) => setName(event.target.value)}
@@ -489,8 +501,7 @@ function ProjectsCard() {
         confirmLabel="Delete project"
         body={
           <p>
-            This will permanently delete this project and all its flags, environments, targeting
-            rules, segments, and SDK keys. This action cannot be undone.
+            This will permanently delete this project along with all its feature flags, environments, targeting rules, segments, and SDK keys. This action cannot be undone.
           </p>
         }
         onConfirm={async () => {
@@ -524,7 +535,7 @@ function EnvironmentsCard() {
       name: name.trim() === "" ? key.trim() : name.trim(),
       isProduction,
     });
-    toast.push("ok", `${created.key} created — reload to switch to it`);
+    toast.push("ok", `Environment ${created.key} created`);
     setKey("");
     setName("");
     setCreating(false);
@@ -534,12 +545,12 @@ function EnvironmentsCard() {
   return (
     <Card
       title="Environments"
-      description={`In ${project}`}
+      description={`Configured environments in ${project}`}
       actions={
         can("admin") ? (
           <Button variant="secondary" size="sm" onClick={() => setCreating(true)}>
             <Plus className="size-3.5" />
-            New
+            New environment
           </Button>
         ) : undefined
       }
@@ -547,7 +558,7 @@ function EnvironmentsCard() {
       <ul className="divide-y divide-border">
         {environments.map((environment) => (
           <li key={environment.id} className="flex items-center justify-between gap-3 py-2">
-            <span className="flex items-center gap-2 text-sm">
+            <span className="flex items-center gap-2 text-sm font-medium">
               <span
                 className="size-2 rounded-full"
                 style={{ background: environmentTint(environment.key, environment.color) }}
@@ -556,7 +567,7 @@ function EnvironmentsCard() {
               {environment.isProduction ? <Badge tone="danger">production</Badge> : null}
             </span>
             <span className="font-mono text-[11px] text-muted-foreground">
-              snapshot v{environment.snapshotVersion}
+              Snapshot v{environment.snapshotVersion}
             </span>
           </li>
         ))}
@@ -565,7 +576,8 @@ function EnvironmentsCard() {
       <Dialog
         open={creating}
         onClose={() => setCreating(false)}
-        title="New environment"
+        title="Create environment"
+        description="Add a new deployment environment for this project."
         footer={
           <>
             <Button variant="ghost" onClick={() => setCreating(false)}>
@@ -577,15 +589,15 @@ function EnvironmentsCard() {
               disabled={key.trim() === ""}
               onClick={() => void create.run()}
             >
-              Create
+              Create environment
             </Button>
           </>
         }
       >
-        <Field label="Key">
+        <Field label="Environment key" hint="Unique slug (e.g. staging or production)">
           <Input value={key} onChange={(event) => setKey(event.target.value)} placeholder="staging" />
         </Field>
-        <Field label="Name">
+        <Field label="Environment name" hint="Display name (e.g. Staging or QA)">
           <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Staging" />
         </Field>
         <label className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -594,7 +606,7 @@ function EnvironmentsCard() {
             checked={isProduction}
             onChange={(event) => setIsProduction(event.target.checked)}
           />
-          Production — the client tier will require signed contexts here
+          <span>Production environment — requires signed evaluation contexts and heightened visual safety alerts</span>
         </label>
         {create.error !== null ? <ErrorNote>{create.error.message}</ErrorNote> : null}
       </Dialog>
@@ -612,17 +624,15 @@ function PasswordCard() {
 
   const change = useAction(async () => {
     await A.changePassword(current, next);
-    toast.push("ok", "Password changed — sign in again");
+    toast.push("ok", "Password updated successfully. Please sign in again.");
     setCurrent("");
     setNext("");
-    // Every session ended, including this one. Reflecting that immediately is
-    // more honest than waiting for the next request to 401.
     await session.signOut();
     return null;
   });
 
   return (
-    <Card title="Your password" description="Changing it ends every session you have, including this one.">
+    <Card title="Change password" description="Update your login password. You will need to sign in again after updating.">
       <div className="space-y-3">
         <Field label="Current password">
           <Input
@@ -632,7 +642,7 @@ function PasswordCard() {
             onChange={(event) => setCurrent(event.target.value)}
           />
         </Field>
-        <Field label="New password" hint="At least 12 characters.">
+        <Field label="New password" hint="Must be at least 12 characters.">
           <Input
             type="password"
             autoComplete="new-password"
@@ -642,7 +652,7 @@ function PasswordCard() {
         </Field>
         {change.error !== null ? <ErrorNote>{change.error.message}</ErrorNote> : null}
         {session.principal?.kind === "token" ? (
-          <InfoNote>You are authenticated with an access token, not a password.</InfoNote>
+          <InfoNote>You are authenticated via personal access token rather than password.</InfoNote>
         ) : null}
         <Button
           variant="secondary"
@@ -650,7 +660,7 @@ function PasswordCard() {
           disabled={current === "" || next === ""}
           onClick={() => void change.run()}
         >
-          Change password
+          Update password
         </Button>
       </div>
     </Card>

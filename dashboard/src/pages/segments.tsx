@@ -49,13 +49,11 @@ export function SegmentsPage() {
   return (
     <Page
       title="Segments"
-      description={`Reusable cohorts in ${project} · ${environment}`}
+      description={`Manage reusable user segments in ${project} · ${environment}`}
       actions={
         <Button
           variant="primary"
           size="sm"
-          // `scoped` as well as `writable`: a segment belongs to an environment,
-          // and without one this builds `/projects//environments//segments`.
           disabled={!writable || !scoped}
           onClick={() => setCreating(true)}
         >
@@ -67,14 +65,22 @@ export function SegmentsPage() {
       {!scoped ? (
         <EmptyState
           title="No environment selected"
-          body="Segments belong to one environment. Choose a project and environment above."
+          body="Segments are environment-specific. Please choose a project and environment above to get started."
         />
       ) : segments.loading ? (
         <Spinner />
       ) : rows.length === 0 ? (
         <EmptyState
-          title="No segments"
-          body="A segment is a list of context keys, or a set of rules, that many flags can point at without repeating themselves."
+          title="No segments created yet"
+          body="Segments let you define reusable lists of users or rule sets to target across multiple feature flags."
+          action={
+            writable ? (
+              <Button variant="primary" size="sm" onClick={() => setCreating(true)}>
+                <Plus className="size-3.5" />
+                New segment
+              </Button>
+            ) : undefined
+          }
         />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -85,7 +91,7 @@ export function SegmentsPage() {
                 <span className="flex items-center gap-2">
                   {segment.name}
                   {segment.external ? (
-                    <Badge tone="accent" title="Membership is resolved by your own service">
+                    <Badge tone="accent" title="Membership is evaluated by your external service">
                       external
                     </Badge>
                   ) : null}
@@ -97,12 +103,12 @@ export function SegmentsPage() {
                   <>
                     <Button variant="ghost" size="sm" onClick={() => setImporting(segment)}>
                       <Upload className="size-3.5" />
-                      Members
+                      Manage members
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
-                      aria-label={`Delete ${segment.key}`}
+                      aria-label={`Delete segment ${segment.key}`}
                       className="hover:text-danger"
                       onClick={() => setDeleting(segment)}
                     >
@@ -114,8 +120,8 @@ export function SegmentsPage() {
             >
               <p className="text-sm text-muted-foreground">
                 {segment.memberCount === null
-                  ? "membership resolved elsewhere"
-                  : `${segment.memberCount.toLocaleString()} members`}
+                  ? "Externally managed"
+                  : `${segment.memberCount.toLocaleString()} ${segment.memberCount === 1 ? "member" : "members"}`}
               </p>
             </Card>
           ))}
@@ -137,19 +143,18 @@ export function SegmentsPage() {
       <ConfirmDialog
         open={deleting !== null}
         onClose={() => setDeleting(null)}
-        title={`Delete ${deleting?.key ?? ""}?`}
-        confirmLabel="Delete"
+        title={`Delete segment "${deleting?.key ?? ""}"?`}
+        confirmLabel="Delete segment"
         body={
           <p>
-            Refused while any rule still names it — an unresolved segment makes its rule fail closed,
-            which silently changes who is targeted.
+            This segment cannot be deleted if it is currently referenced by any active flag targeting rules.
           </p>
         }
         onConfirm={async () => {
           if (deleting === null) return;
           try {
             await A.deleteSegment(project, environment, deleting.key);
-            toast.push("ok", `${deleting.key} deleted`);
+            toast.push("ok", `Segment ${deleting.key} deleted`);
           } catch (error) {
             toast.push("error", error instanceof Error ? error.message : String(error));
           }
@@ -181,7 +186,7 @@ function CreateSegmentDialog({
       name: name.trim() === "" ? key.trim() : name.trim(),
       external,
     });
-    toast.push("ok", `${key} created`);
+    toast.push("ok", `Segment ${key} created`);
     onCreated();
     setKey("");
     setName("");
@@ -193,7 +198,8 @@ function CreateSegmentDialog({
     <Dialog
       open={open}
       onClose={onClose}
-      title="New segment"
+      title="Create segment"
+      description="Create a named cohort to target in flag rules."
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
@@ -205,15 +211,15 @@ function CreateSegmentDialog({
             disabled={key.trim() === ""}
             onClick={() => void create.run()}
           >
-            Create
+            Create segment
           </Button>
         </>
       }
     >
-      <Field label="Key">
+      <Field label="Key" hint="Unique identifier (e.g. beta-testers)">
         <Input value={key} onChange={(event) => setKey(event.target.value)} placeholder="beta-testers" />
       </Field>
-      <Field label="Name">
+      <Field label="Name" hint="Human-readable segment name">
         <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Beta testers" />
       </Field>
       <label className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -222,7 +228,7 @@ function CreateSegmentDialog({
           checked={external}
           onChange={(event) => setExternal(event.target.checked)}
         />
-        External — membership is answered by your own service, not stored here
+        <span>External segment — membership is evaluated dynamically via your own service</span>
       </label>
       {create.error !== null ? <ErrorNote>{create.error.message}</ErrorNote> : null}
     </Dialog>
@@ -262,7 +268,7 @@ function ImportDialog({
       memberCount = result.memberCount;
       setProgress(`${done.toLocaleString()} of ${keys.length.toLocaleString()}`);
     }
-    toast.push("ok", `${segment.key} now has ${memberCount.toLocaleString()} members`);
+    toast.push("ok", `${segment.key} updated: now has ${memberCount.toLocaleString()} members`);
     setProgress(null);
     setRaw("");
     onDone();
@@ -275,8 +281,8 @@ function ImportDialog({
       open={segment !== null}
       onClose={onClose}
       width="lg"
-      title={`Members of ${segment?.key ?? ""}`}
-      description="One context key per line. Sent in pages of 50,000 — each page is its own transaction."
+      title={`Manage members: ${segment?.name ?? segment?.key ?? ""}`}
+      description="Enter context keys (one per line or comma-separated) to add or remove from this segment."
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
@@ -299,18 +305,18 @@ function ImportDialog({
           size="sm"
           onClick={() => setMode("add")}
         >
-          Add
+          Add members
         </Button>
         <Button
           variant={mode === "remove" ? "secondary" : "ghost"}
           size="sm"
           onClick={() => setMode("remove")}
         >
-          Remove
+          Remove members
         </Button>
       </div>
-      <Textarea rows={10} value={raw} onChange={(event) => setRaw(event.target.value)} />
-      {progress !== null ? <InfoNote>Importing… {progress}</InfoNote> : null}
+      <Textarea rows={10} value={raw} onChange={(event) => setRaw(event.target.value)} placeholder="user-123&#10;user-456&#10;user-789" />
+      {progress !== null ? <InfoNote>Updating members… {progress}</InfoNote> : null}
       {submit.error !== null ? <ErrorNote>{submit.error.message}</ErrorNote> : null}
     </Dialog>
   );

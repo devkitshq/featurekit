@@ -25,7 +25,7 @@ export function LoginPage() {
     try {
       await session.signIn(email, password);
     } catch {
-      setError("Email or password is wrong.");
+      setError("Incorrect email or password. Please check your credentials and try again.");
     } finally {
       setBusy(false);
     }
@@ -40,7 +40,7 @@ export function LoginPage() {
           </span>
           <div>
             <h1 className="text-sm font-semibold text-foreground">featurekit</h1>
-            <p className="text-xs text-muted-foreground">Feature flags and their consequences</p>
+            <p className="text-xs text-muted-foreground">Feature management & real-time control plane</p>
           </div>
         </div>
 
@@ -48,19 +48,19 @@ export function LoginPage() {
           <div className="space-y-3">
             <InfoNote>
               <p className="font-semibold text-foreground">There are no accounts yet.</p>
-              <p className="mt-1">
-                Create the first one from the machine running the control plane:
+              <p className="mt-1 text-xs">
+                Create your initial admin account from the server hosting the control plane:
               </p>
               <pre className="mt-2 overflow-x-auto rounded bg-background p-2 font-mono text-[11px] text-muted-foreground">
                 npm run admin:user -- create you@example.com --role owner
               </pre>
-              <p className="mt-2">
-                Or set <code className="font-mono">FEATUREKIT_ADMIN_EMAIL</code> and{" "}
-                <code className="font-mono">FEATUREKIT_ADMIN_PASSWORD</code> and restart it.
+              <p className="mt-2 text-xs">
+                Or configure <code className="font-mono text-foreground">FEATUREKIT_ADMIN_EMAIL</code> and{" "}
+                <code className="font-mono text-foreground">FEATUREKIT_ADMIN_PASSWORD</code> environment variables and restart the service.
               </p>
             </InfoNote>
             <Button variant="secondary" className="w-full" onClick={() => void session.refresh()}>
-              I have created one
+              I have created an account
             </Button>
           </div>
         ) : (

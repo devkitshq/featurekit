@@ -45,7 +45,10 @@ export function KeysPage() {
   if (!can("admin")) {
     return (
       <Page title="SDK keys">
-        <EmptyState title="Admins only" body="SDK keys are managed by admins and owners." />
+        <EmptyState
+          title="Administrator access required"
+          body="SDK keys can only be viewed and managed by organization admins and owners."
+        />
       </Page>
     );
   }
@@ -55,39 +58,42 @@ export function KeysPage() {
   return (
     <Page
       title="SDK keys"
-      description={scoped ? `${project} · ${environment}` : "Pick a project and environment"}
+      description={scoped ? `${project} · ${environment}` : "Select a project and environment to view SDK keys"}
       actions={
         <Button
           variant="primary"
           size="sm"
-          // Unscoped, this built `/projects//environments//keys` and 404ed. A
-          // key belongs to an environment; there is nothing to mint without one.
           disabled={!scoped}
           onClick={() => setCreating(true)}
         >
           <Plus className="size-3.5" />
-          New key
+          New SDK key
         </Button>
       }
     >
       {currentEnvironment?.isProduction === true ? (
         <InfoNote>
-          These keys read <strong className="text-foreground font-semibold">production</strong>. A server key here grants
-          the full ruleset for it.
+          These keys access the <strong className="text-foreground font-semibold">production</strong> environment. Keep server keys secure.
         </InfoNote>
       ) : null}
 
       {!scoped ? (
         <EmptyState
           title="No environment selected"
-          body="SDK keys belong to one environment. Choose a project and environment above, or create one in Settings."
+          body="SDK keys belong to a specific environment. Choose a project and environment above to view or create keys."
         />
       ) : keys.loading ? (
         <Spinner />
       ) : rows.length === 0 ? (
         <EmptyState
-          title="No keys yet"
-          body="A server key streams the whole ruleset to your services. A client key buys a browser evaluated values for one context and nothing else."
+          title="No SDK keys created yet"
+          body="Create a Server key for backend applications or a Client key for browser and mobile apps."
+          action={
+            <Button variant="primary" size="sm" onClick={() => setCreating(true)}>
+              <Plus className="size-3.5" />
+              New SDK key
+            </Button>
+          }
         />
       ) : (
         <Card>
@@ -97,7 +103,7 @@ export function KeysPage() {
                 <div className="min-w-0">
                   <p className="flex items-center gap-2 text-sm">
                     <KeyRound className="size-3.5 text-muted-foreground" />
-                    {key.name ?? "unnamed"}
+                    {key.name ?? "unnamed key"}
                     <Badge tone={key.kind === "server" ? "danger" : "accent"}>{key.kind}</Badge>
                     {key.revokedAt !== null ? <Badge tone="warn">revoked</Badge> : null}
                   </p>
@@ -106,7 +112,7 @@ export function KeysPage() {
                       <CopyableKey value={key.publicKey} />
                     ) : (
                       <span className="text-[11px] text-muted-foreground">
-                        stored hashed — shown only when created
+                        Stored hashed — secret key only displayed once upon creation
                       </span>
                     )}
                   </div>
@@ -116,6 +122,7 @@ export function KeysPage() {
                     variant="ghost"
                     size="icon"
                     aria-label={`Revoke ${key.name ?? key.id}`}
+                    title={`Revoke ${key.name ?? key.id}`}
                     className="hover:text-danger"
                     onClick={() => setRevoking(key)}
                   >
@@ -140,11 +147,11 @@ export function KeysPage() {
       <Dialog
         open={minted !== null}
         onClose={() => setMinted(null)}
-        title="Copy this key now"
+        title="Copy your SDK key"
         description={
           minted?.kind === "server"
-            ? "A server key is stored hashed. This is the only time it will ever be shown."
-            : "A client key is public by construction and can be read here again later."
+            ? "Server keys are stored hashed in the database. This is the only time this secret key will be shown."
+            : "Client keys are public identifiers and can be viewed here anytime."
         }
         footer={
           <Button variant="primary" onClick={() => setMinted(null)}>
@@ -158,19 +165,18 @@ export function KeysPage() {
       <ConfirmDialog
         open={revoking !== null}
         onClose={() => setRevoking(null)}
-        title={`Revoke ${revoking?.name ?? "this key"}?`}
-        confirmLabel="Revoke"
+        title={`Revoke SDK key "${revoking?.name ?? "this key"}"?`}
+        confirmLabel="Revoke key"
         body={
           <p>
-            Every SDK using it stops receiving updates within seconds and falls back to the last
-            snapshot it holds, then to your code's defaults. This cannot be undone.
+            Connected SDKs using this key will immediately lose access and fall back to local cached snapshots and in-code defaults. This action cannot be undone.
           </p>
         }
         onConfirm={async () => {
           if (revoking === null) return;
           try {
             await A.revokeKey(project, environment, revoking.id);
-            toast.push("ok", "Key revoked");
+            toast.push("ok", "SDK key revoked");
           } catch (error) {
             toast.push("error", error instanceof Error ? error.message : String(error));
           }
@@ -206,7 +212,7 @@ function CreateKeyDialog({
     <Dialog
       open={open}
       onClose={onClose}
-      title="New SDK key"
+      title="Create SDK key"
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
@@ -219,20 +225,22 @@ function CreateKeyDialog({
       }
     >
       <Field
-        label="Kind"
+        label="Key type"
         hint={
           kind === "server"
-            ? "Streams the entire ruleset. Never put one in a browser or a mobile binary."
-            : "Buys evaluated values for one context. Safe to ship publicly."
+            ? "For backend applications. Has access to all targeting rules. Keep confidential."
+            : kind === "mobile"
+            ? "For native iOS and Android apps. Safe to include in client builds."
+            : "For frontend web applications. Safe to expose publicly in client-side code."
         }
       >
         <Select value={kind} onChange={(event) => setKind(event.target.value as SdkKey["kind"])}>
-          <option value="server">server</option>
-          <option value="client">client</option>
-          <option value="mobile">mobile</option>
+          <option value="server">Server (Backend applications)</option>
+          <option value="client">Client (Web applications)</option>
+          <option value="mobile">Mobile (Native iOS/Android)</option>
         </Select>
       </Field>
-      <Field label="Name" hint="Where this key lives, so it can be revoked with confidence.">
+      <Field label="Key name" hint="Descriptive name (e.g. billing-service or marketing-web)">
         <Input
           value={name}
           onChange={(event) => setName(event.target.value)}

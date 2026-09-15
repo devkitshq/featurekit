@@ -40,13 +40,13 @@ export function AuditPage() {
 
   return (
     <Page
-      title="Audit"
-      description={`Every configuration change in ${project}`}
+      title="Audit log"
+      description={`Complete history of configuration changes in ${project}`}
       actions={
         can("admin") ? (
           <Button variant="secondary" size="sm" loading={verify.busy} onClick={() => void verify.run()}>
             <ShieldCheck className="size-3.5" />
-            Verify chain
+            Verify audit chain
           </Button>
         ) : undefined
       }
@@ -65,14 +65,17 @@ export function AuditPage() {
       {audit.loading ? (
         <Spinner />
       ) : entries.length === 0 ? (
-        <EmptyState title="Nothing recorded yet" />
+        <EmptyState
+          title="No audit entries recorded yet"
+          body="All flag updates, schedule triggers, and administrative actions will be logged here with cryptographic verification."
+        />
       ) : (
         <Card>
           <ul className="divide-y divide-border">
             {entries.map((entry) => (
               <li key={entry.id} className="py-2.5">
                 <button
-                  className="flex w-full items-start justify-between gap-3 text-left"
+                  className="flex w-full items-start justify-between gap-3 text-left cursor-pointer"
                   onClick={() => setExpanded(expanded === entry.id ? null : entry.id)}
                 >
                   <div className="min-w-0">
@@ -89,11 +92,11 @@ export function AuditPage() {
                         {entry.actorName ?? entry.actorEmail ?? entry.actorKind}
                       </span>
                       {entry.actorId !== null ? (
-                        <span className="font-mono" title="Member id">
+                        <span className="font-mono" title="Member ID">
                           ({entry.actorId})
                         </span>
                       ) : null}
-                      {entry.actorKind === "token" ? <span>via token</span> : null}
+                      {entry.actorKind === "token" ? <span>via API token</span> : null}
                     </p>
                   </div>
                   <span className="shrink-0 text-[11px] text-muted-foreground">
@@ -102,8 +105,8 @@ export function AuditPage() {
                 </button>
                 {expanded === entry.id ? (
                   <div className="mt-2 grid gap-2 lg:grid-cols-2">
-                    <Diff title="Before" value={entry.before} />
-                    <Diff title="After" value={entry.after} />
+                    <Diff title="Previous State" value={entry.before} />
+                    <Diff title="New State" value={entry.after} />
                   </div>
                 ) : null}
               </li>
@@ -136,8 +139,8 @@ function Diff({ title, value }: { title: string; value: unknown }) {
 /** Rendered by the verify action, above the list, when it has run. */
 export function VerifyResult({ ok, checked }: { ok: boolean; checked: number }) {
   return ok ? (
-    <InfoNote>Chain intact across {checked} entries.</InfoNote>
+    <InfoNote>Audit chain verified: cryptographic signatures intact across {checked} entries.</InfoNote>
   ) : (
-    <ErrorNote>The audit chain is broken. Somebody has edited the log.</ErrorNote>
+    <ErrorNote>Audit chain verification failed: log inconsistency or tampering detected.</ErrorNote>
   );
 }

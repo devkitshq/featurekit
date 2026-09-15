@@ -234,8 +234,8 @@ function Sidebar() {
       <Dialog
         open={creatingProject}
         onClose={() => setCreatingProject(false)}
-        title="New project"
-        description="A project groups environments, flags, and segments together."
+        title="Create project"
+        description="Projects help you organize environments, feature flags, and segments for a specific service or team."
         footer={
           <>
             <Button variant="ghost" size="sm" onClick={() => setCreatingProject(false)}>
@@ -253,14 +253,14 @@ function Sidebar() {
           </>
         }
       >
-        <Field label="Key" hint="Unique slug, e.g. web-app or billing">
+        <Field label="Project key" hint="Unique identifier (e.g. web-app or billing)">
           <Input
             value={newProjectKey}
             onChange={(event) => setNewProjectKey(event.target.value)}
             placeholder="web-app"
           />
         </Field>
-        <Field label="Name" hint="Human-readable project name">
+        <Field label="Project name" hint="Display name shown in the dashboard">
           <Input
             value={newProjectName}
             onChange={(event) => setNewProjectName(event.target.value)}

@@ -103,8 +103,8 @@ export function FlagsPage() {
       title="Flags"
       description={
         scoped
-          ? `${rows.length} in ${project} · ${environment}`
-          : "Pick a project and environment"
+          ? `${rows.length} ${rows.length === 1 ? "flag" : "flags"} in ${project} · ${environment}`
+          : "Select a project and environment to manage flags"
       }
       actions={
         <>
@@ -114,7 +114,7 @@ export function FlagsPage() {
             onClick={() => setShowArchived((value) => !value)}
           >
             <Archive className="size-3.5" />
-            {showArchived ? "Hiding nothing" : "Archived"}
+            {showArchived ? "Hide archived" : "Archived"}
           </Button>
           <Button variant="primary" size="sm" disabled={!writable} onClick={() => setCreating(true)}>
             <Plus className="size-3.5" />
@@ -125,8 +125,7 @@ export function FlagsPage() {
     >
       {currentEnvironment?.isProduction === true ? (
         <InfoNote>
-          This is a <strong className="text-foreground font-semibold">production</strong> environment. Changes here reach
-          real traffic within a few hundred milliseconds.
+          This is a <strong className="text-foreground font-semibold">production</strong> environment. Changes made here take effect immediately across live applications.
         </InfoNote>
       ) : null}
 
@@ -135,7 +134,7 @@ export function FlagsPage() {
           <Search className="pointer-events-none absolute left-2.5 top-2.5 size-3.5 text-muted-foreground" />
           <Input
             id="flag-search"
-            placeholder="Search flags…  (press /)"
+            placeholder="Search flags by name, key, or description… (press /)"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             className="pl-8"
@@ -173,11 +172,11 @@ export function FlagsPage() {
         <ErrorNote>{flags.error.message}</ErrorNote>
       ) : filtered.length === 0 ? (
         <EmptyState
-          title={rows.length === 0 ? "No flags yet" : "Nothing matches"}
+          title={rows.length === 0 ? "No flags created yet" : "No matching flags"}
           body={
             rows.length === 0
-              ? "A flag starts off, with a default everyone gets until a rule says otherwise."
-              : "Try a different search."
+              ? "Create your first feature flag to control rollouts, experiments, and feature gates."
+              : "Try adjusting your search query or tag filter."
           }
           action={
             rows.length === 0 && writable ? (
@@ -193,11 +192,11 @@ export function FlagsPage() {
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/40 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                <th className="w-14 px-3 py-2 font-medium">On</th>
+                <th className="w-14 px-3 py-2 font-medium">Status</th>
                 <th className="px-3 py-2 font-medium">Flag</th>
-                <th className="w-40 px-3 py-2 font-medium">Serves</th>
+                <th className="w-40 px-3 py-2 font-medium">Serves (Default)</th>
                 <th className="w-32 px-3 py-2 font-medium">Targeting</th>
-                <th className="w-28 px-3 py-2 font-medium">Changed</th>
+                <th className="w-28 px-3 py-2 font-medium">Updated</th>
                 <th className="w-24 px-3 py-2" />
               </tr>
             </thead>
@@ -233,11 +232,11 @@ export function FlagsPage() {
         open={killing !== null}
         onClose={() => setKilling(null)}
         title={`Turn off ${killing?.key ?? ""}?`}
-        confirmLabel="Turn it off"
+        confirmLabel="Turn off flag"
         body={
           <>
             <p>
-              Every context will serve the off variation
+              This will immediately serve the off variation
               {killing !== null ? (
                 <>
                   {" "}
@@ -251,11 +250,10 @@ export function FlagsPage() {
                   )
                 </>
               ) : null}{" "}
-              in <strong className="text-foreground">{environment}</strong>, within a few hundred
-              milliseconds.
+              to all users in <strong className="text-foreground">{environment}</strong>.
             </p>
-            <p className="mt-2">
-              Targeting rules are kept. Turning it back on restores exactly this configuration.
+            <p className="mt-2 text-xs text-muted-foreground">
+              Your targeting rules and configuration will be kept intact and restored when turned back on.
             </p>
           </>
         }
@@ -265,7 +263,7 @@ export function FlagsPage() {
             const result = await A.killSwitch(project, environment, killing.key);
             toast.push(
               "ok",
-              result.alreadyOff ? `${killing.key} was already off` : `${killing.key} is off`,
+              result.alreadyOff ? `${killing.key} was already off` : `${killing.key} turned off`,
             );
           } catch (error) {
             toast.push("error", error instanceof Error ? error.message : String(error));
@@ -277,16 +275,15 @@ export function FlagsPage() {
       <ConfirmDialog
         open={archiving !== null}
         onClose={() => setArchiving(null)}
-        title={`Archive ${archiving?.key ?? ""}?`}
-        confirmLabel="Archive"
+        title={`Archive flag "${archiving?.key ?? ""}"?`}
+        confirmLabel="Archive flag"
         body={
           <>
             <p>
-              It disappears from every environment's next snapshot, so any SDK still calling{" "}
-              <code className="font-mono font-medium text-foreground">{archiving?.key}</code> starts getting the default
-              its code passes.
+              This flag will be removed from all environment snapshots. SDKs evaluating{" "}
+              <code className="font-mono font-medium text-foreground">{archiving?.key}</code> will receive their in-code default fallback values.
             </p>
-            <p className="mt-2">Archiving is reversible — the flag can be restored.</p>
+            <p className="mt-2 text-xs text-muted-foreground">You can restore archived flags at any time.</p>
           </>
         }
         onConfirm={async () => {
@@ -398,7 +395,7 @@ function FlagRowView({
               <Button
                 variant="ghost"
                 size="icon"
-                title="Kill switch: serve the off variation to everyone"
+                title="Kill switch: immediately turn off flag for everyone"
                 aria-label={`Kill switch for ${flag.key}`}
                 disabled={!writable || state === null || !state.enabled}
                 onClick={onKill}
@@ -409,7 +406,7 @@ function FlagRowView({
               <Button
                 variant="ghost"
                 size="icon"
-                title="Archive"
+                title="Archive flag"
                 aria-label={`Archive ${flag.key}`}
                 disabled={!writable}
                 onClick={onArchive}
@@ -491,7 +488,7 @@ function CreateFlagDialog({
           .filter((entry) => entry.length > 0),
         variations: parsed,
       });
-      toast.push("ok", `${key} created — it starts off`);
+      toast.push("ok", `${key} created`);
       onCreated();
       reset();
       onClose();
@@ -506,8 +503,8 @@ function CreateFlagDialog({
     <Dialog
       open={open}
       onClose={onClose}
-      title="New flag"
-      description="It is created off in every environment. Turning it on is a separate, audited act."
+      title="Create feature flag"
+      description="New flags start disabled across all environments until you configure and enable them."
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
@@ -520,7 +517,7 @@ function CreateFlagDialog({
       }
     >
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Key" hint="Letters, digits, dot, dash, underscore. It appears in your code.">
+        <Field label="Key" hint="Unique identifier used in your codebase (e.g. new-checkout)">
           <Input
             value={key}
             onChange={(event) => setKey(event.target.value)}
@@ -528,7 +525,7 @@ function CreateFlagDialog({
             autoFocus
           />
         </Field>
-        <Field label="Name">
+        <Field label="Name" hint="Human-readable flag name">
           <Input
             value={name}
             onChange={(event) => setName(event.target.value)}
@@ -537,16 +534,16 @@ function CreateFlagDialog({
         </Field>
       </div>
 
-      <Field label="Description">
+      <Field label="Description" hint="Optional summary of what this flag controls">
         <Input
           value={description}
           onChange={(event) => setDescription(event.target.value)}
-          placeholder="What this gates, and who to ask about it"
+          placeholder="e.g. Rollout for the revised one-page checkout experience"
         />
       </Field>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Kind">
+        <Field label="Flag type">
           <Select
             value={kind}
             onChange={(event) => {
@@ -555,14 +552,14 @@ function CreateFlagDialog({
               setVariations(KIND_DEFAULTS[next]);
             }}
           >
-            <option value="boolean">boolean</option>
-            <option value="string">string</option>
-            <option value="number">number</option>
-            <option value="json">json</option>
+            <option value="boolean">Boolean (true / false)</option>
+            <option value="string">String</option>
+            <option value="number">Number</option>
+            <option value="json">JSON Object</option>
           </Select>
         </Field>
-        <Field label="Tags" hint="Comma separated">
-          <Input value={tags} onChange={(event) => setTags(event.target.value)} placeholder="checkout, q3" />
+        <Field label="Tags" hint="Comma-separated labels">
+          <Input value={tags} onChange={(event) => setTags(event.target.value)} placeholder="checkout, q3-release" />
         </Field>
       </div>
 
@@ -613,18 +610,18 @@ function CreateFlagDialog({
             Add variation
           </Button>
         ) : (
-          <p className="text-[11px] text-muted-foreground">A boolean flag is always [false, true].</p>
+          <p className="text-[11px] text-muted-foreground">Boolean flags serve false (index 0) or true (index 1).</p>
         )}
       </div>
 
       <div className="flex flex-col gap-2 border-t border-border pt-3">
         <label className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Switch checked={temporary} onChange={setTemporary} label="Temporary" />
-          Temporary — a release toggle meant to be deleted after rollout
+          <Switch checked={temporary} onChange={setTemporary} label="Temporary flag" />
+          <span>Temporary flag — intended for short-term rollouts and future clean-up</span>
         </label>
         <label className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Switch checked={clientAvailable} onChange={setClientAvailable} label="Client available" />
-          Available to browsers — otherwise its existence never leaves the server
+          <Switch checked={clientAvailable} onChange={setClientAvailable} label="Client-side evaluation" />
+          <span>Client-side evaluation — make available to frontend web and mobile SDKs</span>
         </label>
       </div>
 

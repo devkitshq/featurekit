@@ -55,10 +55,10 @@ export function TargetingEditor({
       <Section
         step="1"
         title="Prerequisites"
-        hint="Checked first. If any is not serving the required variation, this flag serves its off variation."
+        hint="Checked first. If any prerequisite flag does not serve its required variation, this flag immediately serves its off variation."
       >
         {value.prerequisites.length === 0 ? (
-          <Empty>No prerequisites.</Empty>
+          <Empty>No prerequisites configured.</Empty>
         ) : (
           <div className="space-y-2">
             {value.prerequisites.map((prerequisite, index) => {
@@ -133,10 +133,10 @@ export function TargetingEditor({
       <Section
         step="2"
         title="Individual targets"
-        hint="Named context keys, which beat every rule below. The escape hatch for one account, not a way to build a cohort."
+        hint="Directly assign specific users or entities to a variation before rules are evaluated."
       >
         {value.targets.length === 0 ? (
-          <Empty>Nobody is individually targeted.</Empty>
+          <Empty>No individual targets configured.</Empty>
         ) : (
           <div className="space-y-3">
             {value.targets.map((target, index) => (
@@ -225,10 +225,10 @@ export function TargetingEditor({
       <Section
         step="3"
         title="Rules"
-        hint="Evaluated top to bottom. The first rule whose clauses all match decides, and nothing below it runs."
+        hint="Evaluated in order from top to bottom. The first rule whose conditions all match determines the variation."
       >
         {value.rules.length === 0 ? (
-          <Empty>No rules — everyone falls through to the default below.</Empty>
+          <Empty>No custom rules defined. All traffic falls through to the default below.</Empty>
         ) : (
           <div className="space-y-3">
             {value.rules.map((rule, index) => (
@@ -276,7 +276,7 @@ export function TargetingEditor({
       <Section
         step="4"
         title="Default"
-        hint="What everyone who reached this point gets. A single variation, or a percentage rollout bucketed by context key."
+        hint="Served to all traffic that does not match any targeting rules above."
       >
         <OutcomeEditor
           flag={flag}
@@ -295,7 +295,7 @@ export function TargetingEditor({
       <Section
         step="off"
         title="Off variation"
-        hint="What everyone gets when the flag is off, or when a prerequisite fails. The kill switch serves this."
+        hint="Served whenever this flag is turned off or when a prerequisite fails."
       >
         <Select
           disabled={disabled}
@@ -554,7 +554,7 @@ function OutcomeEditor({
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-3">
-        <span className="text-xs text-muted-foreground">serve</span>
+        <span className="text-xs text-muted-foreground">Serve</span>
         <div className="flex overflow-hidden rounded-md border border-border">
           <button
             type="button"
@@ -565,7 +565,7 @@ function OutcomeEditor({
               !isRollout ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
             )}
           >
-            one variation
+            Single variation
           </button>
           <button
             type="button"
@@ -576,7 +576,7 @@ function OutcomeEditor({
               isRollout ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
             )}
           >
-            a percentage rollout
+            Percentage rollout
           </button>
         </div>
       </div>
@@ -621,8 +621,7 @@ function OutcomeEditor({
           })}
           <div className="flex items-center justify-between text-[11px]">
             <span className="text-muted-foreground">
-              Bucketed by context key against this environment's salt — the same user keeps the same
-              arm across reloads and services.
+              Users are consistently bucketed by context key so each user reliably receives the same variation across sessions.
             </span>
             <span className={cn("font-mono", total === 100_000 ? "text-emerald-500" : "text-destructive")}>
               {toPercent(total).toFixed(1)}% total
@@ -728,8 +727,7 @@ export function MissingSegmentWarning({ keys }: { keys: string[] }) {
     <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-500 dark:text-amber-400">
       <Users className="mt-px size-3.5 shrink-0" />
       <span>
-        {keys.join(", ")} {keys.length === 1 ? "is" : "are"} referenced here but no longer exist. A
-        rule naming a missing segment fails closed — it will never match.
+        The segment {keys.map((k) => `"${k}"`).join(", ")} {keys.length === 1 ? "is" : "are"} referenced in this rule but no longer exists. This rule condition will not match any users until updated.
       </span>
     </div>
   );

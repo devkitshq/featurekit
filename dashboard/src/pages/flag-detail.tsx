@@ -201,8 +201,7 @@ export function FlagDetailPage() {
     >
       {currentEnvironment?.isProduction === true ? (
         <InfoNote>
-          <strong className="text-foreground">Production.</strong> A save here reaches every connected SDK
-          in under a second.
+          <strong className="text-foreground">Production environment:</strong> Saved changes are broadcasted immediately to all connected SDKs.
         </InfoNote>
       ) : null}
 
@@ -230,13 +229,13 @@ export function FlagDetailPage() {
             <span className="text-xs text-muted-foreground">
               {dirty ? (
                 <>
-                  Unsaved changes. Saving writes version{" "}
+                  You have unsaved changes. Saving will increment this flag to version{" "}
                   <span className="font-mono font-semibold text-foreground">{live.version + 1}</span>.
                 </>
               ) : (
                 <>
-                  Saved. Version <span className="font-mono">{live.version}</span>, changed{" "}
-                  {relativeTime(live.version === 1 ? null : undefined)}
+                  All changes saved. Current version: <span className="font-mono font-medium text-foreground">{live.version}</span>{" "}
+                  ({relativeTime(live.version === 1 ? null : undefined)}).
                 </>
               )}
             </span>
@@ -257,7 +256,7 @@ export function FlagDetailPage() {
                 onClick={() => setPreviewing(true)}
               >
                 <FlaskConical className="size-3.5" />
-                Preview
+                Preview impact
               </Button>
               <Button
                 variant="secondary"
@@ -276,7 +275,7 @@ export function FlagDetailPage() {
                 onClick={() => void save.run()}
               >
                 <Save className="size-3.5" />
-                Save
+                Save changes
               </Button>
             </div>
           </div>
@@ -291,23 +290,26 @@ export function FlagDetailPage() {
       <ConfirmDialog
         open={killing}
         onClose={() => setKilling(false)}
-        title={`Turn off ${flag.key}?`}
-        confirmLabel="Turn it off"
+        title={`Turn off flag "${flag.key}"?`}
+        confirmLabel="Turn off flag"
         body={
           <>
             <p>
-              Everyone in <strong className="text-foreground font-semibold">{environment}</strong> serves{" "}
+              This will immediately serve the off variation (
               <strong className="text-foreground font-semibold">
                 {variationLabel(flag.variations[live.offVariation ?? 0], flag.kind)}
-              </strong>{" "}
-              immediately. Targeting is kept.
+              </strong>
+              ) to all users in <strong className="text-foreground font-semibold">{environment}</strong>.
+            </p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Targeting rules and configuration are preserved.
             </p>
           </>
         }
         onConfirm={async () => {
           try {
             await A.killSwitch(project, environment, flag.key);
-            toast.push("ok", `${flag.key} is off`);
+            toast.push("ok", `${flag.key} turned off`);
           } catch (error) {
             toast.push("error", error instanceof Error ? error.message : String(error));
           }
@@ -348,7 +350,7 @@ function VariationsCard({ flag }: { flag: import("../lib/api").FlagDefinition })
   return (
     <Card
       title="Variations"
-      description="The values this flag can serve. Rules and rollouts reference them by position."
+      description="Available values for this flag. Rules and rollouts reference these variations by index."
     >
       <div className="grid gap-2 sm:grid-cols-2">
         {flag.variations.map((variation) => {
@@ -403,24 +405,22 @@ function ConflictDialog({
     <Dialog
       open={current !== null}
       onClose={onClose}
-      title="Somebody else changed this flag"
-      description="Your save was refused rather than overwriting their edit."
+      title="Configuration conflict detected"
+      description="Another team member updated this flag while you were making changes."
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
             Keep my draft
           </Button>
           <Button variant="primary" onClick={onReload}>
-            Load theirs
+            Load latest changes
           </Button>
         </>
       }
     >
       <p className="text-sm text-muted-foreground">
-        The flag is now at version{" "}
-        <span className="font-mono font-semibold text-foreground">{current?.version ?? "?"}</span>. Loading theirs
-        discards your unsaved changes; keeping yours lets you copy anything you need first — but
-        saving will still be refused until you reload.
+        The flag on the server is now at version{" "}
+        <span className="font-mono font-semibold text-foreground">{current?.version ?? "?"}</span>. You can load the latest changes (discarding local edits) or keep reviewing your current draft.
       </p>
       <pre className="max-h-64 overflow-auto rounded-md border border-border bg-background p-3 font-mono text-[11px] text-muted-foreground">
         {JSON.stringify(current, null, 2)}
@@ -535,33 +535,33 @@ function PreviewDialog({
       open={open}
       onClose={onClose}
       width="lg"
-      title={`Preview change: ${flagKey}`}
-      description="Compiles the proposed configuration in a transaction that is rolled back, then evaluates these contexts against both."
+      title={`Preview targeting impact: ${flagKey}`}
+      description="Simulate how your proposed targeting rules evaluate against sample user contexts before saving."
       footer={
         <>
           <Button variant="ghost" size="sm" onClick={onClose}>
             Close
           </Button>
           <Button variant="default" size="sm" loading={run.busy} onClick={() => void run.run()}>
-            Run preview
+            Run simulation
           </Button>
         </>
       }
     >
       <div>
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-xs font-medium text-muted-foreground">Test Contexts</span>
+          <span className="text-xs font-medium text-muted-foreground">Sample Evaluation Contexts</span>
           <button
             type="button"
             className="text-[11px] text-muted-foreground hover:text-foreground underline cursor-pointer"
             onClick={() => setRaw(generateSampleContexts(flagKey, draft))}
           >
-            Reset to flag rules
+            Generate sample contexts from rules
           </button>
         </div>
         <Textarea rows={6} value={raw} onChange={(event) => setRaw(event.target.value)} />
         <span className="block mt-1 text-[11px] text-muted-foreground">
-          One JSON object per line. Auto-populated with attributes and targets from this flag.
+          One JSON object per line. Auto-populated with attributes and targets matching this flag's rules.
         </span>
       </div>
       {run.error !== null ? <ErrorNote>{run.error.message}</ErrorNote> : null}
@@ -571,20 +571,20 @@ function PreviewDialog({
         <div className="space-y-3">
           {result.warning !== undefined ? <ErrorNote>{result.warning}</ErrorNote> : null}
           <div className="grid grid-cols-3 gap-2 text-center">
-            <Stat label="evaluated" value={result.evaluated} />
-            <Stat label="move" value={result.changed} />
+            <Stat label="Evaluated" value={result.evaluated} />
+            <Stat label="Variation shifts" value={result.changed} />
             <Stat
-              label="churn"
+              label="Audience churn"
               value={result.churn === undefined ? "—" : `${Math.round(result.churn * 100)}%`}
             />
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
-            <Distribution title="Now" counts={result.before} flag={flag} />
-            <Distribution title="Proposed" counts={result.after} flag={flag} />
+            <Distribution title="Current distribution" counts={result.before} flag={flag} />
+            <Distribution title="Proposed distribution" counts={result.after} flag={flag} />
           </div>
           {result.examples.length > 0 ? (
             <div>
-              <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Who moves</p>
+              <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Affected Contexts</p>
               <ul className="divide-y divide-border rounded-md border border-border">
                 {result.examples.map((example, index) => (
                   <li key={index} className="flex items-center justify-between gap-2 px-2 py-1.5 text-xs">
@@ -631,7 +631,7 @@ function ScheduleDialog({
       toPatch(draft),
       new Date(when).toISOString(),
     );
-    toast.push("ok", "Scheduled");
+    toast.push("ok", "Change scheduled successfully");
     onClose();
     return result;
   });
@@ -640,8 +640,8 @@ function ScheduleDialog({
     <Dialog
       open={open}
       onClose={onClose}
-      title="Apply this change later"
-      description="Validated now, applied then. A change that fails validation at 3am on a Saturday is a change nobody is awake for."
+      title="Schedule targeting change"
+      description="Choose a future date and time for this configuration to be applied automatically."
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
@@ -653,12 +653,12 @@ function ScheduleDialog({
             disabled={when === ""}
             onClick={() => void create.run()}
           >
-            Schedule
+            Schedule change
           </Button>
         </>
       }
     >
-      <Field label="When">
+      <Field label="Execution time">
         <Input type="datetime-local" value={when} onChange={(event) => setWhen(event.target.value)} />
       </Field>
       {create.error !== null ? <ErrorNote>{create.error.message}</ErrorNote> : null}
@@ -676,13 +676,13 @@ function ScheduleTab({ flagKey }: { flagKey: string }) {
   const rows = scheduled.data?.scheduled ?? [];
 
   return (
-    <Card title="Scheduled changes" description="Pending changes for this flag in this environment">
+    <Card title="Scheduled changes" description="Upcoming automated updates for this flag in this environment">
       {scheduled.loading ? (
         <Spinner />
       ) : rows.length === 0 ? (
         <EmptyState
-          title="Nothing scheduled"
-          body="Edit targeting, then use Schedule instead of Save to apply it at a chosen time."
+          title="No scheduled changes"
+          body="You can schedule upcoming flag changes to take effect automatically at a specific time."
         />
       ) : (
         <ul className="divide-y divide-border">
@@ -706,10 +706,11 @@ function ScheduleTab({ flagKey }: { flagKey: string }) {
                   <Button
                     variant="ghost"
                     size="icon"
-                    aria-label="Cancel"
+                    aria-label="Cancel scheduled change"
+                    title="Cancel scheduled change"
                     onClick={() => {
                       void A.cancelSchedule(project, environment, flagKey, row.id)
-                        .then(() => toast.push("ok", "Cancelled"))
+                        .then(() => toast.push("ok", "Scheduled change cancelled"))
                         .catch((error: Error) => toast.push("error", error.message))
                         .finally(() => void scheduled.reload());
                     }}
@@ -740,12 +741,12 @@ function RequestsTab({ flagKey }: { flagKey: string }) {
   return (
     <Card
       title="Change requests"
-      description="Proposed changes awaiting a second pair of eyes. Approving applies them through the ordinary write path."
+      description="Peer review and approval requests for proposed flag updates."
     >
       {requests.loading ? (
         <Spinner />
       ) : rows.length === 0 ? (
-        <EmptyState title="No open requests" />
+        <EmptyState title="No pending change requests" body="Proposed flag changes awaiting review will appear here." />
       ) : (
         <ul className="space-y-3">
           {rows.map((row) => (
@@ -762,7 +763,7 @@ function RequestsTab({ flagKey }: { flagKey: string }) {
                       size="sm"
                       onClick={() => {
                         void A.rejectRequest(project, environment, flagKey, row.id)
-                          .then(() => toast.push("ok", "Rejected"))
+                          .then(() => toast.push("ok", "Request rejected"))
                           .catch((error: Error) => toast.push("error", error.message))
                           .finally(() => void requests.reload());
                       }}
@@ -811,12 +812,12 @@ function HistoryTab({ flagKey, onReverted }: { flagKey: string; onReverted: () =
   return (
     <Card
       title="History"
-      description="Every change to this flag, with the configuration before and after."
+      description="Complete audit log of all changes made to this flag."
     >
       {audit.loading ? (
         <Spinner />
       ) : entries.length === 0 ? (
-        <EmptyState title="No history yet" />
+        <EmptyState title="No history recorded yet" />
       ) : (
         <ul className="divide-y divide-border">
           {entries.map((entry) => (
@@ -837,7 +838,7 @@ function HistoryTab({ flagKey, onReverted }: { flagKey: string; onReverted: () =
                   variant="ghost"
                   size="sm"
                   onClick={() => setReverting(entry.id)}
-                  title="Restore the configuration as it was before this change"
+                  title="Restore this previous configuration"
                 >
                   <History className="size-3.5" />
                   Revert
@@ -852,19 +853,18 @@ function HistoryTab({ flagKey, onReverted }: { flagKey: string; onReverted: () =
         open={reverting !== null}
         onClose={() => setReverting(null)}
         title="Revert to this configuration?"
-        confirmLabel="Revert"
+        confirmLabel="Revert configuration"
         destructive={false}
         body={
           <p>
-            The configuration recorded <em>before</em> that change is written back through the
-            ordinary path — validated, version-checked and audited like any other edit.
+            The configuration prior to this change will be written back to the environment and recorded as a new audit revision.
           </p>
         }
         onConfirm={async () => {
           if (reverting === null) return;
           try {
             await A.revert(project, environment, flagKey, reverting);
-            toast.push("ok", "Reverted");
+            toast.push("ok", "Configuration reverted");
             onReverted();
           } catch (error) {
             toast.push("error", error instanceof Error ? error.message : String(error));
@@ -903,15 +903,15 @@ function MetricsTab({
 
   return (
     <Card
-      title="Evaluations, last 24 hours"
-      description="Summarised by the SDKs and rolled up here. The question it answers is whether anything still reads this flag."
+      title="Evaluations (last 24 hours)"
+      description="Real-time evaluation volume aggregate reported by connected SDKs."
     >
       {metrics.loading ? (
         <Spinner />
       ) : grand === 0 ? (
         <EmptyState
           title="No evaluations recorded"
-          body="Either nothing is reading this flag, or the SDKs have not flushed a summary yet."
+          body="No SDK evaluations have been reported for this flag over the last 24 hours."
         />
       ) : (
         <div className="space-y-2">
