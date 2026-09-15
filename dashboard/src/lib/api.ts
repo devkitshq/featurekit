@@ -303,6 +303,8 @@ export const A = {
   projects: () => api.get<{ projects: Project[] }>(`${admin}/projects`),
   createProject: (key: string, name: string) =>
     api.post<{ id: string; key: string }>(`${admin}/projects`, { key, name }),
+  deleteProject: (project: string) =>
+    api.delete<{ deleted: boolean }>(`${admin}/projects/${encProject(project)}`),
   environments: (project: string) =>
     api.get<{ environments: Environment[] }>(`${admin}/projects/${encProject(project)}/environments`),
   createEnvironment: (

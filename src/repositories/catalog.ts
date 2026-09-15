@@ -97,6 +97,17 @@ export async function findProject(
   return row ?? null;
 }
 
+export async function deleteProject(
+  db: Database,
+  projectKey: string,
+): Promise<{ deleted: boolean }> {
+  const result = await db
+    .delete(projects)
+    .where(eq(projects.key, projectKey))
+    .returning({ id: projects.id });
+  return { deleted: result.length > 0 };
+}
+
 /* ──────────────────────────── environments ──────────────────────────── */
 
 /**

@@ -94,4 +94,9 @@ describe("management URLs refuse an empty scope", () => {
     expect(requested).toContain("acme%2Fevil");
     expect(requested).toContain("prod%20uction");
   });
+
+  it("refuses to delete a project with empty scope", () => {
+    forbidFetch();
+    expect(() => A.deleteProject("")).toThrow(/project/);
+  });
 });

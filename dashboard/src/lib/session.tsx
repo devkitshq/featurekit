@@ -35,6 +35,7 @@ interface SessionValue {
   currentEnvironment: Environment | null;
 
   refresh: () => Promise<void>;
+  refreshProjects: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   can: (role: Principal["role"]) => boolean;
@@ -84,16 +85,27 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   /* projects and environments, once signed in */
 
-  useEffect(() => {
+  const loadProjects = useCallback(async () => {
     if (status !== "signed-in") return;
-    void (async () => {
+    try {
       const { projects: list } = await A.projects();
       setProjects(list);
       // A stored selection that no longer exists silently becomes the first
       // project, rather than a screen that says "no such project".
-      if (list.length > 0 && !list.some((p) => p.key === project)) setProject(list[0]!.key);
-    })();
-  }, [status, project, setProject]);
+      if (list.length > 0 && !list.some((p) => p.key === project)) {
+        setProject(list[0]!.key);
+      } else if (list.length === 0) {
+        setProject("");
+        setEnvironment("");
+      }
+    } catch {
+      setProjects([]);
+    }
+  }, [status, project, setProject, setEnvironment]);
+
+  useEffect(() => {
+    void loadProjects();
+  }, [loadProjects]);
 
   useEffect(() => {
     if (status !== "signed-in" || project === "") return;
@@ -129,6 +141,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setEnvironment,
       currentEnvironment: environments.find((e) => e.key === environment) ?? null,
       refresh: loadIdentity,
+      refreshProjects: loadProjects,
       signIn: async (email: string, password: string) => {
         const { member: signedIn } = await A.login(email, password);
         setMember(signedIn);
@@ -154,6 +167,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setProject,
       setEnvironment,
       loadIdentity,
+      loadProjects,
     ],
   );
 

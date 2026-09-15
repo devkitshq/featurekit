@@ -124,6 +124,7 @@ import {
   createProject,
   createSdkKey,
   createSegment,
+  deleteProject,
   findEnvironmentByKeys,
   findProject,
   findSegment,
@@ -553,6 +554,19 @@ export function registerAdminRoutes(router: Router, deps: AdminRouteDeps): Route
     withPrincipal("admin", async (ctx) => {
       const input = await body(ctx, createProjectSchema, BODY_LIMITS.adminWrite);
       return createProject(deps.db, input);
+    }),
+  );
+
+  router.delete(
+    "/v1/admin/projects/:project",
+    withPrincipal("admin", async (ctx, principal) => {
+      const project = await requireProject(ctx, deps);
+      if (principal.environmentIds !== null) {
+        throw new HttpError(403, "TOKEN_SCOPED", "an environment-scoped token cannot delete projects");
+      }
+      deps.tokens.invalidateAll();
+      await deleteProject(deps.db, project.key);
+      return { deleted: true };
     }),
   );
 

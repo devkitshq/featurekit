@@ -33,11 +33,12 @@ const ROLES: Role[] = ["reader", "writer", "admin", "owner"];
 
 export function SettingsPage() {
   return (
-    <Page title="Settings" description="Accounts, tokens, environments and health">
+    <Page title="Settings" description="Projects, environments, accounts, tokens and health">
       <div className="grid gap-4 lg:grid-cols-2">
+        <ProjectsCard />
+        <EnvironmentsCard />
         <MembersCard />
         <TokensCard />
-        <EnvironmentsCard />
         <PasswordCard />
       </div>
     </Page>
@@ -353,6 +354,156 @@ function TokensCard() {
       >
         <CopyableKey value={minted ?? ""} className="w-full" />
       </Dialog>
+    </Card>
+  );
+}
+
+/* ─────────────────────────────── projects ───────────────────────────── */
+
+function ProjectsCard() {
+  const { projects, project: activeProject, setProject, refreshProjects, can } = useSession();
+  const toast = useToast();
+  const [creating, setCreating] = useState(false);
+  const [deleting, setDeleting] = useState<{ id: string; key: string; name: string } | null>(null);
+  const [key, setKey] = useState("");
+  const [name, setName] = useState("");
+
+  const create = useAction(async () => {
+    const created = await A.createProject(
+      key.trim(),
+      name.trim() === "" ? key.trim() : name.trim(),
+    );
+    toast.push("ok", `${created.key} created`);
+    setKey("");
+    setName("");
+    setCreating(false);
+    await refreshProjects();
+    setProject(created.key);
+    return created;
+  });
+
+  return (
+    <Card
+      title="Projects"
+      description="Projects and workspaces in this deployment"
+      actions={
+        can("admin") ? (
+          <Button variant="secondary" size="sm" onClick={() => setCreating(true)}>
+            <Plus className="size-3.5" />
+            New
+          </Button>
+        ) : undefined
+      }
+    >
+      {projects.length === 0 ? (
+        <EmptyState title="No projects" body="Create a project to start managing flags." />
+      ) : (
+        <ul className="divide-y divide-border">
+          {projects.map((p) => {
+            const isActive = p.key === activeProject;
+            return (
+              <li key={p.id} className="flex items-center justify-between gap-3 py-2">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="truncate text-sm font-medium">{p.name}</span>
+                    <span className="font-mono text-[11px] text-faint">({p.key})</span>
+                    {isActive ? <Badge tone="neutral">active</Badge> : null}
+                  </div>
+                  <p className="text-[11px] text-faint">
+                    {p.environments.length === 1
+                      ? "1 environment"
+                      : `${p.environments.length} environments`}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  {!isActive ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setProject(p.key)}
+                      className="text-xs"
+                    >
+                      Switch
+                    </Button>
+                  ) : null}
+                  {can("admin") ? (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`Delete project ${p.key}`}
+                      className="hover:text-danger"
+                      onClick={() => setDeleting(p)}
+                    >
+                      <Trash2 className="size-3.5" />
+                    </Button>
+                  ) : null}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      <Dialog
+        open={creating}
+        onClose={() => setCreating(false)}
+        title="New project"
+        description="A project groups environments, flags, and segments together."
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setCreating(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              loading={create.busy}
+              disabled={key.trim() === ""}
+              onClick={() => void create.run()}
+            >
+              Create
+            </Button>
+          </>
+        }
+      >
+        <Field label="Key" hint="Unique slug, e.g. web-app or billing">
+          <Input
+            value={key}
+            onChange={(event) => setKey(event.target.value)}
+            placeholder="web-app"
+          />
+        </Field>
+        <Field label="Name" hint="Human-readable project name">
+          <Input
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="Web App"
+          />
+        </Field>
+        {create.error !== null ? <ErrorNote>{create.error.message}</ErrorNote> : null}
+      </Dialog>
+
+      <ConfirmDialog
+        open={deleting !== null}
+        onClose={() => setDeleting(null)}
+        title={`Delete project "${deleting?.name ?? ""}" (${deleting?.key ?? ""})?`}
+        confirmLabel="Delete project"
+        body={
+          <p>
+            This will permanently delete this project and all its flags, environments, targeting
+            rules, segments, and SDK keys. This action cannot be undone.
+          </p>
+        }
+        onConfirm={async () => {
+          if (deleting === null) return;
+          try {
+            await A.deleteProject(deleting.key);
+            toast.push("ok", `Project ${deleting.key} deleted`);
+          } catch (error) {
+            toast.push("error", error instanceof Error ? error.message : String(error));
+          }
+          await refreshProjects();
+        }}
+      />
     </Card>
   );
 }

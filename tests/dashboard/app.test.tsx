@@ -192,4 +192,27 @@ describe("dashboard shell", () => {
     expect(mutation?.headers["x-featurekit-csrf"]).toBe("1");
     expect(read?.headers["x-featurekit-csrf"]).toBeUndefined();
   });
+
+  it("creates and deletes projects via API client with CSRF", async () => {
+    vi.stubGlobal(
+      "fetch",
+      stubApi({
+        "/auth/me": OWNER,
+        "/admin/projects/acme/environments": { environments: [] },
+        "/admin/projects/acme": { deleted: true },
+        "/admin/projects": { projects: [{ id: "p1", key: "acme", name: "Acme", environments: [] }] },
+        "/recent": { flags: [] },
+        "/health": { status: "ok", version: "test", checks: {} },
+      }),
+    );
+
+    const { A } = await import("../../dashboard/src/lib/api");
+    await A.createProject("new-proj", "New Proj");
+    const createCall = calls.findLast((call) => call.method === "POST" && call.url.includes("/admin/projects"));
+    expect(createCall?.headers["x-featurekit-csrf"]).toBe("1");
+
+    await A.deleteProject("acme");
+    const deleteCall = calls.findLast((call) => call.method === "DELETE" && call.url.includes("/admin/projects/acme"));
+    expect(deleteCall?.headers["x-featurekit-csrf"]).toBe("1");
+  });
 });

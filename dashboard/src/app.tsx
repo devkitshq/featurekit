@@ -12,6 +12,7 @@
  *    requests that were never going to work.
  */
 
+import { useState } from "react";
 import { Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom";
 import {
   Activity,
@@ -20,12 +21,25 @@ import {
   History,
   KeyRound,
   LogOut,
+  Plus,
   Settings,
   Users,
 } from "lucide-react";
 import { useSession } from "./lib/session";
+import { useAction } from "./lib/hooks";
+import { A } from "./lib/api";
 import { cn, environmentTint } from "./lib/utils";
-import { Badge, Button, Select, Spinner } from "./components/ui";
+import {
+  Badge,
+  Button,
+  Dialog,
+  ErrorNote,
+  Field,
+  Input,
+  Select,
+  Spinner,
+  useToast,
+} from "./components/ui";
 import { LoginPage } from "./pages/login";
 import { OverviewPage } from "./pages/overview";
 import { FlagsPage } from "./pages/flags";
@@ -79,8 +93,27 @@ export function App() {
 function Sidebar() {
   const session = useSession();
   const location = useLocation();
+  const toast = useToast();
   const environment = session.currentEnvironment;
   const tint = environment === null ? null : environmentTint(environment.key, environment.color);
+
+  const [creatingProject, setCreatingProject] = useState(false);
+  const [newProjectKey, setNewProjectKey] = useState("");
+  const [newProjectName, setNewProjectName] = useState("");
+
+  const createProject = useAction(async () => {
+    const created = await A.createProject(
+      newProjectKey.trim(),
+      newProjectName.trim() === "" ? newProjectKey.trim() : newProjectName.trim(),
+    );
+    toast.push("ok", `${created.key} created`);
+    setNewProjectKey("");
+    setNewProjectName("");
+    setCreatingProject(false);
+    await session.refreshProjects();
+    session.setProject(created.key);
+    return created;
+  });
 
   return (
     <aside className="flex w-60 shrink-0 flex-col border-r border-border bg-surface">
@@ -100,6 +133,19 @@ function Sidebar() {
             value: project.key,
             label: project.name,
           }))}
+          action={
+            session.can("admin") ? (
+              <button
+                type="button"
+                aria-label="New project"
+                className="flex items-center gap-0.5 text-[10px] text-faint hover:text-ink transition"
+                onClick={() => setCreatingProject(true)}
+              >
+                <Plus className="size-3" />
+                <span>New</span>
+              </button>
+            ) : undefined
+          }
         />
         <div className="relative">
           <Switcher
@@ -164,6 +210,44 @@ function Sidebar() {
           Sign out
         </Button>
       </div>
+
+      <Dialog
+        open={creatingProject}
+        onClose={() => setCreatingProject(false)}
+        title="New project"
+        description="A project groups environments, flags, and segments together."
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setCreatingProject(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              loading={createProject.busy}
+              disabled={newProjectKey.trim() === ""}
+              onClick={() => void createProject.run()}
+            >
+              Create project
+            </Button>
+          </>
+        }
+      >
+        <Field label="Key" hint="Unique slug, e.g. web-app or billing">
+          <Input
+            value={newProjectKey}
+            onChange={(event) => setNewProjectKey(event.target.value)}
+            placeholder="web-app"
+          />
+        </Field>
+        <Field label="Name" hint="Human-readable project name">
+          <Input
+            value={newProjectName}
+            onChange={(event) => setNewProjectName(event.target.value)}
+            placeholder="Web App"
+          />
+        </Field>
+        {createProject.error !== null ? <ErrorNote>{createProject.error.message}</ErrorNote> : null}
+      </Dialog>
     </aside>
   );
 }
@@ -173,15 +257,20 @@ function Switcher({
   value,
   onChange,
   options,
+  action,
 }: {
   label: string;
   value: string;
   onChange: (next: string) => void;
   options: Array<{ value: string; label: string }>;
+  action?: React.ReactNode;
 }) {
   return (
     <div>
-      <span className="mb-1 block text-[10px] uppercase tracking-wide text-faint">{label}</span>
+      <div className="mb-1 flex items-center justify-between">
+        <span className="text-[10px] uppercase tracking-wide text-faint">{label}</span>
+        {action}
+      </div>
       <div className="relative">
         <Select
           value={value}
