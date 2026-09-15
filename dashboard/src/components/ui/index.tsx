@@ -250,18 +250,20 @@ export function Dialog({
 
   return (
     <ShadcnDialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent className={cn("gap-0 p-0 overflow-hidden", widths[width])}>
-        <DialogHeader className="border-b border-border/70 px-5 py-4 bg-muted/20">
-          <DialogTitle className="text-sm font-semibold">{title}</DialogTitle>
-          {description !== undefined ? (
-            <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-              {description}
-            </DialogDescription>
-          ) : null}
-        </DialogHeader>
-        {children !== undefined ? <div className="p-5 space-y-3.5">{children}</div> : null}
+      <DialogContent className={cn("p-6 gap-4", widths[width])}>
+        {title !== undefined || description !== undefined ? (
+          <DialogHeader className="gap-1">
+            {title !== undefined ? <DialogTitle className="text-base font-semibold text-foreground">{title}</DialogTitle> : null}
+            {description !== undefined ? (
+              <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+                {description}
+              </DialogDescription>
+            ) : null}
+          </DialogHeader>
+        ) : null}
+        {children !== undefined ? <div className="space-y-3.5 py-1">{children}</div> : null}
         {footer !== undefined ? (
-          <DialogFooter className="border-t border-border/70 px-5 py-3 bg-muted/20 flex items-center justify-end gap-2">
+          <DialogFooter className="pt-4 border-t border-border flex items-center justify-end gap-2">
             {footer}
           </DialogFooter>
         ) : null}
