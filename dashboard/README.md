@@ -9,9 +9,6 @@ npm run demo             # the control plane on :3000, the example app on :4000
 open http://127.0.0.1:3000/admin      # you@example.com / password12345
 ```
 
-`PLAN.md` in this directory is the scope and the reasoning; this is how to run
-and change it.
-
 ## Signing in
 
 The first account comes from one of three places, in this order:

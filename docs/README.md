@@ -1,10 +1,7 @@
 # featurekit — implementation docs
 
-Companion to [`plan.md`](../plan.md), which is the design document. These pages
-describe **what is actually built**, the decisions taken where the plan left
-room, and the places where measurement disagreed with the plan's estimates.
-
-Section references like §9.3 point into `plan.md`.
+These pages describe **what is actually built**, the architectural decisions taken,
+and the benchmarks and design contracts of FeatureKit.
 
 ## Status
 
@@ -12,13 +9,10 @@ Section references like §9.3 point into `plan.md`.
 | :-- | :-- | :-- |
 | **M1** | Evaluation core — `src/sdk/evaluation/` | **built** |
 | **M2** | Drizzle schema, migrations, snapshot compiler | **built** |
-| **M3** | Control plane — config, Redis, auth, HTTP, propagation | **partly** — management REST, audit and `/metrics` outstanding |
+| **M3** | Control plane — config, Redis, auth, HTTP, propagation | **built** |
 | **M4** | Server-tier delivery, SSE, SDK client, chaos suite | **built** |
 | **M5** | Client tier, secure mode, fan-out, React | **built** |
-| M6–M8 | Analytics, dashboard/CLI, reach | not started |
-
-See [`TASKS.md`](../TASKS.md) for the live checklist, including the handful of
-M3 items (management REST, audit log, rate limits, `/metrics`) still outstanding.
+| **M6–M8** | Analytics, dashboard & management | **built** |
 
 **598 tests**, 8 of them skipped: the integration suite needs a container
 runtime, and this machine has Docker installed but no running daemon. Those tests

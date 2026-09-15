@@ -335,7 +335,7 @@ concurrent requests will serve one user's flags to another. See
 
 ## 20. Still outstanding
 
-Honest list, mirrored in `TASKS.md`:
+Summary of remaining items:
 
 - **Management REST (§12), PAT auth, the audit log, and one-click revert.** The
   schema is in place (`audit_log`, `change_requests`, `scheduled_changes`); the
