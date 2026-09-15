@@ -15,12 +15,12 @@ export function cn(...inputs: ClassValue[]): string {
  */
 export function variationLabel(variation: Variation | undefined, kind?: FlagKind): string {
   if (variation === undefined) return "—";
-  if (variation.name !== null && variation.name.length > 0) return variation.name;
+  if (typeof variation.name === "string" && variation.name.trim().length > 0) return variation.name;
   return valueLabel(variation.value, kind);
 }
 
 export function valueLabel(value: unknown, kind?: FlagKind): string {
-  if (value === null) return "null";
+  if (value === null || value === undefined) return "null";
   if (typeof value === "boolean") return value ? "true" : "false";
   if (typeof value === "number") return String(value);
   if (typeof value === "string") return value.length === 0 ? '""' : value;
