@@ -411,9 +411,68 @@ function ConflictDialog({
 
 /* ─────────────────────────── dry-run preview ────────────────────────── */
 
-const SAMPLE_CONTEXTS = `{ "key": "user-1", "plan": "free" }
-{ "key": "user-2", "plan": "pro" }
-{ "key": "user-3", "plan": "enterprise" }`;
+function generateSampleContexts(flagKey: string, draft: TargetingValue): string {
+  const contexts: Record<string, unknown>[] = [];
+  const addedKeys = new Set<string>();
+
+  // 1. Add targeted keys from draft.targets if any
+  for (const target of draft.targets ?? []) {
+    for (const key of target.keys ?? []) {
+      if (!addedKeys.has(key)) {
+        addedKeys.add(key);
+        contexts.push({ key });
+      }
+    }
+  }
+
+  // 2. Generate contexts tailored to match and challenge each rule's clauses
+  (draft.rules ?? []).forEach((rule, ruleIdx) => {
+    const matchingCtx: Record<string, unknown> = {
+      key: `user-${ruleIdx + 1}-match`,
+    };
+    const nonMatchingCtx: Record<string, unknown> = {
+      key: `user-${ruleIdx + 1}-fallback`,
+    };
+
+    for (const clause of rule.clauses ?? []) {
+      const attr = clause.attribute;
+      if (!attr) continue;
+
+      if (clause.op === "in" || clause.op === "startsWith" || clause.op === "contains" || clause.op === "endsWith") {
+        const val = clause.values?.[0] ?? "test-value";
+        matchingCtx[attr] = val;
+        nonMatchingCtx[attr] = typeof val === "string" ? `other-${val}` : val === true ? false : 99999;
+      } else if (clause.op === "lessThan" || clause.op === "lessThanOrEqual") {
+        const num = Number(clause.values?.[0] ?? 100);
+        matchingCtx[attr] = num - 1;
+        nonMatchingCtx[attr] = num + 10;
+      } else if (clause.op === "greaterThan" || clause.op === "greaterThanOrEqual") {
+        const num = Number(clause.values?.[0] ?? 100);
+        matchingCtx[attr] = num + 10;
+        nonMatchingCtx[attr] = num - 1;
+      } else if (clause.op === "segmentMatch") {
+        matchingCtx[attr] = "segment-member";
+        nonMatchingCtx[attr] = "non-member";
+      } else {
+        matchingCtx[attr] = clause.values?.[0] ?? "active";
+        nonMatchingCtx[attr] = "inactive";
+      }
+    }
+
+    contexts.push(matchingCtx);
+    contexts.push(nonMatchingCtx);
+  });
+
+  // 3. Fallback generic contexts customized for this specific flag key if none or few
+  if (contexts.length < 3) {
+    const slug = flagKey.toLowerCase().replace(/[^a-z0-9_-]/g, "-");
+    contexts.push({ key: `${slug}-usr-1`, tier: "free", country: "US" });
+    contexts.push({ key: `${slug}-usr-2`, tier: "pro", country: "CA" });
+    contexts.push({ key: `${slug}-usr-3`, tier: "enterprise", country: "EU" });
+  }
+
+  return contexts.map((c) => JSON.stringify(c)).join("\n");
+}
 
 function PreviewDialog({
   open,
@@ -429,8 +488,17 @@ function PreviewDialog({
   draft: TargetingValue;
 }) {
   const { project, environment } = useSession();
-  const [raw, setRaw] = useState(SAMPLE_CONTEXTS);
+  const [raw, setRaw] = useState(() => generateSampleContexts(flagKey, draft));
   const [result, setResult] = useState<DryRunResult | null>(null);
+
+  // Re-generate default sample contexts whenever opening a different flag or draft
+  useEffect(() => {
+    if (open) {
+      setRaw(generateSampleContexts(flagKey, draft));
+      setResult(null);
+    }
+  }, [open, flagKey, draft]);
+
   const run = useAction(async () => {
     const contexts = raw
       .split("\n")
@@ -447,22 +515,35 @@ function PreviewDialog({
       open={open}
       onClose={onClose}
       width="lg"
-      title="Preview this change"
+      title={`Preview change: ${flagKey}`}
       description="Compiles the proposed configuration in a transaction that is rolled back, then evaluates these contexts against both."
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" size="sm" onClick={onClose}>
             Close
           </Button>
-          <Button variant="primary" loading={run.busy} onClick={() => void run.run()}>
+          <Button variant="default" size="sm" loading={run.busy} onClick={() => void run.run()}>
             Run preview
           </Button>
         </>
       }
     >
-      <Field label="Contexts" hint="One JSON object per line — real ones, ideally.">
-        <Textarea rows={5} value={raw} onChange={(event) => setRaw(event.target.value)} />
-      </Field>
+      <div>
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-xs font-medium text-muted-foreground">Test Contexts</span>
+          <button
+            type="button"
+            className="text-[11px] text-muted-foreground hover:text-foreground underline cursor-pointer"
+            onClick={() => setRaw(generateSampleContexts(flagKey, draft))}
+          >
+            Reset to flag rules
+          </button>
+        </div>
+        <Textarea rows={6} value={raw} onChange={(event) => setRaw(event.target.value)} />
+        <span className="block mt-1 text-[11px] text-muted-foreground">
+          One JSON object per line. Auto-populated with attributes and targets from this flag.
+        </span>
+      </div>
       {run.error !== null ? <ErrorNote>{run.error.message}</ErrorNote> : null}
       {run.busy ? <Spinner /> : null}
 
