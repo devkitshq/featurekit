@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { FeatkitClient } from "featkit-client";
+import { FeatkitClient } from "@featkit/client";
 import { Router } from "../../src/http/router.js";
 import { HttpServer } from "../../src/http/server.js";
 import { MemorySnapshotStore } from "../../src/redis/memory-store.js";

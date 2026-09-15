@@ -19,7 +19,7 @@
 
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 import { fetch as expoFetch } from "expo/fetch";
-import { FeatkitClient, type EvaluationContextLike } from "featkit-client";
+import { FeatkitClient, type EvaluationContextLike } from "@featkit/client";
 
 /** Falls back to the platform fetch: values still arrive, just not streamed. */
 export const streamingFetch: typeof fetch =

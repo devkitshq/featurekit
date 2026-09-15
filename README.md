@@ -8,13 +8,13 @@ if (flags.get("new-checkout", false)) {
 }
 ```
 
-Two packages. `featkit` is the server side — the control plane, and an
-evaluator that holds the ruleset in memory. `featkit-client` is one client
+Two packages. `@featkit/server` is the server side — the control plane, and an
+evaluator that holds the ruleset in memory. `@featkit/client` is one client
 for everything else, with no framework bindings and no per-runtime build.
 
 ```bash
-npm i featkit          # runs the control plane; evaluates server-side
-npm i featkit-client   # browsers, React Native, Node, Deno, Bun, edge
+npm i @featkit/server  # runs the control plane; evaluates server-side
+npm i @featkit/client  # browsers, React Native, Node, Deno, Bun, edge
 ```
 
 Not writing JavaScript? Skip both and implement
@@ -52,12 +52,12 @@ service you rent.
 ```bash
 mkdir acme-flags && cd acme-flags
 npm init -y && npm pkg set type=module
-npm i featkit
+npm i @featkit/server
 ```
 
 ```js
 // server.js
-import { FeatkitServer } from "featkit";
+import { FeatkitServer } from "@featkit/server";
 
 const server = new FeatkitServer({
   services: ["all"],
@@ -192,7 +192,7 @@ queue behind it, during a deploy, while traffic is shifting.
 
 ```js
 // migrate.js — a deploy job, run once
-import { migrate } from "featkit/migrate";
+import { migrate } from "@featkit/server/migrate";
 await migrate();
 ```
 
@@ -203,7 +203,7 @@ node migrate.js && kubectl rollout restart deploy/acme-flags
 Or without a file at all:
 
 ```bash
-node -e 'import("featkit/migrate").then(m => m.migrate())'
+node -e 'import("@featkit/server/migrate").then(m => m.migrate())'
 ```
 
 `migrate()` reads `DATABASE_URL`, or takes `{ databaseUrl }`. It refuses to
@@ -217,7 +217,7 @@ part of the same step, since a deploy that leaves the analytics table without
 partitions has not finished, it has just not failed yet.
 
 ```js
-import { migrationStatus } from "featkit/migrate";
+import { migrationStatus } from "@featkit/server/migrate";
 
 const { applied, partitionRunwayDays } = await migrationStatus();
 ```
@@ -260,7 +260,7 @@ new FeatkitServer({ services: ["rollup", "scheduler"] }); // keep it small
 ```
 
 Or set `FEATKIT_SERVICES=api,stream` and run the packaged entrypoint,
-`node node_modules/featkit/dist/main.js`, if you would rather configure by
+`node node_modules/@featkit/server/dist/main.js`, if you would rather configure by
 environment than by file.
 
 ### Your first key
@@ -286,7 +286,7 @@ new FeatkitServer({
 ## Using it: server side
 
 ```ts
-import { FeatkitSDK } from "featkit";
+import { FeatkitSDK } from "@featkit/server";
 
 const flags = new FeatkitSDK({
   sdkKey: process.env.FEATKIT_SDK_KEY!,
@@ -313,7 +313,7 @@ during an outage, and `if (undefined)` is a wrong answer that looks like a right
 one. Requiring it forces every call site to say what happens when featkit is
 unavailable — the one decision a flag SDK must not make for you.
 
-The one difference from `featkit-client` is the **context per call**. This
+The one difference from `@featkit/client` is the **context per call**. This
 SDK holds the ruleset, so a single instance answers for every identity your
 process serves; nothing is held per user, and there is no round trip. The client
 takes no context because the connection is the context, and holds one identity
@@ -322,7 +322,7 @@ at a time.
 ## Using it: everywhere else
 
 ```ts
-import { FeatkitClient } from "featkit-client";
+import { FeatkitClient } from "@featkit/client";
 
 export const flags = new FeatkitClient({
   clientKey: PUBLIC_CLIENT_KEY,
@@ -395,7 +395,7 @@ identity it is handed. Your backend mints the signature where the session is
 already trusted:
 
 ```ts
-import { signContext, contextHash } from "featkit/secure-mode";
+import { signContext, contextHash } from "@featkit/server/secure-mode";
 
 app.get("/api/featkit-signature", requireSession, (req, res) => {
   const context = { key: req.user.id, plan: req.user.plan };

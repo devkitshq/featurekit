@@ -83,9 +83,13 @@ function resolveBrowserSdk(): string | null {
   try {
     const req = createRequire(import.meta.url);
     try {
-      return req.resolve("featkit-client");
+      return req.resolve("@featkit/client");
     } catch {
-      return req.resolve("featurekit-client");
+      try {
+        return req.resolve("featkit-client");
+      } catch {
+        return req.resolve("featurekit-client");
+      }
     }
   } catch {
     return null;

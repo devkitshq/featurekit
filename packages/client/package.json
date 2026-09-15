@@ -1,5 +1,5 @@
 {
-  "name": "featkit-client",
+  "name": "@featkit/client",
   "version": "0.1.0",
   "description": "featkit client-tier SDK — evaluated values, never the ruleset. One client, any JavaScript runtime.",
   "license": "MIT",
@@ -14,7 +14,8 @@
   },
   "files": [
     "dist",
-    "!dist/**/*.map"
+    "!dist/**/*.map",
+    "README.md"
   ],
   "scripts": {
     "build": "tsc -b"
