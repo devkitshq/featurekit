@@ -106,7 +106,7 @@ describe.skipIf(reason !== null)("featkit/migrate", () => {
     // output — points nowhere near the cause.
     const held = await db.execute(
       sql`select count(*)::int as count from pg_locks
-          where locktype = 'advisory' and ((classid::bigint << 32) | objid::bigint) = ${MIGRATION_LOCK}`,
+          where locktype = 'advisory' and ((classid::bigint << 32) | objid::bigint) = ${MIGRATION_LOCK}::bigint`,
     );
     expect((held as unknown as Array<{ count: number }>)[0]?.count).toBe(0);
   });

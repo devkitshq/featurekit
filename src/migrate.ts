@@ -98,7 +98,7 @@ export async function migrate(options: MigrateOptions = {}): Promise<void> {
   try {
     // Advisory locks live for the session, so this is released when the
     // connection closes — including if the process is killed mid-migration.
-    await db.execute(sql`select pg_advisory_lock(${MIGRATION_LOCK})`);
+    await db.execute(sql`select pg_advisory_lock(${MIGRATION_LOCK}::bigint)`);
     try {
       await runMigrations(db, options.migrationsFolder ?? join(PACKAGE_ROOT, "drizzle"));
       const premake = options.partitionPremakeDays ?? DEFAULT_PARTITION_PREMAKE_DAYS;
@@ -109,7 +109,7 @@ export async function migrate(options: MigrateOptions = {}): Promise<void> {
       }
       log("migrations applied");
     } finally {
-      await db.execute(sql`select pg_advisory_unlock(${MIGRATION_LOCK})`);
+      await db.execute(sql`select pg_advisory_unlock(${MIGRATION_LOCK}::bigint)`);
     }
   } finally {
     await close();
