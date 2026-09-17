@@ -1,6 +1,6 @@
 {
   "name": "@featkit/client",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "featkit client-tier SDK — evaluated values, never the ruleset. One client, any JavaScript runtime.",
   "license": "MIT",
   "type": "module",

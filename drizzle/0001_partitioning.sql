@@ -85,30 +85,39 @@ ALTER TABLE "change_requests"
 DO $$
 BEGIN
 	IF EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'pg_partman') THEN
-		CREATE EXTENSION IF NOT EXISTS pg_partman;
+		BEGIN
+			CREATE SCHEMA IF NOT EXISTS partman;
+			CREATE EXTENSION IF NOT EXISTS pg_partman SCHEMA partman;
 
-		PERFORM partman.create_parent(
-			p_parent_table => 'public.evaluation_summaries',
-			p_control      => 'bucket_at',
-			p_interval     => '1 day',
-			p_premake      => 7
-		);
-
-		UPDATE partman.part_config
-		   SET retention               = '90 days',
-		       retention_keep_table    = false,
-		       infinite_time_partitions = true
-		 WHERE parent_table = 'public.evaluation_summaries';
-
-		IF EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'pg_cron') THEN
-			CREATE EXTENSION IF NOT EXISTS pg_cron;
-			PERFORM cron.schedule(
-				'partman-maintenance', '@hourly', $cron$CALL partman.run_maintenance_proc()$cron$
+			PERFORM partman.create_parent(
+				p_parent_table => 'public.evaluation_summaries',
+				p_control      => 'bucket_at',
+				p_interval     => '1 day',
+				p_premake      => 7
 			);
-		ELSE
-			RAISE WARNING
-				'featkit: pg_partman installed but pg_cron is not. Partition maintenance must be driven by an external scheduler calling partman.run_maintenance_proc().';
-		END IF;
+
+			UPDATE partman.part_config
+			   SET retention                = '90 days',
+			       retention_keep_table     = false,
+			       infinite_time_partitions = true
+			 WHERE parent_table = 'public.evaluation_summaries';
+
+			IF EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'pg_cron') THEN
+				BEGIN
+					CREATE EXTENSION IF NOT EXISTS pg_cron;
+					PERFORM cron.schedule(
+						'partman-maintenance', '@hourly', $cron$CALL partman.run_maintenance_proc()$cron$
+					);
+				EXCEPTION WHEN OTHERS THEN
+					RAISE WARNING 'featkit: pg_cron could not be enabled in this database (%). Relying on external scheduler or featkit_ensure_partitions().', SQLERRM;
+				END;
+			ELSE
+				RAISE WARNING
+					'featkit: pg_partman installed but pg_cron is not. Schedule partman.run_maintenance_proc() externally.';
+			END IF;
+		EXCEPTION WHEN OTHERS THEN
+			RAISE WARNING 'featkit: pg_partman could not be configured (%). Falling back to featkit_ensure_partitions().', SQLERRM;
+		END;
 	ELSE
 		-- Fallback for managed Postgres with a locked extension allow-list.
 		-- The rule is unchanged and is the actual decision: TABLE LIFECYCLE
