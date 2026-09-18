@@ -800,6 +800,8 @@ export async function listAudit(
     actorEmail: string | null;
     createdAt: Date;
     comment: string | null;
+    before?: unknown;
+    after?: unknown;
   }>
 > {
   const limit = Math.min(options.limit ?? 50, 200);
@@ -808,7 +810,7 @@ export async function listAudit(
       ? eq(auditLog.projectId, projectId)
       : and(eq(auditLog.projectId, projectId), eq(auditLog.entityKey, options.entityKey));
 
-  return db
+  const rows = await db
     .select({
       id: auditLog.id,
       action: auditLog.action,
@@ -820,6 +822,7 @@ export async function listAudit(
       actorEmail: members.email,
       createdAt: auditLog.createdAt,
       comment: auditLog.comment,
+      diff: auditLog.diff,
     })
     .from(auditLog)
     // Left join: a deleted member's history stays, it just loses its name.
@@ -828,6 +831,16 @@ export async function listAudit(
     .where(where)
     .orderBy(sql`${auditLog.createdAt} desc`)
     .limit(limit);
+
+  return rows.map((row) => {
+    const { diff, ...rest } = row;
+    const d = (diff as { before?: unknown; after?: unknown }) ?? {};
+    return {
+      ...rest,
+      before: d.before,
+      after: d.after,
+    };
+  });
 }
 
 /** One audit row's full diff, for revert. Project-scoped, so not an IDOR. */
