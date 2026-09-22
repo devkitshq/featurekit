@@ -1,9 +1,9 @@
-# Togglekit Examples
+# Featurekit Examples
 
-This directory contains clean, runnable examples demonstrating Togglekit across backend, web, and mobile.
+This directory contains clean, runnable examples demonstrating Featurekit across backend, web, and mobile.
 
 - **[`basic-example/`](./basic-example/)** — The complete end-to-end demo covering the **4 core flag types** (Toggle/Boolean, Text/String, Number, and JSON/Object) across:
-  - **`server/`** — Togglekit Control Plane server with swap API & automated provisioning.
+  - **`server/`** — Featurekit Control Plane server with swap API & automated provisioning.
   - **`website/`** — Real-time reactive web application with SSE live streaming.
   - **`expo-app/`** — React Native (Expo) mobile application with live flag push.
 

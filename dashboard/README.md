@@ -1,6 +1,6 @@
 # The dashboard
 
-Served by the control plane at **`/admin`**. If togglekit is up, the way to
+Served by the control plane at **`/admin`**. If featurekit is up, the way to
 turn a flag off is up.
 
 ```bash
@@ -15,7 +15,7 @@ The first account comes from one of three places, in this order:
 
 ```bash
 # 1. configuration, applied on start (how Docker and the demo get one)
-TOGGLEKIT_ADMIN_EMAIL=you@example.com TOGGLEKIT_ADMIN_PASSWORD='…' npm start
+FEATUREKIT_ADMIN_EMAIL=you@example.com FEATUREKIT_ADMIN_PASSWORD='…' npm start
 
 # 2. the CLI
 npm run admin:user -- create you@example.com --role owner
@@ -76,13 +76,13 @@ src/
 - **Destructive confirmations name their target** and say what breaks.
 - **Server keys are shown once.** Client keys are shown forever, because they
   are public by construction.
-- **Cookie-authenticated mutations carry `x-togglekit-csrf`.** A cross-site
+- **Cookie-authenticated mutations carry `x-featurekit-csrf`.** A cross-site
   form can send cookies; it cannot set a header without a preflight, and the
   admin routes carry no CORS headers, so the preflight fails.
 
 ## What it does not do
 
 Config-as-code stays the way flag *definitions* arrive from a repository
-(`npx togglekit sync`). The dashboard owns operational state — on/off,
+(`npx featurekit sync`). The dashboard owns operational state — on/off,
 targeting, rollout — which belongs to whoever is on call, not to the last person
 who merged.

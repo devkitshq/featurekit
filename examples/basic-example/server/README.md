@@ -1,6 +1,6 @@
-# Togglekit Basic Example Server
+# Featurekit Basic Example Server
 
-Runs the **Togglekit Control Plane** with 4 core flag types provisioned:
+Runs the **Featurekit Control Plane** with 4 core flag types provisioned:
 1. **Toggle (Boolean)**: `feature-toggle`
 2. **Text (String)**: `headline-text`
 3. **Number (Number)**: `discount-number`

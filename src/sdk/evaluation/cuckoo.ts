@@ -29,10 +29,10 @@ export const SLOTS_PER_BUCKET = 4;
 /** Standard. At alpha <= 0.8 with a correct construction it is never reached. */
 export const CUCKOO_MAX_KICKS = 500;
 
-/** `TKCF` + version + fpBits + bucketsLog2 + slots + seed(u32) + count(u32). */
+/** `FKCF` + version + fpBits + bucketsLog2 + slots + seed(u32) + count(u32). */
 export const CUCKOO_HEADER_BYTES = 16;
 
-const MAGIC = [0x54, 0x4b, 0x43, 0x46] as const; // "TKCF"
+const MAGIC = [0x46, 0x4b, 0x43, 0x46] as const; // "FKCF"
 const FORMAT_VERSION = 1;
 
 /** Derives the fingerprint hash from the index hash's seed. Frozen. */
@@ -270,7 +270,7 @@ export class CuckooFilter {
    * Serialise. Layout, frozen:
    *
    * ```
-   *  0..3   magic "TKCF"
+   *  0..3   magic "FKCF"
    *  4      format version (1)
    *  5      fingerprint bits (12 | 16)
    *  6      log2(bucketCount)
@@ -369,7 +369,7 @@ export class CuckooFilter {
 
 export interface CuckooBuildResult {
   filter: CuckooFilter;
-  /** Increments `togglekit_segment_filter_rebuild_total`. A rebuild loop that
+  /** Increments `featurekit_segment_filter_rebuild_total`. A rebuild loop that
    *  nobody can see is how a compile-time bug becomes a production incident. */
   rebuilds: number;
   rebuildReasons: ("seed_retry" | "table_growth")[];

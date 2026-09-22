@@ -1,6 +1,6 @@
 # CI (§21, §16).
 #
-# The load-bearing line in this file is `TOGGLEKIT_REQUIRE_CONTAINERS=1`.
+# The load-bearing line in this file is `FEATUREKIT_REQUIRE_CONTAINERS=1`.
 #
 # The integration and management-API suites skip when no container runtime is
 # reachable, so a laptop without a Docker daemon is not a broken checkout. That
@@ -34,7 +34,7 @@ jobs:
       - name: Unit tests (no containers)
         run: npm test
         env:
-          TOGGLEKIT_SKIP_CONTAINERS: "1"
+          FEATUREKIT_SKIP_CONTAINERS: "1"
 
   integration:
     name: integration (real Postgres + Redis)
@@ -51,7 +51,7 @@ jobs:
         # A skip here fails the job. See the header comment.
         run: npm test
         env:
-          TOGGLEKIT_REQUIRE_CONTAINERS: "1"
+          FEATUREKIT_REQUIRE_CONTAINERS: "1"
 
   conformance:
     name: cross-language conformance
@@ -91,7 +91,7 @@ jobs:
       - run: npm run build
       - name: Published package contents
         # Asserts both packages ship no source maps and no fixtures, that
-        # `togglekit-client` has zero runtime dependencies — it goes into every
+        # `featurekit-client` has zero runtime dependencies — it goes into every
         # browser bundle and every mobile binary — and that the evaluator in
         # `src/sdk/` never reaches into the control plane beside it. That last
         # one used to hold for free, when the evaluator was its own package; it

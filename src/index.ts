@@ -1,19 +1,19 @@
 /**
- * `togglekit` — the server-side package: the control plane, and the evaluator.
+ * `featurekit` — the server-side package: the control plane, and the evaluator.
  *
  * ```ts
- * import { TogglekitServer } from "togglekit";
+ * import { FeaturekitServer } from "featurekit";
  *
- * const server = new TogglekitServer({ services: ["all"], port: 3000 });
+ * const server = new FeaturekitServer({ services: ["all"], port: 3000 });
  * await server.start();
  * ```
  *
  * Two things live here because both are server-side and neither belongs in a
  * client bundle:
  *
- * - **`TogglekitServer`** — the control plane. Owns Postgres, Redis, the
+ * - **`FeaturekitServer`** — the control plane. Owns Postgres, Redis, the
  *   management API, the client tier and the dashboard.
- * - **`TogglekitSDK`** — the server-tier SDK. Holds the compiled ruleset in
+ * - **`FeaturekitSDK`** — the server-tier SDK. Holds the compiled ruleset in
  *   memory and evaluates any context synchronously, with no network call.
  *
  * The import boundary still runs between them: nothing under `src/sdk/` may
@@ -21,28 +21,28 @@
  * database. `tools/check-package.mjs` asserts it.
  *
  * Clients — browsers, mobile apps, and backends that would rather ask than
- * evaluate — use `togglekit-client`, which is never sent the ruleset.
+ * evaluate — use `featurekit-client`, which is never sent the ruleset.
  */
 
 export {
-  TogglekitServer,
+  FeaturekitServer,
 } from "./server.js";
 export type {
-  TogglekitServerOptions,
-  TogglekitAddress,
-  TogglekitService,
+  FeaturekitServerOptions,
+  FeaturekitAddress,
+  FeaturekitService,
 } from "./server.js";
 
 export { createApp } from "./app.js";
 export type { App, CreateAppOptions } from "./app.js";
 export { loadConfig, ConfigError, configSchema } from "./config/index.js";
-export type { TogglekitConfig } from "./config/index.js";
+export type { FeaturekitConfig } from "./config/index.js";
 
 export {
-  TogglekitSDK,
+  FeaturekitSDK,
 } from "./sdk/index.js";
 export type {
-  TogglekitSdkOptions,
+  FeaturekitSdkOptions,
   SdkState,
   Snapshot,
 } from "./sdk/index.js";
@@ -51,12 +51,12 @@ export type {
  * Secure mode, for a process that already imports the control plane.
  *
  * A backend whose only job is signing contexts should import
- * `togglekit/secure-mode` instead — same functions, without loading Drizzle,
+ * `featurekit/secure-mode` instead — same functions, without loading Drizzle,
  * Postgres, Redis and the rest at import time (§16).
  */
 /**
  * Migrations, for a process that already imports the control plane. A deploy
- * job should import `togglekit/migrate` instead — same functions, without the
+ * job should import `featurekit/migrate` instead — same functions, without the
  * route layer, Redis and the metrics registry (§16).
  */
 export { migrate, migrationStatus, MIGRATION_LOCK } from "./migrate.js";

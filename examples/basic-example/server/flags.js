@@ -1,5 +1,5 @@
 /**
- * Basic Example: 4 Core Flag Types in Togglekit
+ * Basic Example: 4 Core Flag Types in Featurekit
  *
  * 1. Toggle  (Boolean) -> "feature-toggle"
  * 2. Text    (String)  -> "headline-text"
@@ -7,7 +7,7 @@
  * 4. JSON    (Object)  -> "theme-config"
  */
 
-export const project = { key: "demo", name: "Togglekit Demo" };
+export const project = { key: "demo", name: "Featurekit Demo" };
 
 export const environment = {
   key: "development",
@@ -46,7 +46,7 @@ export const flags = [
     temporary: true,
     tags: ["demo", "string"],
     variations: [
-      { name: "welcome", value: "🚀 Welcome to Togglekit Live Flag Experience!" },
+      { name: "welcome", value: "🚀 Welcome to Featurekit Live Flag Experience!" },
       { name: "announcement", value: "🎉 Flash Sale is Live: Limited Time Offers Available!" },
       { name: "maintenance", value: "⚡ Scheduled Optimization in Progress (Zero Downtime)." },
     ],

@@ -14,7 +14,7 @@
  * It lives here rather than beside either caller because a customer's own
  * backend is a third implementation of it — that backend is what mints
  * signatures — and a hash whose definition is buried in the fan-out service is
- * one that gets reimplemented slightly wrong. `togglekit/secure-mode` exports
+ * one that gets reimplemented slightly wrong. `featurekit/secure-mode` exports
  * this function so nobody has to.
  *
  * Imports `node:crypto` and nothing else.

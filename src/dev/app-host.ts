@@ -6,19 +6,19 @@
  * page a client key, and a bundler to resolve the SDK import. None of that is
  * your application; all of it is in the way.
  *
- * So `TogglekitServer` can serve a directory on its own port, with two
+ * So `FeaturekitServer` can serve a directory on its own port, with two
  * additions the page needs and cannot get from a plain file server:
  *
  * - `/api/config` — the **client** key for this environment, and the control
  *   plane's URL. In your real app this endpoint is yours, and it is also where
  *   you would mint the secure-mode signature for the user you just
  *   authenticated (§16).
- * - `/sdk.js` — the built `togglekit-client` bundle, so `index.html` can
+ * - `/sdk.js` — the built `featurekit-client` bundle, so `index.html` can
  *   `import` it with no build step.
  *
  * **Development only.** In production your app is served by your app's
  * infrastructure, which knows about your sessions, your CDN and your CSP.
- * `TogglekitServer` refuses this option outside development rather than
+ * `FeaturekitServer` refuses this option outside development rather than
  * quietly becoming a web server nobody meant to deploy.
  */
 
@@ -77,18 +77,18 @@ const CONTENT_TYPES: Readonly<Record<string, string>> = {
  *
  * Resolved rather than guessed at a relative path, so this works both inside
  * this repository (a workspace symlink) and in a project that installed
- * `togglekit-client` from npm.
+ * `featurekit-client` from npm.
  */
 function resolveBrowserSdk(): string | null {
   try {
     const req = createRequire(import.meta.url);
     try {
-      return req.resolve("togglekit-client");
+      return req.resolve("featurekit-client");
     } catch {
       try {
-        return req.resolve("togglekit-client");
+        return req.resolve("featurekit-client");
       } catch {
-        return req.resolve("togglekit-client");
+        return req.resolve("featurekit-client");
       }
     }
   } catch {
@@ -116,7 +116,7 @@ export async function startAppHost(options: AppHostOptions): Promise<AppHost> {
     if (path === "/sdk.js") {
       if (sdkPath === null) {
         response.writeHead(404, { "content-type": "text/plain; charset=utf-8" });
-        response.end("togglekit-client is not built — run `npm run build`");
+        response.end("featurekit-client is not built — run `npm run build`");
         return;
       }
       void send(response, sdkPath, ".js", options.onError);

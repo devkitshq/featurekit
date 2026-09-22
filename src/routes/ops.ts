@@ -44,7 +44,7 @@ export interface OpsDeps {
    * during a Redis outage is how a cache incident becomes a flag outage.
    */
   checkRedis: () => Promise<CheckResult>;
-  /** Backed by `togglekit_partition_runway_days()`. */
+  /** Backed by `featurekit_partition_runway_days()`. */
   partitionRunwayDays: () => Promise<number>;
   /** Oldest snapshot this node is serving, per environment key. */
   snapshotAges?: () => Map<string, number>;

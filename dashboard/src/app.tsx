@@ -129,7 +129,7 @@ function Sidebar() {
           <Layers className="size-4" />
         </span>
         <div className="flex flex-col">
-          <span className="text-sm font-semibold tracking-tight text-foreground">togglekit</span>
+          <span className="text-sm font-semibold tracking-tight text-foreground">featurekit</span>
           <span className="text-[10px] text-muted-foreground font-mono leading-none">control plane</span>
         </div>
       </div>

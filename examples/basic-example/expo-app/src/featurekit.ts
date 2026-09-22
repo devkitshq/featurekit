@@ -1,25 +1,25 @@
 /**
- * Togglekit Mobile Client (React Native / Expo SSE Stream)
+ * Featurekit Mobile Client (React Native / Expo SSE Stream)
  */
 
-export interface TogglekitValues {
+export interface FeaturekitValues {
   [key: string]: boolean | string | number | Record<string, any> | null;
 }
 
-export interface TogglekitClientOptions {
+export interface FeaturekitClientOptions {
   baseUrl: string;
   clientKey: string;
   context: { kind: string; key: string; [attr: string]: any };
-  onValues: (values: TogglekitValues) => void;
+  onValues: (values: FeaturekitValues) => void;
   onStatus?: (status: "connecting" | "live" | "offline") => void;
 }
 
-export class TogglekitMobileClient {
-  private values: TogglekitValues = {};
+export class FeaturekitMobileClient {
+  private values: FeaturekitValues = {};
   private abortController: AbortController | null = null;
   private closed = false;
 
-  constructor(private readonly options: TogglekitClientOptions) {}
+  constructor(private readonly options: FeaturekitClientOptions) {}
 
   async start(): Promise<void> {
     this.closed = false;
@@ -46,7 +46,7 @@ export class TogglekitMobileClient {
         this.options.onStatus?.("live");
       }
     } catch (err) {
-      console.warn("[Togglekit] Initial fetch failed, retrying in background:", err);
+      console.warn("[Featurekit] Initial fetch failed, retrying in background:", err);
       this.options.onStatus?.("offline");
     }
   }

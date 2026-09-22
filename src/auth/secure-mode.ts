@@ -55,7 +55,7 @@ export function signContext(
   attributesHash?: string,
 ): string {
   const signing = secrets[0];
-  if (signing === undefined) throw new Error("togglekit: no SECURE_MODE_SECRET configured");
+  if (signing === undefined) throw new Error("featurekit: no SECURE_MODE_SECRET configured");
   return createHmac("sha256", signing).update(payload(key, expiresAt, attributesHash), "utf8").digest("hex");
 }
 

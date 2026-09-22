@@ -72,10 +72,10 @@ table that is still happily accepting inserts. Asserted absent in the integratio
 suite.
 
 For managed Postgres with a locked extension allow-list,
-`togglekit_ensure_partitions(days_ahead)` is idempotent declarative DDL an
+`featurekit_ensure_partitions(days_ahead)` is idempotent declarative DDL an
 external scheduler can call. The rule is unchanged and is the actual decision:
 **table lifecycle never runs inside the Node process.** The application's one job
-is `togglekit_partition_runway_days()`, which backs a readiness check that pages
+is `featurekit_partition_runway_days()`, which backs a readiness check that pages
 when runway drops below two days.
 
 ## Migrations

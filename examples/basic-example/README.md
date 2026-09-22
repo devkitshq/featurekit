@@ -1,4 +1,4 @@
-# Togglekit Basic Example: 4 Core Flag Types
+# Featurekit Basic Example: 4 Core Flag Types
 
 A full-stack, real-time feature flag demonstration featuring all 4 flag types:
 
@@ -9,7 +9,7 @@ A full-stack, real-time feature flag demonstration featuring all 4 flag types:
 
 ## Directory Structure
 
-- **`server/`**: Starts the Togglekit Control Plane on `http://127.0.0.1:3000` and hosts the website on `http://127.0.0.1:4000`. Exposes `POST /api/swap` to rotate flag values on demand.
+- **`server/`**: Starts the Featurekit Control Plane on `http://127.0.0.1:3000` and hosts the website on `http://127.0.0.1:4000`. Exposes `POST /api/swap` to rotate flag values on demand.
 - **`website/`**: Beautiful browser app that subscribes to SSE stream and renders the 4 flag types live without reloading.
 - **`expo-app/`**: Expo React Native mobile app that connects to the same server and updates live when flags change.
 

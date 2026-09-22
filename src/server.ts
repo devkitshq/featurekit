@@ -1,10 +1,10 @@
 /**
- * `TogglekitServer` — the control plane as an object you construct (§11.1).
+ * `FeaturekitServer` — the control plane as an object you construct (§11.1).
  *
  * ```ts
- * import { TogglekitServer } from "togglekit";
+ * import { FeaturekitServer } from "featurekit";
  *
- * const server = new TogglekitServer({ services: ["all"], port: 3000 });
+ * const server = new FeaturekitServer({ services: ["all"], port: 3000 });
  * await server.start();   // dev: Postgres + Redis start automatically
  * ```
  *
@@ -26,8 +26,8 @@
 
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { createApp, type App, type TogglekitService } from "./app.js";
-import { ConfigError, loadConfig, type TogglekitConfig } from "./config/index.js";
+import { createApp, type App, type FeaturekitService } from "./app.js";
+import { ConfigError, loadConfig, type FeaturekitConfig } from "./config/index.js";
 import { type Database } from "./db/client.js";
 import { createMember, findMemberByEmail, updateMember } from "./repositories/members.js";
 import { PasswordError } from "./auth/passwords.js";
@@ -37,11 +37,11 @@ import { migrate } from "./migrate.js";
 import { applyFlagFile, environmentOf, type FlagFile } from "./provisioning.js";
 import { createSdkKey, listSdkKeys } from "./repositories/catalog.js";
 
-export type { TogglekitService } from "./app.js";
+export type { FeaturekitService } from "./app.js";
 
-export interface TogglekitServerOptions {
+export interface FeaturekitServerOptions {
   /** Which parts of the system this process runs. Defaults to `["all"]`. */
-  services?: readonly TogglekitService[];
+  services?: readonly FeaturekitService[];
   port?: number;
   host?: string;
   databaseUrl?: string;
@@ -98,7 +98,7 @@ export interface TogglekitServerOptions {
   /**
    * Re-apply configuration over flags that already exist.
    *
-   * Defaults to `TOGGLEKIT_FLAGS_RESET=1`. This is the switch that overwrites
+   * Defaults to `FEATUREKIT_FLAGS_RESET=1`. This is the switch that overwrites
    * what somebody changed in the dashboard, so it is never the default.
    */
   flagsReset?: boolean;
@@ -107,7 +107,7 @@ export interface TogglekitServerOptions {
    * Serve a browser app from a directory, in development (§2).
    *
    * Adds `/api/config` (the environment's client key and this server's URL) and
-   * `/sdk.js` (the built `togglekit-client` bundle) so a prototype needs no
+   * `/sdk.js` (the built `featurekit-client` bundle) so a prototype needs no
    * bundler and no second process. `environmentKey` defaults to the one `flags`
    * names. Refused outside development — in production your app is served by
    * your app's infrastructure.
@@ -146,7 +146,7 @@ export interface TogglekitServerOptions {
 
 
 
-export interface TogglekitAddress {
+export interface FeaturekitAddress {
   host: string;
   port: number;
   url: string;
@@ -154,18 +154,18 @@ export interface TogglekitAddress {
 
 
 
-export class TogglekitServer {
+export class FeaturekitServer {
   #app: App | null = null;
-  #address: TogglekitAddress | null = null;
-  #config: TogglekitConfig | null = null;
-  #starting: Promise<TogglekitAddress> | null = null;
+  #address: FeaturekitAddress | null = null;
+  #config: FeaturekitConfig | null = null;
+  #starting: Promise<FeaturekitAddress> | null = null;
   #appHost: AppHost | null = null;
 
-  constructor(private readonly options: TogglekitServerOptions = {}) {}
+  constructor(private readonly options: FeaturekitServerOptions = {}) {}
 
   /** The bound address. Throws before `start()` resolves — there isn't one yet. */
-  get address(): TogglekitAddress {
-    if (this.#address === null) throw new Error("togglekit: server has not started");
+  get address(): FeaturekitAddress {
+    if (this.#address === null) throw new Error("featurekit: server has not started");
     return this.#address;
   }
 
@@ -175,7 +175,7 @@ export class TogglekitServer {
 
   /** The assembled system: router, database handle, snapshot service, metrics. */
   get app(): App {
-    if (this.#app === null) throw new Error("togglekit: server has not started");
+    if (this.#app === null) throw new Error("featurekit: server has not started");
     return this.#app;
   }
 
@@ -185,8 +185,8 @@ export class TogglekitServer {
   }
 
   /** The resolved configuration, after defaults and any dev substitutions. */
-  get config(): TogglekitConfig {
-    if (this.#config === null) throw new Error("togglekit: server has not started");
+  get config(): FeaturekitConfig {
+    if (this.#config === null) throw new Error("featurekit: server has not started");
     return this.#config;
   }
 
@@ -197,7 +197,7 @@ export class TogglekitServer {
    * second socket, because "start it if it isn't started" is a thing test
    * helpers do and a race is a poor reward for it.
    */
-  async start(): Promise<TogglekitAddress> {
+  async start(): Promise<FeaturekitAddress> {
     if (this.#address !== null) return this.#address;
     this.#starting ??= this.#start();
     try {
@@ -207,10 +207,10 @@ export class TogglekitServer {
     }
   }
 
-  async #start(): Promise<TogglekitAddress> {
+  async #start(): Promise<FeaturekitAddress> {
     const nodeEnv =
       this.options.nodeEnv ??
-      (process.env["NODE_ENV"] as TogglekitServerOptions["nodeEnv"]) ??
+      (process.env["NODE_ENV"] as FeaturekitServerOptions["nodeEnv"]) ??
       "development";
     const isProduction = nodeEnv === "production";
     const log = this.#logger();
@@ -225,13 +225,13 @@ export class TogglekitServer {
     let databaseUrl =
       this.options.databaseUrl ??
       process.env["DATABASE_URL"] ??
-      "postgres://togglekit:togglekit@127.0.0.1:5432/togglekit";
+      "postgres://featurekit:featurekit@127.0.0.1:5432/featurekit";
     let redisUrl =
       this.options.redisUrl ?? process.env["REDIS_URL"] ?? "redis://127.0.0.1:6379";
 
     const wantsDevServices = this.options.devServices ?? !isProduction;
     if (wantsDevServices && !isProduction) {
-      const label = this.options.label ?? "togglekit-dev";
+      const label = this.options.label ?? "featurekit-dev";
       databaseUrl = (
         await ensureDevPostgres({ url: databaseUrl, explicit: databaseExplicit, label, log })
       ).url;
@@ -277,8 +277,8 @@ export class TogglekitServer {
     const config = loadConfig(env, {
       clientKeysExist:
         this.options.clientKeysExist ??
-        (process.env["TOGGLEKIT_CLIENT_KEYS_EXIST"] === "1" ||
-          process.env["TOGGLEKIT_CLIENT_KEYS_EXIST"] === "1"),
+        (process.env["FEATUREKIT_CLIENT_KEYS_EXIST"] === "1" ||
+          process.env["FEATUREKIT_CLIENT_KEYS_EXIST"] === "1"),
     });
     this.#config = config;
 
@@ -331,11 +331,11 @@ export class TogglekitServer {
    */
   async #seedFirstAccount(
     db: Database,
-    config: TogglekitConfig,
+    config: FeaturekitConfig,
     log: (message: string) => void,
   ): Promise<void> {
-    const email = config.TOGGLEKIT_ADMIN_EMAIL ?? config.TOGGLEKIT_ADMIN_EMAIL;
-    const password = config.TOGGLEKIT_ADMIN_PASSWORD ?? config.TOGGLEKIT_ADMIN_PASSWORD;
+    const email = config.FEATUREKIT_ADMIN_EMAIL ?? config.FEATUREKIT_ADMIN_EMAIL;
+    const password = config.FEATUREKIT_ADMIN_PASSWORD ?? config.FEATUREKIT_ADMIN_PASSWORD;
     if (email === undefined || password === undefined) return;
 
     try {
@@ -357,7 +357,7 @@ export class TogglekitServer {
         // Loud, and not fatal: a control plane that refuses to serve flags
         // because a seed password was too short is a worse outage than a
         // dashboard nobody can log into yet.
-        log(`TOGGLEKIT_ADMIN_PASSWORD rejected: ${error.message}`);
+        log(`FEATUREKIT_ADMIN_PASSWORD rejected: ${error.message}`);
         return;
       }
       throw error;
@@ -379,7 +379,7 @@ export class TogglekitServer {
     if (file === undefined) return;
     if (isProduction) {
       throw new ConfigError(
-        "togglekit: `flags` applies definitions on start, which is a development " +
+        "featurekit: `flags` applies definitions on start, which is a development " +
           "convenience. In production this is a deploy step — run the sync from CI " +
           "against a scoped token instead.",
       );
@@ -387,8 +387,8 @@ export class TogglekitServer {
 
     const reset =
       this.options.flagsReset ??
-      (process.env["TOGGLEKIT_FLAGS_RESET"] === "1" ||
-        process.env["TOGGLEKIT_FLAGS_RESET"] === "1");
+      (process.env["FEATUREKIT_FLAGS_RESET"] === "1" ||
+        process.env["FEATUREKIT_FLAGS_RESET"] === "1");
     const changes = await applyFlagFile(db, file, { reset });
     // Only what changed, so a restart that reconciles to nothing says nothing.
     const notable = changes.filter((change) => change.action !== "unchanged");
@@ -422,7 +422,7 @@ export class TogglekitServer {
     if (app === undefined) return;
     if (isProduction) {
       throw new ConfigError(
-        "togglekit: `app` serves a directory for development. In production your " +
+        "featurekit: `app` serves a directory for development. In production your " +
           "application is served by your application's infrastructure.",
       );
     }
@@ -430,7 +430,7 @@ export class TogglekitServer {
     const environmentKey = app.environmentKey ?? this.options.flags?.environment.key;
     if (environmentKey === undefined) {
       throw new ConfigError(
-        "togglekit: `app` needs `environmentKey`, or a `flags` file that names one — " +
+        "featurekit: `app` needs `environmentKey`, or a `flags` file that names one — " +
           "the page has to be given a key for some environment.",
       );
     }
@@ -443,7 +443,7 @@ export class TogglekitServer {
             environment: { ...this.options.flags.environment, key: environmentKey },
           });
     if (environment === null) {
-      throw new ConfigError(`togglekit: no environment ${environmentKey} to serve an app for`);
+      throw new ConfigError(`featurekit: no environment ${environmentKey} to serve an app for`);
     }
 
     const keys = await listSdkKeys(db, environment.id);
@@ -480,14 +480,14 @@ export class TogglekitServer {
    * scrollback, CI artefact and screenshot from then on.
    */
   #summarise(
-    config: TogglekitConfig,
+    config: FeaturekitConfig,
     isProduction: boolean,
     log: (message: string) => void,
   ): void {
     if (isProduction) return;
     const url = this.#address?.url ?? "";
     if (config.DASHBOARD !== "off") {
-      const account = config.TOGGLEKIT_ADMIN_EMAIL ?? config.TOGGLEKIT_ADMIN_EMAIL;
+      const account = config.FEATUREKIT_ADMIN_EMAIL ?? config.FEATUREKIT_ADMIN_EMAIL;
       log(
         `dashboard ${url}${config.DASHBOARD_PATH}` +
           (account === undefined ? "" : ` — sign in as ${account}`),
@@ -506,7 +506,7 @@ export class TogglekitServer {
     const path =
       typeof this.options.devStateFile === "string"
         ? this.options.devStateFile
-        : join(process.cwd(), ".togglekit", "dev.json");
+        : join(process.cwd(), ".featurekit", "dev.json");
     await mkdir(dirname(path), { recursive: true });
     await writeFile(
       path,
@@ -559,7 +559,7 @@ export class TogglekitServer {
 
   #logger(): (message: string) => void {
     if (this.options.logLevel === "silent") return () => {};
-    return (message: string) => process.stdout.write(`togglekit: ${message}\n`);
+    return (message: string) => process.stdout.write(`featurekit: ${message}\n`);
   }
 }
 

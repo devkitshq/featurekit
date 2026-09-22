@@ -26,7 +26,7 @@ describe("integration prerequisites", () => {
   it(
     reason === null
       ? "container runtime is available; integration tests will run"
-      : `integration tests SKIPPED — ${reason}. Start a Docker daemon, or set TOGGLEKIT_REQUIRE_CONTAINERS=1 to fail instead`,
+      : `integration tests SKIPPED — ${reason}. Start a Docker daemon, or set FEATUREKIT_REQUIRE_CONTAINERS=1 to fail instead`,
     () => {
       if (reason !== null) announceSkip(reason);
       expect(true).toBe(true);
@@ -85,7 +85,7 @@ describe.skipIf(reason !== null)("schema against real Postgres", () => {
 
   it("creates a week of partitions and reports runway", async () => {
     const [row] = await db.execute<{ runway: number }>(
-      sql`SELECT togglekit_partition_runway_days() AS runway`,
+      sql`SELECT featurekit_partition_runway_days() AS runway`,
     );
     // p_premake => 7 is the point: maintenance can miss a week of runs and
     // inserts still land. The readiness check pages below two days.

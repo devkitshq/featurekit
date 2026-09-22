@@ -1,4 +1,4 @@
-import { TogglekitServer } from "togglekit";
+import { FeaturekitServer } from "featurekit";
 import { sql } from "drizzle-orm";
 import flags, { project, environment } from "./flags.js";
 
@@ -6,7 +6,7 @@ const host = process.env.HOST ?? "127.0.0.1";
 const port = Number(process.env.PORT ?? 3000);
 const appPort = Number(process.env.APP_PORT ?? 4000);
 
-const server = new TogglekitServer({
+const server = new FeaturekitServer({
   services: ["all"],
   port,
   host,
@@ -28,8 +28,8 @@ const server = new TogglekitServer({
   ],
 
   env: {
-    TOGGLEKIT_ADMIN_EMAIL: "admin@togglekit.dev",
-    TOGGLEKIT_ADMIN_PASSWORD: "password12345",
+    FEATUREKIT_ADMIN_EMAIL: "admin@featurekit.dev",
+    FEATUREKIT_ADMIN_PASSWORD: "password12345",
   },
 });
 
@@ -105,16 +105,16 @@ try {
   server.app.router.post("/api/swap", swapHandler);
 
   console.log("\n=======================================================");
-  console.log("  🚀 Togglekit Demo Server is Running!");
+  console.log("  🚀 Featurekit Demo Server is Running!");
   console.log("=======================================================");
   console.log(`  🌐 Control Plane & API:  ${server.url}`);
-  console.log(`  📊 Admin Dashboard:      ${server.url}/admin (admin@togglekit.dev / password12345)`);
+  console.log(`  📊 Admin Dashboard:      ${server.url}/admin (admin@featurekit.dev / password12345)`);
   console.log(`  💻 Website Demo:         http://127.0.0.1:${appPort}`);
   console.log(`  📱 Expo Mobile App:      examples/basic-example/expo-app`);
   console.log(`  ⚡ Swap Trigger API:     ${server.url}/api/swap`);
   console.log("=======================================================\n");
 
 } catch (error) {
-  process.stderr.write(`\ntogglekit: ${String(error.message ?? error)}\n\n`);
+  process.stderr.write(`\nfeaturekit: ${String(error.message ?? error)}\n\n`);
   process.exit(1);
 }

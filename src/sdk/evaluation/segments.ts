@@ -93,7 +93,7 @@ export class InMemorySegmentCache implements SegmentCacheProvider {
  * request, so warm-up is paid once per context rather than once per evaluation
  * — but a genuinely cold Lambda invocation *will* fail a large-segment rule
  * closed on its first look. `SEGMENT_CACHE_LRU_MAX` is the knob;
- * `togglekit_sdk_segment_unresolved_total` is the metric that says it is too
+ * `featurekit_sdk_segment_unresolved_total` is the metric that says it is too
  * small.
  */
 export class LruSegmentCache {
@@ -153,7 +153,7 @@ export class SegmentIndex {
   private readonly resident = new Map<string, ResidentSegment>();
   private cache: SegmentCacheProvider | null = null;
 
-  /** Backs `togglekit_sdk_segment_unresolved_total` — rules failing closed. */
+  /** Backs `featurekit_sdk_segment_unresolved_total` — rules failing closed. */
   unresolvedCount = 0;
 
   constructor(segments: Readonly<Record<string, CompiledSegment>> = {}) {

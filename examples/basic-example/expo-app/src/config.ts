@@ -9,4 +9,4 @@ import { Platform } from "react-native";
 export const SERVER_URL =
   Platform.OS === "android" ? "http://10.0.2.2:3000" : "http://127.0.0.1:3000";
 
-export const CLIENT_KEY = "tk_clt_development_public_key";
+export const CLIENT_KEY = "fk_clt_development_public_key";

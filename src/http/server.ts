@@ -429,7 +429,7 @@ export function openSse(
     "x-accel-buffering": "no",
   });
   res.socket?.setNoDelay(true);
-  res.write(": togglekit stream open\n\n");
+  res.write(": featurekit stream open\n\n");
 
   let closed = false;
   const finish = () => {

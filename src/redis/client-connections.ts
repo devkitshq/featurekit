@@ -1,7 +1,7 @@
 /**
  * The Redis `ClientConnectionStore` (§8, §11.5).
  *
- * One key per connection, `tk:cctx:{connectionId}`, holding the context a
+ * One key per connection, `fk:cctx:{connectionId}`, holding the context a
  * second node needs to take over the stream. Every entry has a TTL: this is
  * the one place in the system where an untrusted caller can create keys, so
  * unbounded retention would be a memory-growth primitive pointed at Redis

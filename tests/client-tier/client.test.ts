@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { TogglekitClient } from "togglekit-client";
+import { FeaturekitClient } from "featurekit-client";
 import { Router } from "../../src/http/router.js";
 import { HttpServer } from "../../src/http/server.js";
 import { MemorySnapshotStore } from "../../src/redis/memory-store.js";
@@ -10,8 +10,8 @@ import type { AuthenticatedEnvironment } from "../../src/routes/sdk.js";
 import type { CompilerInput } from "../../src/snapshot/compile.js";
 
 const ENV_ID = "env-1";
-const CLIENT_KEY = "tk_clt_test";
-const SERVER_KEY = "tk_srv_test";
+const CLIENT_KEY = "fk_clt_test";
+const SERVER_KEY = "fk_srv_test";
 const SECRET = "s".repeat(32);
 
 const records: Record<string, AuthenticatedEnvironment> = {
@@ -90,7 +90,7 @@ function input(version = 1): CompilerInput {
 
 const servers: HttpServer[] = [];
 const services: SnapshotService[] = [];
-const clients: TogglekitClient[] = [];
+const clients: FeaturekitClient[] = [];
 
 async function controlPlane(over: Partial<Parameters<typeof registerClientRoutes>[1]> = {}) {
   const store = new MemorySnapshotStore();
@@ -118,14 +118,14 @@ async function controlPlane(over: Partial<Parameters<typeof registerClientRoutes
   return { baseUrl: `http://${host}:${port}`, snapshots, store };
 }
 
-function makeClient(over: Partial<ConstructorParameters<typeof TogglekitClient>[0]>) {
-  const client = new TogglekitClient({
+function makeClient(over: Partial<ConstructorParameters<typeof FeaturekitClient>[0]>) {
+  const client = new FeaturekitClient({
     clientKey: CLIENT_KEY,
     baseUrl: "http://127.0.0.1:1",
     context: { key: "usr_1" },
     stream: false,
     ...over,
-  } as ConstructorParameters<typeof TogglekitClient>[0]);
+  } as ConstructorParameters<typeof FeaturekitClient>[0]);
   clients.push(client);
   return client;
 }

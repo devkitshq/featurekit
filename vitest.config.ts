@@ -9,9 +9,9 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./dashboard/src"),
       cn: path.resolve(__dirname, "./dashboard/src/lib/utils.ts"),
-      "togglekit-client": path.resolve(__dirname, "./packages/client/src/index.ts"),
-      "togglekit-client": path.resolve(__dirname, "./packages/client/src/index.ts"),
-      "togglekit-client": path.resolve(__dirname, "./packages/client/src/index.ts"),
+      "featurekit-client": path.resolve(__dirname, "./packages/client/src/index.ts"),
+      "featurekit-client": path.resolve(__dirname, "./packages/client/src/index.ts"),
+      "featurekit-client": path.resolve(__dirname, "./packages/client/src/index.ts"),
     },
   },
   test: {

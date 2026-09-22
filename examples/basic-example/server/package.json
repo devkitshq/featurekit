@@ -1,5 +1,5 @@
 {
-  "name": "togglekit-basic-example-server",
+  "name": "featurekit-basic-example-server",
   "version": "1.0.0",
   "type": "module",
   "private": true,
@@ -8,7 +8,7 @@
     "swap": "node swap.js"
   },
   "dependencies": {
-    "togglekit": "workspace:*",
+    "featurekit": "workspace:*",
     "drizzle-orm": "^0.45.2"
   }
 }

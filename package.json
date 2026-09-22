@@ -1,5 +1,5 @@
 {
-  "name": "togglekit",
+  "name": "featurekit-server",
   "version": "0.1.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -37,7 +37,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "tsc -b && npm run build --workspace=@togglekit/dashboard",
+    "build": "tsc -b && npm run build --workspace=@featurekit/dashboard",
     "typecheck": "tsc -b --force",
     "test": "vitest run",
     "dev": "node --watch dist/main.js",
@@ -70,7 +70,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/devkitshq/togglekit.git"
+    "url": "git+https://github.com/devkitshq/featurekit.git"
   },
   "publishConfig": {
     "access": "public"
@@ -78,10 +78,10 @@
   "keywords": [
     "feature-flags",
     "feature-toggles",
-    "togglekit",
+    "featurekit",
     "experimentation"
   ],
   "bin": {
-    "togglekit": "./dist/main.js"
+    "featurekit": "./dist/main.js"
   }
 }

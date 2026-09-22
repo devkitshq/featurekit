@@ -14,7 +14,7 @@
 
 import type { Snapshot } from "../evaluation/types.js";
 
-const BINARY_TAG = "$tkBytes";
+const BINARY_TAG = "$fkBytes";
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 export function toBase64(bytes: Uint8Array): string {

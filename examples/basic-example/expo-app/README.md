@@ -1,6 +1,6 @@
-# Togglekit Expo Mobile Demo
+# Featurekit Expo Mobile Demo
 
-React Native mobile application connecting to Togglekit Control Plane over real-time SSE stream.
+React Native mobile application connecting to Featurekit Control Plane over real-time SSE stream.
 
 ## Running the App
 

@@ -296,7 +296,7 @@ describe("precedence step 6 - fallthrough", () => {
   it("serves the caller's default when a fallthrough rollout cannot bucket", () => {
     // The flag is on, the context cannot be placed, and there is no defined
     // answer. The caller's default is the honest backstop, and ERROR is what
-    // makes togglekit_sdk_default_served_total rise so someone notices.
+    // makes featurekit_sdk_default_served_total rise so someone notices.
     const d = evalIn(
       snapshot({
         f: flag({

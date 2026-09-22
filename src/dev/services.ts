@@ -1,7 +1,7 @@
 /**
  * Postgres and Redis, started for you in development (§11.1, §17).
  *
- * `new TogglekitServer({ services: ["all"] }).start()` is supposed to be the
+ * `new FeaturekitServer({ services: ["all"] }).start()` is supposed to be the
  * whole setup step. That promise only holds if the two dependencies appear
  * without a compose file, so this module does the one thing that makes it true:
  * probe what the configuration points at, and if nothing answers, start a
@@ -52,7 +52,7 @@ export interface DevServiceResolution {
 
 const POSTGRES_IMAGE = "postgres:16-alpine";
 const REDIS_IMAGE = "redis:7-alpine";
-const CREDENTIALS = { user: "togglekit", password: "togglekit", database: "togglekit" };
+const CREDENTIALS = { user: "featurekit", password: "featurekit", database: "featurekit" };
 
 class DevServiceError extends Error {
   constructor(message: string) {
@@ -68,7 +68,7 @@ class DevServiceError extends Error {
  *
  * A TCP connect is not the question — a laptop with a system Postgres on 5432
  * answers the socket and then rejects the role. The probe is a query, so
- * "something is listening" and "togglekit can use it" cannot be confused.
+ * "something is listening" and "featurekit can use it" cannot be confused.
  */
 async function postgresReachable(url: string): Promise<boolean> {
   let sql: ReturnType<typeof postgres> | null = null;
@@ -243,9 +243,9 @@ async function ensureContainer(options: {
 function unreachable(kind: string, url: string, explicit: boolean): DevServiceError {
   return new DevServiceError(
     explicit
-      ? `togglekit: cannot reach the ${kind} you configured (${redact(url)}).\n` +
-        `  It was given explicitly, so togglekit will not substitute a local container for it.`
-      : `togglekit: no ${kind} at ${redact(url)} and Docker is not available to start one.\n` +
+      ? `featurekit: cannot reach the ${kind} you configured (${redact(url)}).\n` +
+        `  It was given explicitly, so featurekit will not substitute a local container for it.`
+      : `featurekit: no ${kind} at ${redact(url)} and Docker is not available to start one.\n` +
         `  Start one yourself (\`docker compose up -d\`) or pass ${kind === "Postgres" ? "databaseUrl" : "redisUrl"}.`,
   );
 }
@@ -268,7 +268,7 @@ export async function ensureDevPostgres(request: DevServiceRequest): Promise<Dev
     throw unreachable("Postgres", request.url, request.explicit);
   }
 
-  const name = `${request.label ?? "togglekit-dev"}-postgres`;
+  const name = `${request.label ?? "featurekit-dev"}-postgres`;
   const { port } = await ensureContainer({
     name,
     image: POSTGRES_IMAGE,
@@ -297,7 +297,7 @@ export async function ensureDevRedis(request: DevServiceRequest): Promise<DevSer
     throw unreachable("Redis", request.url, request.explicit);
   }
 
-  const name = `${request.label ?? "togglekit-dev"}-redis`;
+  const name = `${request.label ?? "featurekit-dev"}-redis`;
   const { port } = await ensureContainer({
     name,
     image: REDIS_IMAGE,

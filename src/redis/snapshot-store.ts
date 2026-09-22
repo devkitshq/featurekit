@@ -2,7 +2,7 @@
  * The `SnapshotStore` port (§2, §6, §8).
  *
  * "Plugins are a class with one method" — notifkit had `Transport.send()`;
- * togglekit has `SnapshotStore` and `EventSink`. This one owns everything the
+ * featurekit has `SnapshotStore` and `EventSink`. This one owns everything the
  * control plane keeps in Redis for the server tier: the compiled snapshot, the
  * patch history that makes SSE resume possible, the pub/sub channel that fans a
  * change out to every API node, and the compile lock that stops them all
@@ -17,7 +17,7 @@
 
 import type { Snapshot } from "../sdk/index.js";
 
-/** One entry in `tk:patches:{envId}` (§10.3). */
+/** One entry in `fk:patches:{envId}` (§10.3). */
 export interface StreamPatch {
   /** The snapshot version this patch produced. Becomes the SSE `id:`. */
   version: number;
@@ -98,7 +98,7 @@ export interface SnapshotStore {
  *
  * So binary fields are tagged on the way out and revived on the way in.
  */
-const BINARY_TAG = "$tkBytes";
+const BINARY_TAG = "$fkBytes";
 
 export function serializeSnapshot(snapshot: Snapshot): string {
   return JSON.stringify(snapshot, (_key, value: unknown) => {

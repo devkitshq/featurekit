@@ -11,12 +11,12 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { SERVER_URL, CLIENT_KEY } from "./config";
-import { TogglekitMobileClient, TogglekitValues } from "./togglekit";
+import { FeaturekitMobileClient, FeaturekitValues } from "./featurekit";
 
 export default function App() {
-  const [values, setValues] = useState<TogglekitValues>({
+  const [values, setValues] = useState<FeaturekitValues>({
     "feature-toggle": true,
-    "headline-text": "🚀 Welcome to Togglekit Mobile Demo",
+    "headline-text": "🚀 Welcome to Featurekit Mobile Demo",
     "discount-number": 25,
     "theme-config": { theme: "indigo", accentColor: "#6366f1", badge: "PRO EDITION", cardRadius: 16 },
   });
@@ -25,7 +25,7 @@ export default function App() {
   const [eventLog, setEventLog] = useState<string[]>([]);
 
   useEffect(() => {
-    const client = new TogglekitMobileClient({
+    const client = new FeaturekitMobileClient({
       baseUrl: SERVER_URL,
       clientKey: CLIENT_KEY,
       context: { kind: "user", key: "mobile-user-1" },
@@ -55,7 +55,7 @@ export default function App() {
   };
 
   const isToggleOn = Boolean(values["feature-toggle"]);
-  const headline = String(values["headline-text"] ?? "Togglekit Live");
+  const headline = String(values["headline-text"] ?? "Featurekit Live");
   const discount = Number(values["discount-number"] ?? 0);
   const themeObj: any = values["theme-config"] ?? { accentColor: "#6366f1", badge: "PRO" };
 
@@ -69,7 +69,7 @@ export default function App() {
           <View style={styles.brandRow}>
             <View style={styles.badge}><Text style={styles.badgeText}>TK</Text></View>
             <View>
-              <Text style={styles.brandTitle}>Togglekit</Text>
+              <Text style={styles.brandTitle}>Featurekit</Text>
               <Text style={styles.brandSubtitle}>Mobile App Live Demo</Text>
             </View>
           </View>

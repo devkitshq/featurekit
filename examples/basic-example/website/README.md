@@ -1,4 +1,4 @@
-# Togglekit Basic Example Website
+# Featurekit Basic Example Website
 
 Live browser application demonstrating **real-time SSE push updates** across all 4 core flag types:
 - **Toggle (Boolean)**: `feature-toggle`

@@ -1,5 +1,5 @@
 /**
- * UI Primitives & shadcn Component System for Togglekit Admin Panel
+ * UI Primitives & shadcn Component System for Featurekit Admin Panel
  */
 
 import {

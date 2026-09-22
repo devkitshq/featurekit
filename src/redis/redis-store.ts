@@ -283,7 +283,7 @@ export class RedisSnapshotStore implements SnapshotStore {
     if (results === null) {
       // A watched key changed, or the transaction was discarded. Nothing was
       // applied, which is the point — the caller keeps its previous snapshot.
-      throw new Error("togglekit: snapshot commit aborted");
+      throw new Error("featurekit: snapshot commit aborted");
     }
     for (const [error] of results) {
       if (error !== null) throw error;

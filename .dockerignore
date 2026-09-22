@@ -36,4 +36,4 @@ examples/mobile/ios
 .env.*
 *.pem
 *.key
-.togglekit
+.featurekit

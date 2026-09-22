@@ -121,11 +121,11 @@ anywhere. The first attempt at the decoder put the slots-per-bucket byte where
 the bucket count belongs, and every lookup missed. That is precisely the class of
 bug a future Go SDK would have hit, and the fix is the table below.
 
-### Cuckoo filter wire format (`TKCF`)
+### Cuckoo filter wire format (`FKCF`)
 
 | Offset | Size | Field |
 | --: | --: | :-- |
-| 0 | 4 | magic, ASCII `TKCF` |
+| 0 | 4 | magic, ASCII `FKCF` |
 | 4 | 1 | format version — currently `1` |
 | 5 | 1 | fingerprint bits — `12` or `16` |
 | 6 | 1 | log2 of the bucket count |

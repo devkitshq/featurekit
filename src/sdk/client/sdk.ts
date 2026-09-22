@@ -1,5 +1,5 @@
 /**
- * `TogglekitSDK` — the server-tier SDK (§11.2, §14).
+ * `FeaturekitSDK` — the server-tier SDK (§11.2, §14).
  *
  * The three properties this class exists to guarantee:
  *
@@ -35,7 +35,7 @@ export interface SnapshotPersistence {
   save(snapshot: Snapshot): Promise<void> | void;
 }
 
-export interface TogglekitSdkOptions {
+export interface FeaturekitSdkOptions {
   sdkKey: string;
   baseUrl?: string;
   /**
@@ -65,7 +65,7 @@ export interface TogglekitSdkOptions {
 
 type Listener = (payload: never) => void;
 
-export class TogglekitSDK {
+export class FeaturekitSDK {
   private snapshot: Snapshot | null = null;
   private segments = new SegmentIndex({});
   private currentState: SdkState = "initializing";
@@ -84,7 +84,7 @@ export class TogglekitSDK {
   private readonly readyPromise: Promise<void>;
   private isReady = false;
 
-  constructor(private readonly options: TogglekitSdkOptions) {
+  constructor(private readonly options: FeaturekitSdkOptions) {
     this.summarizer = new EventSummarizer(
       options.events?.maxBuckets !== undefined ? { maxBuckets: options.events.maxBuckets } : {},
     );
@@ -241,13 +241,13 @@ export class TogglekitSDK {
    * ```
    *
    * **A context per call**, which is the signature difference from
-   * `togglekit-client`: this SDK holds the ruleset, so one instance answers
+   * `featurekit-client`: this SDK holds the ruleset, so one instance answers
    * for every identity your process serves. Nothing is held per user and there
    * is no network call, so a request handler can evaluate for whoever it is
    * serving without an instance, a round trip, or a promise.
    *
    * **The default is required**, and it does two jobs. It states what happens
-   * when togglekit is unavailable — an optional default produces `undefined`
+   * when featurekit is unavailable — an optional default produces `undefined`
    * in production during an outage, and `if (undefined)` is a silent wrong
    * answer nobody notices for a week. And its type is the expected type, so
    * `get("new-checkout", ctx, false)` is a `boolean` with no annotation.
@@ -268,7 +268,7 @@ export class TogglekitSDK {
     const snapshot = this.snapshot;
     if (snapshot === null) {
       // No snapshot from any source. The caller's default is the answer, and
-      // `togglekit_sdk_default_served_total` is what should page.
+      // `featurekit_sdk_default_served_total` is what should page.
       const detail: EvaluationDetail<T> = {
         value: defaultValue,
         variationIndex: null,

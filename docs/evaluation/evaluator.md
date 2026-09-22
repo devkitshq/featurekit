@@ -28,7 +28,7 @@ An error at any step returns the **caller's default** with `reason: ERROR`.
 
 Optional defaults produce `undefined` in production during an outage, and
 `if (undefined)` is a silent wrong answer nobody notices for a week. Requiring
-it forces every call site to state what happens when togglekit is
+it forces every call site to state what happens when featurekit is
 unavailable — the one decision a flag SDK must not make on your behalf.
 
 When there is no off variation, `OFF` serves the caller's default rather than

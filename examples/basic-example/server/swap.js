@@ -1,12 +1,12 @@
 /**
- * CLI Tool to Swap Flags on the running Togglekit Server
+ * CLI Tool to Swap Flags on the running Featurekit Server
  *
  * Usage:
  *   node swap.js
  *   node swap.js http://127.0.0.1:3000
  */
 
-const targetUrl = process.argv[2] ?? process.env.TOGGLEKIT_URL ?? "http://127.0.0.1:3000";
+const targetUrl = process.argv[2] ?? process.env.FEATUREKIT_URL ?? "http://127.0.0.1:3000";
 
 try {
   console.log(`Sending swap command to ${targetUrl}/api/swap ...`);
@@ -21,6 +21,6 @@ try {
   console.log(`Cycle: #${data.cycle}\n`);
 } catch (err) {
   console.error("❌ Failed to swap flags:", err.message);
-  console.error("Make sure the Togglekit demo server is running: npm run demo");
+  console.error("Make sure the Featurekit demo server is running: npm run demo");
   process.exit(1);
 }

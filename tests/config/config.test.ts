@@ -3,7 +3,7 @@ import { loadConfig, secureModeSecrets } from "../../src/config/index.js";
 
 const PROD = {
   NODE_ENV: "production",
-  DATABASE_URL: "postgres://u:p@db:5432/togglekit",
+  DATABASE_URL: "postgres://u:p@db:5432/featurekit",
   REDIS_URL: "redis://cache:6379",
   ADMIN_TOKEN: "a".repeat(24),
   SECURE_MODE_SECRET: "s".repeat(32),

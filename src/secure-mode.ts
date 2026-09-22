@@ -1,11 +1,11 @@
 /**
- * `togglekit/secure-mode` — everything a customer's backend needs to mint a
+ * `featurekit/secure-mode` — everything a customer's backend needs to mint a
  * signed context, and nothing else (§16).
  *
  * ```ts
- * import { signContext, contextHash } from "togglekit/secure-mode";
+ * import { signContext, contextHash } from "featurekit/secure-mode";
  *
- * app.get("/api/togglekit-signature", requireSession, (req, res) => {
+ * app.get("/api/featurekit-signature", requireSession, (req, res) => {
  *   const context = { key: req.user.id, plan: req.user.plan };
  *   const expiresAt = Math.floor(Date.now() / 1000) + 3600;
  *   res.json({
@@ -15,7 +15,7 @@
  * });
  * ```
  *
- * **A separate entry point because of what it does not load.** `togglekit`'s
+ * **A separate entry point because of what it does not load.** `featurekit`'s
  * main entry is the control plane: importing it pulls Drizzle, a Postgres
  * driver, ioredis, pino and prom-client into the process. A service whose only
  * involvement with flags is signing a context for its logged-in user has no

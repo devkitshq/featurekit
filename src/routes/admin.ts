@@ -137,7 +137,7 @@ import {
 import type { z } from "zod";
 
 /** The cookie a dashboard session lives in. */
-export const SESSION_COOKIE = "tk_session";
+export const SESSION_COOKIE = "fk_session";
 /**
  * The header a cookie-authenticated mutation must carry.
  *
@@ -146,7 +146,7 @@ export const SESSION_COOKIE = "tk_session";
  * no CORS headers, so that preflight fails. Together with `SameSite=Strict`
  * this is the whole CSRF story, and it needs no token store.
  */
-export const CSRF_HEADER = "x-togglekit-csrf";
+export const CSRF_HEADER = "x-featurekit-csrf";
 
 export interface AdminRouteDeps {
   db: Database;
@@ -220,7 +220,7 @@ async function authenticate(ctx: RequestContext, deps: AdminRouteDeps): Promise<
     ctx.method !== "GET" &&
     ctx.method !== "HEAD" &&
     ctx.header(CSRF_HEADER) === undefined &&
-    ctx.header("x-togglekit-csrf") === undefined
+    ctx.header("x-featurekit-csrf") === undefined
   ) {
     throw new HttpError(403, "CSRF_HEADER_REQUIRED", `${CSRF_HEADER} is required for cookie auth`);
   }

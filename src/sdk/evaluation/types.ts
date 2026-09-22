@@ -66,7 +66,7 @@ export type EvaluationReason =
  * it, so this is an *annotation*, not the outcome: `reason` still reports what
  * was actually served. Without it, `POST /v1/debug/evaluate` could only say
  * "no match", which is the difference between a five-minute diagnosis and an
- * afternoon. It is also what `togglekit_sdk_segment_unresolved_total` counts.
+ * afternoon. It is also what `featurekit_sdk_segment_unresolved_total` counts.
  */
 export interface UnresolvedRule {
   ruleIndex: number;

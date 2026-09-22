@@ -157,7 +157,7 @@ describe("RateLimiter", () => {
 
 describe("rate limit identity", () => {
   it("never contains the credential", () => {
-    const key = "tk_srv_supersecretvalue";
+    const key = "fk_srv_supersecretvalue";
     const ctx = {
       header: () => `Bearer ${key}`,
       query: new URLSearchParams(),
@@ -166,7 +166,7 @@ describe("rate limit identity", () => {
     const identity = rateLimitIdentity(ctx, "/v1/snapshot/:envKey");
     expect(identity).not.toContain(key);
     expect(identity).not.toContain("supersecret");
-    expect(identity.startsWith("tk:rl:/v1/snapshot/:envKey:")).toBe(true);
+    expect(identity.startsWith("fk:rl:/v1/snapshot/:envKey:")).toBe(true);
   });
 
   it("separates callers that present different credentials", () => {

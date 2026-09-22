@@ -1,7 +1,7 @@
 {
-  "name": "togglekit-client",
+  "name": "featurekit-client",
   "version": "0.1.0",
-  "description": "togglekit client-tier SDK — evaluated values, never the ruleset. One client, any JavaScript runtime.",
+  "description": "featurekit client-tier SDK — evaluated values, never the ruleset. One client, any JavaScript runtime.",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
@@ -24,11 +24,11 @@
   "keywords": [
     "feature-flags",
     "feature-toggles",
-    "togglekit"
+    "featurekit"
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/devkitshq/togglekit.git",
+    "url": "git+https://github.com/devkitshq/featurekit.git",
     "directory": "packages/client"
   },
   "publishConfig": {

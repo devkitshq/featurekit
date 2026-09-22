@@ -30,7 +30,7 @@ import type { AuthenticatedEnvironment } from "../../src/routes/sdk.js";
 import type { CompilerInput } from "../../src/snapshot/compile.js";
 
 const ENV_ID = "env-1";
-const KEY = "tk_clt_multinode";
+const KEY = "fk_clt_multinode";
 
 const servers: HttpServer[] = [];
 const services: SnapshotService[] = [];

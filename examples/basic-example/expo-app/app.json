@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Togglekit Demo",
-    "slug": "togglekit-demo",
+    "name": "Featurekit Demo",
+    "slug": "featurekit-demo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

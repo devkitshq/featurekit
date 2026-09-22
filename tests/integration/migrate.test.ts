@@ -1,8 +1,8 @@
 /**
- * `togglekit/migrate` against a real Postgres.
+ * `featurekit/migrate` against a real Postgres.
  *
  * This entry point exists because the documented shape — migrate as a deploy
- * step, then roll nodes — was unfollowable for anyone who installed togglekit
+ * step, then roll nodes — was unfollowable for anyone who installed featurekit
  * from npm: the only implementation lived in `scripts/migrate.mjs`, and
  * `scripts/` is not published. So `autoMigrate: true` was a dependency's only
  * option, which is precisely the lock convoy the documentation argues against.
@@ -33,7 +33,7 @@ describe("migrate() prerequisites", () => {
   it(
     reason === null
       ? "container runtime is available; migration tests will run"
-      : `migration tests SKIPPED — ${reason}. Start a Docker daemon, or set TOGGLEKIT_REQUIRE_CONTAINERS=1 to fail instead`,
+      : `migration tests SKIPPED — ${reason}. Start a Docker daemon, or set FEATUREKIT_REQUIRE_CONTAINERS=1 to fail instead`,
     () => {
       if (reason !== null) announceSkip(reason);
       expect(true).toBe(true);
@@ -42,7 +42,7 @@ describe("migrate() prerequisites", () => {
 });
 
 /** Needs no container, so it runs everywhere — including a laptop with no Docker. */
-describe("togglekit/migrate configuration", () => {
+describe("featurekit/migrate configuration", () => {
   it("refuses to guess a database when none is configured", async () => {
     // Defaulting to localhost here would mean a deploy job with a missing
     // variable quietly migrating the wrong database, which is worse than a
@@ -58,7 +58,7 @@ describe("togglekit/migrate configuration", () => {
   });
 });
 
-describe.skipIf(reason !== null)("togglekit/migrate", () => {
+describe.skipIf(reason !== null)("featurekit/migrate", () => {
   let databaseUrl: string;
   let stop: () => Promise<void>;
   let db: Database;

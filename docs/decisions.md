@@ -104,7 +104,7 @@ Resolved by keeping `reason` as the actual outcome and adding
 `EvaluationDetail.unresolved?: UnresolvedRule[]`, which names every rule that
 was skipped and which segment could not be verified. `POST /v1/debug/evaluate`
 gets strictly more than §9.7 asks for, and
-`togglekit_sdk_segment_unresolved_total` counts off it. The array is allocated
+`featurekit_sdk_segment_unresolved_total` counts off it. The array is allocated
 lazily, so a clean evaluation allocates none.
 
 ## 6. Fallthrough rollouts that cannot bucket serve the caller's default
@@ -117,7 +117,7 @@ left to continue to.
 Chosen: the caller's default with `reason: ERROR / MALFORMED_CONTEXT`. Serving
 the off variation would report a flag as off when it is on; serving variation 0
 is precisely the silent skew §9.3 exists to prevent. The default is the honest
-backstop, and `ERROR` makes `togglekit_sdk_default_served_total` — "the alert
+backstop, and `ERROR` makes `featurekit_sdk_default_served_total` — "the alert
 that matters" (§15) — rise so someone notices.
 
 ## 7. An off prerequisite always fails, whatever its off variation is
@@ -275,19 +275,19 @@ version and asserts the SDK keeps what it holds.
 
 ## 19. Four packages became two
 
-`plan.md` §5 lays out a package per surface — `@togglekit/sdk`,
-`@togglekit/browser`, `@togglekit/react`, and `@togglekit/edge`,
-`@togglekit/openfeature`, `@togglekit/cli`, `@togglekit/mcp` to follow. What
+`plan.md` §5 lays out a package per surface — `@featurekit/sdk`,
+`@featurekit/browser`, `@featurekit/react`, and `@featurekit/edge`,
+`@featurekit/openfeature`, `@featurekit/cli`, `@featurekit/mcp` to follow. What
 ships is two:
 
 | | what it is | dependencies |
 | :-- | :-- | :-- |
-| `togglekit` | the control plane, and the server-tier evaluator inside it | drizzle, postgres, ioredis, pino, prom-client, zod |
-| `togglekit-client` | the client tier, one entry: browsers, React Native, Node, edge, and any backend that would rather ask than evaluate. No framework bindings. | none |
+| `featurekit` | the control plane, and the server-tier evaluator inside it | drizzle, postgres, ioredis, pino, prom-client, zod |
+| `featurekit-client` | the client tier, one entry: browsers, React Native, Node, edge, and any backend that would rather ask than evaluate. No framework bindings. | none |
 
 Three changes are folded into that.
 
-**`@togglekit/sdk` merged into `togglekit`** as `src/sdk/`. The plan kept them
+**`@featurekit/sdk` merged into `featurekit`** as `src/sdk/`. The plan kept them
 apart so that a service installing the evaluator did not acquire the control
 plane's dependency tree — a real property, and the reason `tools/check-package.mjs`
 exists. It survives here as an asserted boundary rather than a free one: nothing
@@ -295,11 +295,11 @@ under `src/sdk/` may import from the rest of `src/`, and nothing there may impor
 a runtime dependency. Both are checked statically, and
 `tests/evaluation/purity.test.ts` checks the evaluation core separately. What is
 genuinely lost is the *packaging* guarantee — a service that installs
-`togglekit` to evaluate a flag now does acquire a postgres driver. That is
-accepted because the expected shape is a backend using `togglekit-client`, or
+`featurekit` to evaluate a flag now does acquire a postgres driver. That is
+accepted because the expected shape is a backend using `featurekit-client`, or
 running the control plane, and neither is harmed by it.
 
-**`@togglekit/browser` and `@togglekit/react` collapsed into one entry
+**`@featurekit/browser` and `@featurekit/react` collapsed into one entry
 point.** "Browser" was never the boundary: the same code runs in React Native,
 Node, Deno and an edge runtime, and the name implied a portability limit that
 does not exist. The React bindings are gone entirely rather than moved to a
@@ -309,24 +309,24 @@ somebody else's release schedule, with every framework we have not packaged
 told to wait. [Framework adapters](client-tier/adapters.md) publishes the
 twenty lines for React, Vue and Svelte instead, to be copied and owned.
 
-**`togglekit/secure-mode` is a second entry point on the server package.**
+**`featurekit/secure-mode` is a second entry point on the server package.**
 Secure mode is mandatory in production and the signature must be minted by the
 customer's own backend, but neither `signContext` nor `contextHash` was
 exported — so every integrator reimplemented an HMAC over an undocumented
 string and a sorted-key canonicalisation by hand, discovering any mistake as a
 401 at the moment secure mode was switched on. It is a separate entry because
-`togglekit`'s main entry is the control plane: a service whose only job is
+`featurekit`'s main entry is the control plane: a service whose only job is
 signing a string should not load Drizzle, Postgres and Redis to do it. The
 closure is asserted dependency-free by `tools/check-package.mjs`.
 
-**The other packages are not planned.** No `@togglekit/edge`, no Swift or
+**The other packages are not planned.** No `@featurekit/edge`, no Swift or
 Kotlin SDK. The client tier is two HTTP endpoints and a JSON body, documented
 in [the client tier over plain HTTP](client-tier/http.md) with a working
 thirty-line implementation. A contract any language can implement in an
 afternoon is a better guarantee than a client library that gets updated when
 somebody remembers to.
 
-The one hazard this creates is worth stating plainly: `togglekit-client` holds
+The one hazard this creates is worth stating plainly: `featurekit-client` holds
 one identity per instance, so a backend that shares an instance across
 concurrent requests will serve one user's flags to another. See
 [the client SDK](client-tier/client-sdk.md#one-instance-one-identity).
@@ -343,7 +343,7 @@ Summary of remaining items:
 - **Rate limiting per SDK key** (§16) — the Redis key is mapped, the middleware
   is not written.
 - **`/health` `/live` `/ready` `/metrics`**, including the partition-runway
-  readiness check. `togglekit_partition_runway_days()` exists in SQL; nothing
+  readiness check. `featurekit_partition_runway_days()` exists in SQL; nothing
   calls it yet.
 - **`SegmentCacheProvider` Redis implementation.** The interface, the LRU, and
   the fail-closed semantics are done and tested; the Redis-backed provider is

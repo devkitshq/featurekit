@@ -1,6 +1,6 @@
 /**
- * Togglekit Live Website Client
- * Connects to Togglekit Server via SSE for real-time 4 flag updates.
+ * Featurekit Live Website Client
+ * Connects to Featurekit Server via SSE for real-time 4 flag updates.
  */
 
 // DOM Elements
@@ -40,7 +40,7 @@ async function init() {
   try {
     const configRes = await fetch("/api/config");
     const { clientKey, baseUrl } = await configRes.json();
-    console.log("[Togglekit] Client configured with key:", clientKey, "baseUrl:", baseUrl);
+    console.log("[Featurekit] Client configured with key:", clientKey, "baseUrl:", baseUrl);
 
     // Initial evaluation for the visitor context
     const context = { kind: "user", key: "demo-visitor-" + Math.random().toString(36).slice(2, 8) };
@@ -65,7 +65,7 @@ async function init() {
     connectSse(baseUrl, clientKey, context);
 
   } catch (err) {
-    console.error("[Togglekit] Failed to initialize:", err);
+    console.error("[Featurekit] Failed to initialize:", err);
     connStatus.setAttribute("data-state", "offline");
     connText.textContent = "Offline";
   }
@@ -81,13 +81,13 @@ function connectSse(baseUrl, clientKey, context) {
   sse.onopen = () => {
     connStatus.setAttribute("data-state", "ready");
     connText.textContent = "● LIVE SSE";
-    console.log("[Togglekit SSE] Connected to stream!");
+    console.log("[Featurekit SSE] Connected to stream!");
   };
 
   sse.addEventListener("patch", (e) => {
     try {
       const patch = JSON.parse(e.data);
-      console.log("[Togglekit SSE] Push patch received:", patch);
+      console.log("[Featurekit SSE] Push patch received:", patch);
 
       // Update current values from patch
       if (patch.updated) {
@@ -100,7 +100,7 @@ function connectSse(baseUrl, clientKey, context) {
       updateUI(currentValues);
       logEvent(patch);
     } catch (err) {
-      console.error("[Togglekit SSE] Error parsing patch:", err);
+      console.error("[Featurekit SSE] Error parsing patch:", err);
     }
   });
 
@@ -129,7 +129,7 @@ function updateUI(values) {
   }
 
   // 2. Text (String Flag: "headline-text")
-  const stringVal = values["headline-text"] ?? "Togglekit Live Demo";
+  const stringVal = values["headline-text"] ?? "Featurekit Live Demo";
   heroHeadline.textContent = stringVal;
   textValue.textContent = stringVal;
 

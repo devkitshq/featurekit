@@ -12,7 +12,7 @@
  * because a silently skipped integration suite is indistinguishable from a
  * passing one and that is how schema regressions ship.
  *
- * Set `TOGGLEKIT_REQUIRE_CONTAINERS=1` in CI to turn a skip into a failure.
+ * Set `FEATUREKIT_REQUIRE_CONTAINERS=1` in CI to turn a skip into a failure.
  */
 
 import type { StartedTestContainer } from "testcontainers";
@@ -30,10 +30,10 @@ export async function containerUnavailableReason(): Promise<string | null> {
   if (probed !== undefined) return probed;
 
   if (
-    process.env["TOGGLEKIT_SKIP_CONTAINERS"] === "1" ||
-    process.env["TOGGLEKIT_SKIP_CONTAINERS"] === "1"
+    process.env["FEATUREKIT_SKIP_CONTAINERS"] === "1" ||
+    process.env["FEATUREKIT_SKIP_CONTAINERS"] === "1"
   ) {
-    probed = "TOGGLEKIT_SKIP_CONTAINERS=1";
+    probed = "FEATUREKIT_SKIP_CONTAINERS=1";
     return probed;
   }
   try {
@@ -67,11 +67,11 @@ export function announceSkip(reason: string): void {
   if (announced) return;
   announced = true;
   const required =
-    process.env["TOGGLEKIT_REQUIRE_CONTAINERS"] === "1" ||
-    process.env["TOGGLEKIT_REQUIRE_CONTAINERS"] === "1";
+    process.env["FEATUREKIT_REQUIRE_CONTAINERS"] === "1" ||
+    process.env["FEATUREKIT_REQUIRE_CONTAINERS"] === "1";
   const message =
-    `\n  togglekit: integration tests SKIPPED — ${reason}.\n` +
-    `  Start a Docker daemon to run them, or set TOGGLEKIT_REQUIRE_CONTAINERS=1 to fail instead.\n`;
+    `\n  featurekit: integration tests SKIPPED — ${reason}.\n` +
+    `  Start a Docker daemon to run them, or set FEATUREKIT_REQUIRE_CONTAINERS=1 to fail instead.\n`;
   if (required) throw new Error(message);
   // eslint-disable-next-line no-console
   console.warn(message);
@@ -84,9 +84,9 @@ export async function startInfrastructure(): Promise<IntegrationContext> {
 
   const postgres = await new GenericContainer("postgres:16-alpine")
     .withEnvironment({
-      POSTGRES_USER: "togglekit",
-      POSTGRES_PASSWORD: "togglekit",
-      POSTGRES_DB: "togglekit",
+      POSTGRES_USER: "featurekit",
+      POSTGRES_PASSWORD: "featurekit",
+      POSTGRES_DB: "featurekit",
     })
     .withExposedPorts(5432)
     .withWaitStrategy(Wait.forLogMessage(/database system is ready to accept connections/, 2))
@@ -100,7 +100,7 @@ export async function startInfrastructure(): Promise<IntegrationContext> {
   started.push(redis);
 
   return {
-    databaseUrl: `postgres://togglekit:togglekit@${postgres.getHost()}:${postgres.getMappedPort(5432)}/togglekit`,
+    databaseUrl: `postgres://featurekit:featurekit@${postgres.getHost()}:${postgres.getMappedPort(5432)}/featurekit`,
     redisUrl: `redis://${redis.getHost()}:${redis.getMappedPort(6379)}`,
     stop: async () => {
       await Promise.all(started.map((c) => c.stop()));

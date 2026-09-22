@@ -8,7 +8,7 @@
  * if a real transaction rolls both back.
  *
  * Container-gated like the rest of `tests/integration`. In CI,
- * `TOGGLEKIT_REQUIRE_CONTAINERS=1` turns a skip into a failure — a skipped
+ * `FEATUREKIT_REQUIRE_CONTAINERS=1` turns a skip into a failure — a skipped
  * authorization suite is indistinguishable from a passing one, which is how an
  * IDOR ships.
  */
@@ -147,7 +147,7 @@ describe.skipIf(reason !== null)("management API", () => {
   /* ── authentication ──────────────────────────────────────────────── */
 
   it("refuses an unknown token, indistinguishably from an expired one", async () => {
-    const unknown = await call("/v1/admin/projects", {}, "tk_pat_definitely-not-real");
+    const unknown = await call("/v1/admin/projects", {}, "fk_pat_definitely-not-real");
     expect(unknown.status).toBe(401);
     expect(((await unknown.json()) as { error: string }).error).toBe("TOKEN_REJECTED");
   });
@@ -401,7 +401,7 @@ describe.skipIf(reason !== null)("management API", () => {
       body: JSON.stringify({ kind: "server", name: "ci" }),
     });
     const { key, id } = (await created.json()) as { key: string; id: string };
-    expect(key.startsWith("tk_srv_")).toBe(true);
+    expect(key.startsWith("fk_srv_")).toBe(true);
 
     const listed = (await (
       await call("/v1/admin/projects/tenant-keys/environments/production/keys")

@@ -13,9 +13,9 @@ import { signContext, verifyContext } from "../../src/auth/secure-mode.js";
 
 describe("SDK key generation (§7.2)", () => {
   it("prefixes by tier, so a misused key is obvious in a log", () => {
-    expect(generateSdkKey("server")).toMatch(/^tk_srv_/);
-    expect(generateSdkKey("client")).toMatch(/^tk_clt_/);
-    expect(generateSdkKey("mobile")).toMatch(/^tk_mob_/);
+    expect(generateSdkKey("server")).toMatch(/^fk_srv_/);
+    expect(generateSdkKey("client")).toMatch(/^fk_clt_/);
+    expect(generateSdkKey("mobile")).toMatch(/^fk_mob_/);
   });
 
   it("carries 256 bits of entropy and never repeats", () => {
@@ -128,7 +128,7 @@ describe("checkKey", () => {
 
 describe("access tokens", () => {
   it("are distinguishable from SDK keys", () => {
-    expect(generateAccessToken()).toMatch(/^tk_pat_/);
+    expect(generateAccessToken()).toMatch(/^fk_pat_/);
     expect(claimedKind(generateAccessToken())).toBeNull();
   });
 });

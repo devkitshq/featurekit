@@ -5,7 +5,7 @@ export default defineConfig({
   out: "./drizzle",
   dialect: "postgresql",
   dbCredentials: {
-    url: process.env["DATABASE_URL"] ?? "postgres://togglekit:togglekit@localhost:5432/togglekit",
+    url: process.env["DATABASE_URL"] ?? "postgres://featurekit:featurekit@localhost:5432/featurekit",
   },
   // `evaluation_summaries` is created by a hand-written partitioned migration
   // (§7.9); drizzle-kit cannot emit `PARTITION BY` and would generate a plain
