@@ -1,6 +1,6 @@
 {
-  "name": "@togglekit/server",
-  "version": "0.1.4",
+  "name": "togglekit",
+  "version": "0.1.0",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -80,5 +80,8 @@
     "feature-toggles",
     "togglekit",
     "experimentation"
-  ]
+  ],
+  "bin": {
+    "togglekit": "./dist/main.js"
+  }
 }
