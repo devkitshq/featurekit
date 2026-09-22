@@ -12,3 +12,4 @@ __pycache__/
 examples/**/.demo.json
 examples/**/.snapshot.json
 .agents
+*.tgz
