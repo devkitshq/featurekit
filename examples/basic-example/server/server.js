@@ -78,10 +78,11 @@ try {
             WHERE flag_id = ${flagId} AND environment_id = ${envId}`
       );
 
-      // Notify the snapshot service to immediately recompile and broadcast SSE patch!
-      server.app.snapshots.notifyChange(envId, flagKey);
       results[flagKey] = { name: nextVar.name, value: nextVar.value };
     }
+
+    // Immediately recompile snapshot & broadcast SSE push event to all connected web & mobile clients!
+    await server.app.snapshots.notifyChangeImmediate(envId);
 
     return results;
   }

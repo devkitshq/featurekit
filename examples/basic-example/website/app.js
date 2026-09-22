@@ -35,6 +35,14 @@ const eventsCount = document.getElementById("events-count");
 let eventCount = 0;
 let currentValues = {};
 
+// Helper to extract primitive value from evaluated client value { value, variationIndex, reason }
+function unwrap(val) {
+  if (val !== null && typeof val === "object" && "value" in val) {
+    return val.value;
+  }
+  return val;
+}
+
 // 1. Fetch config from server host
 async function init() {
   try {
@@ -60,7 +68,7 @@ async function init() {
       currentValues = stateData.values ?? {};
       updateUI(currentValues);
 
-      // Connect real-time SSE stream using the connectionId from state
+      // Connect real-time SSE stream with connectionId and clientKey
       if (stateData.connectionId) {
         connectSse(baseUrl, clientKey, stateData.connectionId, context);
       }
@@ -89,7 +97,7 @@ function connectSse(baseUrl, clientKey, connectionId, context) {
   sse.addEventListener("values", (e) => {
     try {
       const payload = JSON.parse(e.data);
-      console.log("[Featurekit SSE] Push event received:", payload);
+      console.log("[Featurekit SSE] Values event received:", payload);
 
       if (payload.values) {
         Object.assign(currentValues, payload.values);
@@ -102,7 +110,7 @@ function connectSse(baseUrl, clientKey, connectionId, context) {
     }
   });
 
-  // Fallback for generic patch/message events
+  // Fallback for patch/message
   sse.addEventListener("patch", (e) => {
     try {
       const patch = JSON.parse(e.data);
@@ -124,9 +132,10 @@ function connectSse(baseUrl, clientKey, connectionId, context) {
 }
 
 // 3. Update DOM with live flag values
-function updateUI(values) {
+function updateUI(rawValues) {
   // 1. Toggle (Boolean Flag: "feature-toggle")
-  const isToggleOn = Boolean(values["feature-toggle"]);
+  const toggleVal = unwrap(rawValues["feature-toggle"]);
+  const isToggleOn = Boolean(toggleVal);
   if (isToggleOn) {
     switchMock.classList.add("is-on");
     toggleStateText.textContent = "ON";
@@ -142,16 +151,16 @@ function updateUI(values) {
   }
 
   // 2. Text (String Flag: "headline-text")
-  const stringVal = values["headline-text"] ?? "Featurekit Live Demo";
+  const stringVal = unwrap(rawValues["headline-text"]) ?? "Featurekit Live Demo";
   heroHeadline.textContent = stringVal;
   textValue.textContent = stringVal;
 
   // 3. Number (Number Flag: "discount-number")
-  const numVal = values["discount-number"] ?? 0;
+  const numVal = unwrap(rawValues["discount-number"]) ?? 0;
   numberValue.textContent = String(numVal);
 
   // 4. JSON (Object Flag: "theme-config")
-  const jsonVal = values["theme-config"] ?? { theme: "indigo", accentColor: "#6366f1", badge: "DEFAULT" };
+  const jsonVal = unwrap(rawValues["theme-config"]) ?? { theme: "indigo", accentColor: "#6366f1", badge: "DEFAULT" };
   jsonValue.textContent = JSON.stringify(jsonVal, null, 2);
 
   if (typeof jsonVal === "object" && jsonVal !== null) {
