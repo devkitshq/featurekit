@@ -9,6 +9,6 @@
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2",
-    "featurekit-server": "^0.1.0"
+    "featurekit-server": "^0.1.1"
   }
 }
