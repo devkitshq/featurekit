@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Togglekit — Live 4 Flag Types Demo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <!-- Top Navigation -->
+      <header class="navbar">
+        <div class="brand">
+          <div class="brand-badge">TK</div>
+          <div>
+            <div class="brand-title">Togglekit</div>
+            <div class="brand-subtitle">Real-Time Feature Flags</div>
+          </div>
+        </div>
+
+        <div class="nav-actions">
+          <div class="status-pill" id="conn-status" data-state="connecting">
+            <span class="pulse-dot"></span>
+            <span id="conn-text">Connecting SSE…</span>
+          </div>
+          <button id="btn-swap" class="btn btn-primary">
+            <span class="btn-icon">⚡</span>
+            <span>Swap Flags on Server</span>
+          </button>
+          <a id="btn-admin" href="http://127.0.0.1:3000/admin" target="_blank" class="btn btn-secondary">
+            <span>Admin Panel</span>
+            <span class="btn-icon">↗</span>
+          </a>
+        </div>
+      </header>
+
+      <!-- Main Container -->
+      <main class="main-content">
+        <!-- Hero Section -->
+        <section class="hero-section">
+          <div class="hero-badge">LIVE DEMO • 4 CORE FLAG TYPES</div>
+          <h1 id="hero-headline" class="hero-title">Connecting to Togglekit Server…</h1>
+          <p class="hero-desc">
+            Both this website and the Expo mobile app listen to real-time SSE push updates from the Togglekit Control Plane. 
+            Click <strong>Swap Flags on Server</strong> to watch values change instantly with zero reload!
+          </p>
+        </section>
+
+        <!-- Dynamic Conditional Promo Banner (Controlled by Toggle Flag) -->
+        <div id="promo-banner" class="promo-banner is-hidden">
+          <div class="promo-content">
+            <span class="promo-icon">🎁</span>
+            <span class="promo-text"><strong>SPECIAL FEATURE MODE ACTIVATED:</strong> <code>feature-toggle</code> is currently <strong>TRUE</strong>!</span>
+          </div>
+          <span class="promo-tag">BOOLEAN FLAG ON</span>
+        </div>
+
+        <!-- 4 Flag Cards Grid -->
+        <div class="cards-grid">
+          <!-- 1. TOGGLE (BOOLEAN) -->
+          <div class="flag-card" id="card-toggle">
+            <div class="card-header">
+              <div class="card-type-tag tag-boolean">BOOLEAN</div>
+              <div class="flag-key"><code>feature-toggle</code></div>
+            </div>
+            <h3 class="card-title">1. Feature Toggle</h3>
+            <p class="card-desc">Controls live feature availability & promo banner visibility.</p>
+            
+            <div class="card-body">
+              <div class="toggle-display">
+                <div class="toggle-switch-mock" id="switch-mock">
+                  <div class="toggle-thumb"></div>
+                </div>
+                <div class="toggle-status">
+                  <div class="toggle-state-text" id="toggle-state-text">OFF</div>
+                  <div class="toggle-sub">Evaluated value: <code id="toggle-value">false</code></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. TEXT (STRING) -->
+          <div class="flag-card" id="card-text">
+            <div class="card-header">
+              <div class="card-type-tag tag-string">STRING</div>
+              <div class="flag-key"><code>headline-text</code></div>
+            </div>
+            <h3 class="card-title">2. Headline Text</h3>
+            <p class="card-desc">Dynamic string copy rendered live in page headlines.</p>
+            
+            <div class="card-body">
+              <div class="string-display-box">
+                <div class="quote-mark">“</div>
+                <div class="string-value" id="text-value">Loading text…</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. NUMBER (NUMBER) -->
+          <div class="flag-card" id="card-number">
+            <div class="card-header">
+              <div class="card-type-tag tag-number">NUMBER</div>
+              <div class="flag-key"><code>discount-number</code></div>
+            </div>
+            <h3 class="card-title">3. Discount Percentage</h3>
+            <p class="card-desc">Numeric discount rate applied across checkout cards.</p>
+            
+            <div class="card-body">
+              <div class="number-display-box">
+                <div class="number-circle">
+                  <span id="number-value">0</span>
+                  <span class="number-unit">%</span>
+                </div>
+                <div class="number-detail">
+                  <div class="number-label">Active Discount Rate</div>
+                  <div class="number-sub">Calculated as numeric rate</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. JSON (OBJECT) -->
+          <div class="flag-card" id="card-json">
+            <div class="card-header">
+              <div class="card-type-tag tag-json">JSON OBJECT</div>
+              <div class="flag-key"><code>theme-config</code></div>
+            </div>
+            <h3 class="card-title">4. Theme & UI Config</h3>
+            <p class="card-desc">Dynamic object payload powering real-time card theming.</p>
+            
+            <div class="card-body">
+              <!-- Live Styled Box by the JSON payload -->
+              <div id="dynamic-theme-box" class="theme-preview-box">
+                <div class="theme-badge" id="theme-badge">PRO EDITION</div>
+                <div class="theme-text">Dynamic Theme Preview</div>
+                <div class="theme-meta" id="theme-meta">Accent Color: #6366f1</div>
+              </div>
+
+              <!-- JSON Viewer -->
+              <div class="json-code-container">
+                <div class="json-header">Raw JSON Payload</div>
+                <pre class="json-code" id="json-value">{ ... }</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Real-Time SSE Event Log -->
+        <section class="events-section">
+          <div class="events-header">
+            <div class="events-title">
+              <span class="pulse-dot-mini"></span>
+              <span>Real-Time SSE Broadcast Log</span>
+            </div>
+            <div class="events-count" id="events-count">0 events received</div>
+          </div>
+          <div class="events-list" id="events-log">
+            <div class="empty-log">Listening for SSE patch frames from Togglekit server…</div>
+          </div>
+        </section>
+      </main>
+
+      <!-- Footer -->
+      <footer class="footer">
+        <p>Togglekit Control Plane • Connected to <code>http://127.0.0.1:3000</code></p>
+      </footer>
+    </div>
+
+    <!-- Togglekit Client Application Script -->
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

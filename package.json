@@ -43,8 +43,7 @@
     "build": "tsc -b && npm run build:dashboard",
     "typecheck": "tsc -b --force",
     "bench": "npm run build && node tools/bench.mjs",
-    "demo": "node examples/server/server.js",
-    "demo:lan": "node examples/server/lan.js",
+    "demo": "node examples/basic-example/server/server.js",
     "start": "node dist/main.js",
     "dev": "node --watch dist/main.js",
     "migrate": "node scripts/migrate.mjs",
@@ -54,7 +53,8 @@
     "admin:user": "node scripts/admin-user.mjs",
     "build:dashboard": "npm run build --workspace=@togglekit/dashboard",
     "dashboard:dev": "npm run dev --workspace=@togglekit/dashboard",
-    "typecheck:dashboard": "npm run typecheck --workspace=@togglekit/dashboard"
+    "typecheck:dashboard": "npm run typecheck --workspace=@togglekit/dashboard",
+    "demo:swap": "node examples/basic-example/server/swap.js"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.1",
