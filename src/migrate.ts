@@ -102,11 +102,7 @@ export async function migrate(options: MigrateOptions = {}): Promise<void> {
     try {
       await runMigrations(db, options.migrationsFolder ?? join(PACKAGE_ROOT, "drizzle"));
       const premake = options.partitionPremakeDays ?? DEFAULT_PARTITION_PREMAKE_DAYS;
-      try {
-        await db.execute(sql`select togglekit_ensure_partitions(${premake})`);
-      } catch {
-        await db.execute(sql`select togglekit_ensure_partitions(${premake})`);
-      }
+      await db.execute(sql`select togglekit_ensure_partitions(${premake})`);
       log("migrations applied");
     } finally {
       await db.execute(sql`select pg_advisory_unlock(${MIGRATION_LOCK}::bigint)`);
@@ -140,11 +136,7 @@ export async function migrationStatus(options: MigrateOptions = {}): Promise<Mig
     let partitionRunwayDays: number | null = null;
     try {
       let runway: unknown;
-      try {
-        runway = await db.execute(sql`select togglekit_partition_runway_days() as days`);
-      } catch {
-        runway = await db.execute(sql`select togglekit_partition_runway_days() as days`);
-      }
+      runway = await db.execute(sql`select togglekit_partition_runway_days() as days`);
       const days = (runway as unknown as Array<{ days?: unknown }>)[0]?.days;
       partitionRunwayDays = typeof days === "number" ? days : null;
     } catch {

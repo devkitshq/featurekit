@@ -96,16 +96,9 @@ export async function pingDatabase(db: Database): Promise<void> {
  */
 export async function partitionRunwayDays(db: Database): Promise<number> {
   try {
-    let result: Array<{ days: number | string | null }>;
-    try {
-      result = (await db.execute(
-        sql`select togglekit_partition_runway_days() as days`,
-      )) as unknown as Array<{ days: number | string | null }>;
-    } catch {
-      result = (await db.execute(
-        sql`select togglekit_partition_runway_days() as days`,
-      )) as unknown as Array<{ days: number | string | null }>;
-    }
+    const result = (await db.execute(
+      sql`select togglekit_partition_runway_days() as days`,
+    )) as unknown as Array<{ days: number | string | null }>;
     const raw = result[0]?.days;
     if (raw === null || raw === undefined) return -1;
     const days = typeof raw === "string" ? Number.parseInt(raw, 10) : raw;

@@ -11,3 +11,4 @@ __pycache__/
 # demo scratch
 examples/**/.demo.json
 examples/**/.snapshot.json
+.agents

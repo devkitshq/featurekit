@@ -155,12 +155,6 @@ END
 $$;
 --> statement-breakpoint
 
-CREATE OR REPLACE FUNCTION togglekit_ensure_partitions(days_ahead integer DEFAULT 7)
-RETURNS integer LANGUAGE sql AS $$
-	SELECT togglekit_ensure_partitions(days_ahead);
-$$;
---> statement-breakpoint
-
 -- How many days of partition runway remain. The application's ONE contribution
 -- to partition lifecycle: fail readiness loudly when this drops below two, so a
 -- silent misconfiguration becomes a page instead of an outage at midnight.
@@ -178,12 +172,6 @@ RETURNS integer LANGUAGE sql STABLE AS $$
 	JOIN pg_class p ON p.oid = i.inhparent
 	WHERE p.relname = 'evaluation_summaries'
 	  AND c.relname ~ '\d{8}$';
-$$;
---> statement-breakpoint
-
-CREATE OR REPLACE FUNCTION togglekit_partition_runway_days()
-RETURNS integer LANGUAGE sql STABLE AS $$
-	SELECT togglekit_partition_runway_days();
 $$;
 --> statement-breakpoint
 
