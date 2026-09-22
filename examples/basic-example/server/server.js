@@ -1,4 +1,4 @@
-import { FeaturekitServer } from "featurekit";
+import { FeaturekitServer } from "featurekit-server";
 import { sql } from "drizzle-orm";
 import flags, { project, environment } from "./flags.js";
 

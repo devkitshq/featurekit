@@ -3,7 +3,7 @@
 `src/sdk/client/sdk.ts` · §11.2, §14
 
 ```ts
-import { FeaturekitSDK } from "featurekit";
+import { FeaturekitSDK } from "featurekit-server";
 
 const fk = new FeaturekitSDK({
   sdkKey: process.env.FEATUREKIT_SDK_KEY!,

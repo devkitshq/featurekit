@@ -2,7 +2,7 @@
  * `featurekit` — the server-side package: the control plane, and the evaluator.
  *
  * ```ts
- * import { FeaturekitServer } from "featurekit";
+ * import { FeaturekitServer } from "featurekit-server";
  *
  * const server = new FeaturekitServer({ services: ["all"], port: 3000 });
  * await server.start();

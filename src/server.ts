@@ -2,7 +2,7 @@
  * `FeaturekitServer` — the control plane as an object you construct (§11.1).
  *
  * ```ts
- * import { FeaturekitServer } from "featurekit";
+ * import { FeaturekitServer } from "featurekit-server";
  *
  * const server = new FeaturekitServer({ services: ["all"], port: 3000 });
  * await server.start();   // dev: Postgres + Redis start automatically

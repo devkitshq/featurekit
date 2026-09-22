@@ -1,10 +1,28 @@
 # Featurekit Basic Example Server
 
-Runs the **Featurekit Control Plane** with 4 core flag types provisioned:
+Demonstrates the **`featurekit-server`** package running an embedded Control Plane with 4 provisioned core flag types:
+
 1. **Toggle (Boolean)**: `feature-toggle`
 2. **Text (String)**: `headline-text`
 3. **Number (Number)**: `discount-number`
 4. **JSON (Object)**: `theme-config`
+
+## Code Example
+
+```javascript
+import { FeaturekitServer } from "featurekit-server";
+import flags from "./flags.js";
+
+const server = new FeaturekitServer({
+  services: ["all"],
+  port: 3000,
+  host: "127.0.0.1",
+  flags,
+  app: { dir: new URL("../website", import.meta.url), port: 4000 },
+});
+
+await server.start();
+```
 
 ## Quick Start
 

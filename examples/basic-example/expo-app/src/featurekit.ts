@@ -1,12 +1,14 @@
 /**
  * Featurekit Mobile Client (React Native / Expo SSE Stream)
+ *
+ * Uses 'featurekit-client' to evaluate feature flags and subscribe to real-time updates.
  */
 
-export interface FeaturekitValues {
-  [key: string]: boolean | string | number | Record<string, any> | null;
-}
+import { FeaturekitClient, type FlagValue } from "featurekit-client";
 
-export interface FeaturekitClientOptions {
+export type FeaturekitValues = Record<string, FlagValue>;
+
+export interface FeaturekitMobileClientOptions {
   baseUrl: string;
   clientKey: string;
   context: { kind: string; key: string; [attr: string]: any };
@@ -15,82 +17,66 @@ export interface FeaturekitClientOptions {
 }
 
 export class FeaturekitMobileClient {
-  private values: FeaturekitValues = {};
-  private abortController: AbortController | null = null;
-  private closed = false;
+  private client: FeaturekitClient;
+  private unsubscribeChange?: () => void;
+  private unsubscribeState?: () => void;
 
-  constructor(private readonly options: FeaturekitClientOptions) {}
+  constructor(private readonly options: FeaturekitMobileClientOptions) {
+    this.client = new FeaturekitClient({
+      baseUrl: options.baseUrl,
+      clientKey: options.clientKey,
+      initialContext: options.context,
+      onError: (err) => {
+        console.warn("[Featurekit Mobile] Error:", err);
+      },
+    });
 
-  async start(): Promise<void> {
-    this.closed = false;
-    await this.fetchInitialState();
-    this.startStreaming();
+    this.unsubscribeState = this.client.on("state", (state) => {
+      if (state === "ready") {
+        this.options.onStatus?.("live");
+      } else if (state === "offline") {
+        this.options.onStatus?.("offline");
+      } else {
+        this.options.onStatus?.("connecting");
+      }
+    });
+
+    this.unsubscribeChange = this.client.on("change", () => {
+      this.options.onValues(this.getAllValues());
+    });
   }
 
-  private async fetchInitialState(): Promise<void> {
+  async start(): Promise<void> {
+    this.options.onStatus?.("connecting");
     try {
-      this.options.onStatus?.("connecting");
-      const res = await fetch(`${this.options.baseUrl}/v1/client/state`, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "authorization": `Bearer ${this.options.clientKey}`,
-        },
-        body: JSON.stringify({ context: this.options.context }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        this.values = data.values ?? {};
-        this.options.onValues({ ...this.values });
-        this.options.onStatus?.("live");
-      }
-    } catch (err) {
-      console.warn("[Featurekit] Initial fetch failed, retrying in background:", err);
+      await this.client.identify(this.options.context);
+      this.options.onValues(this.getAllValues());
+      this.options.onStatus?.("live");
+    } catch {
       this.options.onStatus?.("offline");
     }
   }
 
-  private async startStreaming(): Promise<void> {
-    if (this.closed) return;
-
-    this.abortController = new AbortController();
-    const contextStr = encodeURIComponent(JSON.stringify(this.options.context));
-    const url = `${this.options.baseUrl}/v1/client/stream?clientKey=${encodeURIComponent(
-      this.options.clientKey
-    )}&context=${contextStr}`;
-
-    try {
-      const response = await fetch(url, {
-        headers: { "accept": "text/event-stream" },
-        signal: this.abortController.signal,
-      });
-
-      if (!response.ok || !response.body) {
-        throw new Error(`Stream connection rejected: ${response.status}`);
-      }
-
-      this.options.onStatus?.("live");
-
-      // Polling fallback for React Native environments where full fetch streaming reader is simulated
-      const interval = setInterval(async () => {
-        if (this.closed) {
-          clearInterval(interval);
-          return;
-        }
-        await this.fetchInitialState();
-      }, 2000);
-
-    } catch (err: any) {
-      if (!this.closed) {
-        this.options.onStatus?.("offline");
-        setTimeout(() => this.startStreaming(), 4000);
-      }
-    }
+  getAllValues(): FeaturekitValues {
+    const valObj: FeaturekitValues = {
+      "feature-toggle": this.client.get("feature-toggle", true),
+      "headline-text": this.client.get("headline-text", "🚀 Welcome to Featurekit Mobile Demo"),
+      "discount-number": this.client.get("discount-number", 25),
+      "theme-config": this.client.get("theme-config", {
+        theme: "indigo",
+        accentColor: "#6366f1",
+        badge: "PRO EDITION",
+        cardRadius: 16,
+      }),
+    };
+    return valObj;
   }
 
   close(): void {
-    this.closed = true;
-    this.abortController?.abort();
+    this.unsubscribeChange?.();
+    this.unsubscribeState?.();
+    this.client.close();
   }
 }
+
+export { FeaturekitClient };
