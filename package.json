@@ -37,24 +37,12 @@
     "node": ">=20"
   },
   "scripts": {
-    "test": "vitest run",
-    "conformance": "node tools/gen-conformance.mjs",
-    "test:watch": "vitest",
-    "build": "tsc -b && npm run build:dashboard",
+    "build": "tsc -b && npm run build --workspace=@togglekit/dashboard",
     "typecheck": "tsc -b --force",
-    "bench": "npm run build && node tools/bench.mjs",
-    "demo": "node examples/basic-example/server/server.js",
-    "start": "node dist/main.js",
+    "test": "vitest run",
     "dev": "node --watch dist/main.js",
-    "migrate": "node scripts/migrate.mjs",
-    "migrate:check": "node scripts/migrate.mjs --check",
-    "check:package": "node tools/check-package.mjs",
-    "conformance:python": "python conformance/python/run.py",
-    "admin:user": "node scripts/admin-user.mjs",
-    "build:dashboard": "npm run build --workspace=@togglekit/dashboard",
-    "dashboard:dev": "npm run dev --workspace=@togglekit/dashboard",
-    "typecheck:dashboard": "npm run typecheck --workspace=@togglekit/dashboard",
-    "demo:swap": "node examples/basic-example/server/swap.js"
+    "start": "node dist/main.js",
+    "migrate": "node scripts/migrate.mjs"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.1",
