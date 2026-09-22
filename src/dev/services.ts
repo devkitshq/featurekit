@@ -149,7 +149,7 @@ async function containerState(name: string): Promise<"running" | "stopped" | "ab
 
 /** A port nothing else on this machine is holding, starting at `preferred`. */
 async function freePort(preferred: number): Promise<number> {
-  for (let port = preferred; port < preferred + 200; port++) {
+  for (let port = preferred; port < Math.min(65535, preferred + 2000); port++) {
     const available = await new Promise<boolean>((resolve) => {
       const probe = createServer();
       probe.once("error", () => resolve(false));
@@ -158,7 +158,19 @@ async function freePort(preferred: number): Promise<number> {
     });
     if (available) return port;
   }
-  throw new DevServiceError(`no free port near ${preferred}`);
+  return new Promise<number>((resolve, reject) => {
+    const probe = createServer();
+    probe.once("error", reject);
+    probe.once("listening", () => {
+      const addr = probe.address();
+      const assignedPort = typeof addr === "object" && addr ? addr.port : null;
+      probe.close(() => {
+        if (assignedPort) resolve(assignedPort);
+        else reject(new DevServiceError(`no free port near ${preferred}`));
+      });
+    });
+    probe.listen(0, "127.0.0.1");
+  });
 }
 
 async function waitFor(
