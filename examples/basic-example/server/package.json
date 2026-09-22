@@ -1,0 +1,14 @@
+{
+  "name": "togglekit-basic-example-server",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "swap": "node swap.js"
+  },
+  "dependencies": {
+    "togglekit": "workspace:*",
+    "drizzle-orm": "^0.45.2"
+  }
+}
