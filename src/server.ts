@@ -1,3 +1,14 @@
+
+export function redact(url: string): string {
+  try {
+    const parsed = new URL(url);
+    if (parsed.password !== "") parsed.password = "***";
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
 /**
  * `FeaturekitServer` — the control plane as an object you construct (§11.1).
  *
@@ -31,8 +42,7 @@ import { ConfigError, loadConfig, type FeaturekitConfig } from "./config/index.j
 import { type Database } from "./db/client.js";
 import { createMember, findMemberByEmail, updateMember } from "./repositories/members.js";
 import { PasswordError } from "./auth/passwords.js";
-import { ensureDevPostgres, ensureDevRedis, redact } from "./dev/services.js";
-import { startAppHost, toPath, type AppHost } from "./dev/app-host.js";
+import { startAppHost, toPath, type AppHost } from "./http/app-host.js";
 import { migrate } from "./migrate.js";
 import { applyFlagFile, environmentOf, type FlagFile } from "./provisioning.js";
 import { createSdkKey, listSdkKeys } from "./repositories/catalog.js";
@@ -160,6 +170,8 @@ export class FeaturekitServer {
   #config: FeaturekitConfig | null = null;
   #starting: Promise<FeaturekitAddress> | null = null;
   #appHost: AppHost | null = null;
+  #pgContainer: any = null;
+  #redisContainer: any = null;
 
   constructor(private readonly options: FeaturekitServerOptions = {}) {}
 
@@ -222,20 +234,23 @@ export class FeaturekitServer {
     const redisExplicit =
       this.options.redisUrl !== undefined || process.env["REDIS_URL"] !== undefined;
 
-    let databaseUrl =
-      this.options.databaseUrl ??
-      process.env["DATABASE_URL"] ??
-      "postgres://featurekit:featurekit@127.0.0.1:5432/featurekit";
-    let redisUrl =
-      this.options.redisUrl ?? process.env["REDIS_URL"] ?? "redis://127.0.0.1:6379";
+    let databaseUrl = this.options.databaseUrl ?? process.env["DATABASE_URL"];
+    let redisUrl = this.options.redisUrl ?? process.env["REDIS_URL"];
 
     const wantsDevServices = this.options.devServices ?? !isProduction;
-    if (wantsDevServices && !isProduction) {
-      const label = this.options.label ?? "featurekit-dev";
-      databaseUrl = (
-        await ensureDevPostgres({ url: databaseUrl, explicit: databaseExplicit, label, log })
-      ).url;
-      redisUrl = (await ensureDevRedis({ url: redisUrl, explicit: redisExplicit, label, log })).url;
+
+    if (!redisUrl && wantsDevServices && !isProduction) {
+      log("No redisUrl provided, spinning up Redis container for development/testing...");
+      const { RedisContainer } = await import("@testcontainers/redis");
+      this.#redisContainer = await new RedisContainer("redis:alpine").start();
+      redisUrl = this.#redisContainer.getConnectionUrl();
+    }
+
+    if (!databaseUrl && wantsDevServices && !isProduction) {
+      log("No databaseUrl provided, spinning up PostgreSQL container for development/testing...");
+      const { PostgreSqlContainer } = await import("@testcontainers/postgresql");
+      this.#pgContainer = await new PostgreSqlContainer("postgres:16-alpine").start();
+      databaseUrl = this.#pgContainer.getConnectionUri();
     }
 
     /* configuration */
@@ -285,7 +300,7 @@ export class FeaturekitServer {
     /* migrations */
 
     if (this.options.autoMigrate ?? !isProduction) {
-      await this.#migrate(databaseUrl, log);
+      await this.#migrate(config.DATABASE_URL, log);
     }
 
     /* the system itself */
@@ -304,7 +319,7 @@ export class FeaturekitServer {
     this.#address = { ...bound, url: `http://${host}:${bound.port}` };
 
     if (!isProduction && this.options.devStateFile !== false) {
-      await this.#writeDevState({ databaseUrl, redisUrl }).catch(() => {
+      await this.#writeDevState({ databaseUrl: databaseUrl ?? config.DATABASE_URL, redisUrl: redisUrl ?? config.REDIS_URL }).catch(() => {
         // A demo that cannot write a scratch file should still serve flags.
         log("could not write the dev state file; scripts will need explicit URLs");
       });
@@ -555,6 +570,17 @@ export class FeaturekitServer {
     this.#address = null;
     this.#config = null;
     await app?.close();
+
+    if (this.#pgContainer) {
+      this.#logger()("Stopping PostgreSQL container...");
+      await this.#pgContainer.stop();
+      this.#pgContainer = null;
+    }
+    if (this.#redisContainer) {
+      this.#logger()("Stopping Redis container...");
+      await this.#redisContainer.stop();
+      this.#redisContainer = null;
+    }
   }
 
   #logger(): (message: string) => void {
