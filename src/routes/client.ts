@@ -106,7 +106,7 @@ interface Registered extends ClientConnection {
 
 function presentedKey(ctx: RequestContext): string {
   const header = ctx.header("authorization");
-  const fromQuery = ctx.query.get("key");
+  const fromQuery = ctx.query.get("key") ?? ctx.query.get("clientKey");
   const raw = header ?? fromQuery;
   if (raw === undefined || raw === null || raw.length === 0) {
     throw new HttpError(401, "MISSING_SDK_KEY", "a client key is required");

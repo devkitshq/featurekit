@@ -59,10 +59,12 @@ async function init() {
       const stateData = await stateRes.json();
       currentValues = stateData.values ?? {};
       updateUI(currentValues);
-    }
 
-    // Connect real-time SSE stream
-    connectSse(baseUrl, clientKey, context);
+      // Connect real-time SSE stream using the connectionId from state
+      if (stateData.connectionId) {
+        connectSse(baseUrl, clientKey, stateData.connectionId, context);
+      }
+    }
 
   } catch (err) {
     console.error("[Featurekit] Failed to initialize:", err);
@@ -72,9 +74,8 @@ async function init() {
 }
 
 // 2. Real-Time SSE Stream Listener
-function connectSse(baseUrl, clientKey, context) {
-  const contextEncoded = encodeURIComponent(JSON.stringify(context));
-  const streamUrl = `${baseUrl}/v1/client/stream?clientKey=${encodeURIComponent(clientKey)}&context=${contextEncoded}`;
+function connectSse(baseUrl, clientKey, connectionId, context) {
+  const streamUrl = `${baseUrl}/v1/client/stream?connection=${encodeURIComponent(connectionId)}&key=${encodeURIComponent(clientKey)}`;
 
   const sse = new EventSource(streamUrl);
 
@@ -84,21 +85,33 @@ function connectSse(baseUrl, clientKey, context) {
     console.log("[Featurekit SSE] Connected to stream!");
   };
 
-  sse.addEventListener("patch", (e) => {
+  // Featurekit streams updates on the "values" event
+  sse.addEventListener("values", (e) => {
     try {
-      const patch = JSON.parse(e.data);
-      console.log("[Featurekit SSE] Push patch received:", patch);
+      const payload = JSON.parse(e.data);
+      console.log("[Featurekit SSE] Push event received:", payload);
 
-      // Update current values from patch
-      if (patch.updated) {
-        Object.assign(currentValues, patch.updated);
-      }
-      if (patch.deleted) {
-        for (const k of patch.deleted) delete currentValues[k];
+      if (payload.values) {
+        Object.assign(currentValues, payload.values);
       }
 
       updateUI(currentValues);
-      logEvent(patch);
+      logEvent(payload.values ?? payload);
+    } catch (err) {
+      console.error("[Featurekit SSE] Error parsing values:", err);
+    }
+  });
+
+  // Fallback for generic patch/message events
+  sse.addEventListener("patch", (e) => {
+    try {
+      const patch = JSON.parse(e.data);
+      if (patch.updated) Object.assign(currentValues, patch.updated);
+      if (patch.deleted) {
+        for (const k of patch.deleted) delete currentValues[k];
+      }
+      updateUI(currentValues);
+      logEvent(patch.updated ?? patch);
     } catch (err) {
       console.error("[Featurekit SSE] Error parsing patch:", err);
     }
@@ -155,7 +168,7 @@ function updateUI(values) {
 }
 
 // 4. Log incoming SSE events
-function logEvent(patch) {
+function logEvent(updates) {
   eventCount++;
   eventsCount.textContent = `${eventCount} event${eventCount === 1 ? '' : 's'} received`;
 
@@ -166,7 +179,7 @@ function logEvent(patch) {
   const row = document.createElement("div");
   row.className = "event-row";
   const now = new Date().toLocaleTimeString();
-  const keys = patch.updated ? Object.keys(patch.updated).join(", ") : "flag update";
+  const keys = Object.keys(updates).join(", ") || "flag update";
 
   row.innerHTML = `
     <span class="event-time">${now}</span>
