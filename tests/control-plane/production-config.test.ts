@@ -3,7 +3,7 @@
  *
  * `loadConfig`'s `REQUIRED_IN_PRODUCTION` check has always been right, and for
  * `DATABASE_URL` and `REDIS_URL` it was **unreachable**. It tests
- * `env[key] === undefined`, and `FeatkitServer.start()` wrote both keys into
+ * `env[key] === undefined`, and `TogglekitServer.start()` wrote both keys into
  * that object unconditionally — holding the loopback defaults it had just
  * invented when nobody supplied any. So production configuration validation
  * passed on a deployment with no database configured at all.
@@ -18,24 +18,24 @@
  * `loadConfig` directly with an env object it built itself. The bug lived in
  * the one line between the two.
  *
- * These tests go through `FeatkitServer.start()` for exactly that reason.
+ * These tests go through `TogglekitServer.start()` for exactly that reason.
  * None of them can hang: configuration is validated before any connection is
  * opened, so a regression fails as a timeout rather than passing quietly.
  */
 
 import { afterEach, describe, expect, it } from "vitest";
 import { ConfigError } from "../../src/config/index.js";
-import { FeatkitServer } from "../../src/server.js";
+import { TogglekitServer } from "../../src/server.js";
 
-const started: FeatkitServer[] = [];
+const started: TogglekitServer[] = [];
 
 afterEach(async () => {
   for (const server of started.splice(0)) await server.stop().catch(() => undefined);
 });
 
 /** A production server with dev containers off, so nothing reaches for Docker. */
-function productionServer(options: Record<string, unknown> = {}): FeatkitServer {
-  const server = new FeatkitServer({
+function productionServer(options: Record<string, unknown> = {}): TogglekitServer {
+  const server = new TogglekitServer({
     nodeEnv: "production",
     logLevel: "silent",
     port: 0,

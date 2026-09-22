@@ -1,14 +1,14 @@
 /**
- * The FeatKit Browser Demo Application.
+ * The Togglekit Browser Demo Application.
  *
  * Demonstrates:
- * 1. Synchronous reads: `fk.get(...)`, `fk.get(...)`, `fk.get(...)` never await.
+ * 1. Synchronous reads: `tk.get(...)`, `tk.get(...)`, `tk.get(...)` never await.
  * 2. Instant persona switching: `identify()` drops previous values before network answers.
- * 3. Live push updates: SSE stream reacts in real-time to changes made in FeatKit Admin.
+ * 3. Live push updates: SSE stream reacts in real-time to changes made in Togglekit Admin.
  * 4. Zero rules leakage: Browser receives evaluated values and reasons, never targeting rules.
  */
 
-import { FeatkitClient } from "/sdk.js";
+import { TogglekitClient } from "/sdk.js";
 
 const PERSONAS = {
   ana: { key: "u-ana", name: "Ana", plan: "free", tenureMonths: 2 },
@@ -29,8 +29,8 @@ if ($("dash-footer-link")) $("dash-footer-link").href = adminUrl;
 
 let currentPersona = "ana";
 
-// Initialize FeatKit Browser SDK
-const fk = new FeatkitClient({
+// Initialize Togglekit Browser SDK
+const tk = new TogglekitClient({
   clientKey,
   baseUrl,
   context: PERSONAS[currentPersona],
@@ -39,8 +39,8 @@ const fk = new FeatkitClient({
 });
 
 // SDK Connection State listener
-fk.on("state", (state) => {
-  console.log(`[FeatKit SDK] Connection state changed: %c${state}`, "color: #3b82f6; font-weight: bold");
+tk.on("state", (state) => {
+  console.log(`[Togglekit SDK] Connection state changed: %c${state}`, "color: #3b82f6; font-weight: bold");
   const pill = $("state");
   pill.textContent = state;
   pill.dataset["state"] = state;
@@ -48,10 +48,10 @@ fk.on("state", (state) => {
 });
 
 // Real-time SSE changes listener
-fk.on("change", (changedKeys) => {
-  console.log(`%c[FeatKit SSE] Push received!%c Flags updated: ${changedKeys.join(", ")}`, "color: #10b981; font-weight: bold", "color: inherit");
+tk.on("change", (changedKeys) => {
+  console.log(`%c[Togglekit SSE] Push received!%c Flags updated: ${changedKeys.join(", ")}`, "color: #10b981; font-weight: bold", "color: inherit");
   for (const key of changedKeys) {
-    const detail = fk.detail(key);
+    const detail = tk.detail(key);
     console.log(`  └─ [${key}] =`, detail);
     log(`SSE Push: Flag '${key}' updated → ${JSON.stringify(detail?.value)}`, "change");
   }
@@ -59,8 +59,8 @@ fk.on("change", (changedKeys) => {
 });
 
 // Wait for initial evaluation
-await fk.ready();
-console.log(`[FeatKit SDK] Ready. Initial evaluated flags for ${PERSONAS[currentPersona].name}:`, fk.allValues());
+await tk.ready();
+console.log(`[Togglekit SDK] Ready. Initial evaluated flags for ${PERSONAS[currentPersona].name}:`, tk.allValues());
 log(`SDK ready for ${PERSONAS[currentPersona].name} (${PERSONAS[currentPersona].plan})`, "who");
 render();
 
@@ -71,7 +71,7 @@ $("persona").addEventListener("change", async (event) => {
   render();
   log(`Switching persona to ${PERSONAS[currentPersona].name} (${PERSONAS[currentPersona].plan})...`, "who");
   
-  await fk.identify(PERSONAS[currentPersona]);
+  await tk.identify(PERSONAS[currentPersona]);
   log(`Identified as ${PERSONAS[currentPersona].name}`, "who");
   render();
 });
@@ -83,9 +83,9 @@ $("clear-log-btn")?.addEventListener("click", () => {
 
 // Interactive Checkout Modal
 $("checkout-cta").addEventListener("click", () => {
-  const newCheckout = fk.get("new-checkout", false);
-  const discount = fk.get("loyalty-discount", 0);
-  const flow = fk.get("checkout-flow", "classic");
+  const newCheckout = tk.get("new-checkout", false);
+  const discount = tk.get("loyalty-discount", 0);
+  const flow = tk.get("checkout-flow", "classic");
   const price = 49.00;
   const finalPrice = discount > 0 ? (price * (1 - discount / 100)).toFixed(2) : price.toFixed(2);
 
@@ -117,10 +117,10 @@ $("checkout-cancel").addEventListener("click", () => {
 
 function render() {
   // 1. Synchronous Feature Flag Evaluations
-  const newCheckout = fk.get("new-checkout", false);
-  const discount = fk.get("loyalty-discount", 0);
-  const flow = fk.get("checkout-flow", "classic");
-  const promoBanner = fk.get("promo-banner", "");
+  const newCheckout = tk.get("new-checkout", false);
+  const discount = tk.get("loyalty-discount", 0);
+  const flow = tk.get("checkout-flow", "classic");
+  const promoBanner = tk.get("promo-banner", "");
 
   // 2. Promo Announcement Banner
   const promoBar = $("promo-bar");
@@ -163,7 +163,7 @@ function render() {
     <div class="pricing-note">
       ${discount > 0
         ? `Flag <code>loyalty-discount</code> evaluated to <strong>${discount}%</strong> based on your ${PERSONAS[currentPersona].plan} plan.`
-        : `Upgrade to Pro or Enterprise to unlock loyalty discounts via FeatKit.`}
+        : `Upgrade to Pro or Enterprise to unlock loyalty discounts via Togglekit.`}
     </div>
   `;
 
@@ -194,7 +194,7 @@ function render() {
   }
 
   // 6. "What this browser was told" Table
-  const allValues = fk.allValues();
+  const allValues = tk.allValues();
   const tableBody = document.querySelector("#values tbody");
   const keys = Object.keys(allValues).sort();
 

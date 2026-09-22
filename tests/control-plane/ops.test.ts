@@ -111,7 +111,7 @@ describe("GET /ready", () => {
   it("does not leak an exception message", async () => {
     const { base } = await serve({
       database: async () => {
-        throw new Error("postgres://user:hunter2@db/featkit refused");
+        throw new Error("postgres://user:hunter2@db/togglekit refused");
       },
     });
     const body = await (await fetch(`${base}/ready`)).text();
@@ -127,7 +127,7 @@ describe("GET /metrics", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toContain("text/plain");
     const body = await response.text();
-    expect(body).toContain("featkit_events_ingested_total 3");
+    expect(body).toContain("togglekit_events_ingested_total 3");
     expect(body.startsWith('"')).toBe(false);
   });
 
@@ -135,7 +135,7 @@ describe("GET /metrics", () => {
     const { base } = await serve({ runway: async () => 5 });
     await fetch(`${base}/ready`);
     expect(await (await fetch(`${base}/metrics`)).text()).toContain(
-      "featkit_partition_runway_days 5",
+      "togglekit_partition_runway_days 5",
     );
   });
 });
@@ -154,17 +154,17 @@ describe("metric cardinality", () => {
 describe("SDK version skew", () => {
   it("records a well-formed SDK user agent", () => {
     const metrics = new Metrics({ defaultMetrics: false });
-    metrics.recordSdkVersion("featkit-node/1.2.3");
-    metrics.recordSdkVersion("featkit-node/1.2.3");
-    metrics.recordSdkVersion("featkit-browser/0.9.0-beta.1");
+    metrics.recordSdkVersion("togglekit-node/1.2.3");
+    metrics.recordSdkVersion("togglekit-node/1.2.3");
+    metrics.recordSdkVersion("togglekit-browser/0.9.0-beta.1");
     // The question this answers during an incident: is it everyone, or only
     // the fleet still on the old version?
-    expect(parseSdkUserAgent("featkit-node/1.2.3")).toEqual({
-      sdk: "featkit-node",
+    expect(parseSdkUserAgent("togglekit-node/1.2.3")).toEqual({
+      sdk: "togglekit-node",
       version: "1.2.3",
     });
-    expect(parseSdkUserAgent("featurekit-node/1.2.3")).toEqual({
-      sdk: "featurekit-node",
+    expect(parseSdkUserAgent("togglekit-node/1.2.3")).toEqual({
+      sdk: "togglekit-node",
       version: "1.2.3",
     });
   });
@@ -176,11 +176,11 @@ describe("SDK version skew", () => {
       undefined,
       "",
       "curl/8.4.0",
-      "featkit-node",
-      "featkit-node/not-a-version",
-      `featkit-node/${"9".repeat(500)}`,
-      "featkit-<script>/1.0.0",
-      "featurekit-node",
+      "togglekit-node",
+      "togglekit-node/not-a-version",
+      `togglekit-node/${"9".repeat(500)}`,
+      "togglekit-<script>/1.0.0",
+      "togglekit-node",
     ]) {
       expect(parseSdkUserAgent(agent)).toEqual({ sdk: "unknown", version: "unknown" });
     }
@@ -188,9 +188,9 @@ describe("SDK version skew", () => {
 
   it("bounds the number of version series a client can create", async () => {
     const metrics = new Metrics({ defaultMetrics: false });
-    for (let i = 0; i < 500; i++) metrics.recordSdkVersion(`featkit-node/1.0.${i}`);
+    for (let i = 0; i < 500; i++) metrics.recordSdkVersion(`togglekit-node/1.0.${i}`);
     const scrape = await metrics.scrape();
-    const series = scrape.body.split("\n").filter((l) => l.startsWith("featkit_sdk_connections_total"));
+    const series = scrape.body.split("\n").filter((l) => l.startsWith("togglekit_sdk_connections_total"));
     expect(series.length).toBeLessThan(60);
     expect(scrape.body).toContain('version="other"');
   });

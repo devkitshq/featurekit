@@ -22,9 +22,9 @@ import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 export type SdkKeyKind = "server" | "client" | "mobile";
 
 const PREFIX: Record<SdkKeyKind, string> = {
-  server: "fk_srv_",
-  client: "fk_clt_",
-  mobile: "fk_mob_",
+  server: "tk_srv_",
+  client: "tk_clt_",
+  mobile: "tk_mob_",
 };
 
 /** 256 bits of entropy, url-safe. */
@@ -71,7 +71,7 @@ export function storageFor(
 }
 
 export function generateAccessToken(): string {
-  return `fk_pat_${secret()}`;
+  return `tk_pat_${secret()}`;
 }
 
 /**

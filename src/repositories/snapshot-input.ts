@@ -49,7 +49,7 @@ export class SegmentTooLargeError extends Error {
     readonly limit: number,
   ) {
     super(
-      `featkit: segment ${segmentKey} exceeds the compile ceiling of ${limit} members ` +
+      `togglekit: segment ${segmentKey} exceeds the compile ceiling of ${limit} members ` +
         `(loaded ${loaded}). Raise SEGMENT_MEMBER_CEILING if this node has the heap for it, ` +
         `or split the segment. The previous snapshot keeps serving until this is resolved.`,
     );
@@ -74,7 +74,7 @@ export interface LoadCompilerInputOptions {
 
 export class EnvironmentNotFoundError extends Error {
   constructor(projectKey: string, environmentKey: string) {
-    super(`featkit: no environment ${projectKey}/${environmentKey}`);
+    super(`togglekit: no environment ${projectKey}/${environmentKey}`);
     this.name = "EnvironmentNotFoundError";
   }
 }

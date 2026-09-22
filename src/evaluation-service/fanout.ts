@@ -72,7 +72,7 @@ function toClientValue(detail: EvaluationDetail<unknown>): ClientValue {
 /**
  * Re-exported so existing callers keep one import, defined in
  * `../contracts/context-hash.js` so a customer's backend can import the same
- * function from `featurekit/secure-mode` without pulling the evaluator in.
+ * function from `togglekit/secure-mode` without pulling the evaluator in.
  */
 export { contextHash } from "../contracts/context-hash.js";
 
@@ -125,7 +125,7 @@ export function fingerprintOf(
 export interface FanoutStats {
   /** Full rule evaluations performed. Should track fingerprints, not connections. */
   evaluations: number;
-  /** Distinct attribute combinations resident. Backs `featurekit_client_fingerprints`. */
+  /** Distinct attribute combinations resident. Backs `togglekit_client_fingerprints`. */
   fingerprints: number;
   /** Per-connection specialisations for rollout/target/segment flags. */
   perContextEvaluations: number;

@@ -1,6 +1,6 @@
 # The app
 
-A browser client using `featkit-client`. Three files, no build step:
+A browser client using `togglekit-client`. Three files, no build step:
 
 ```
 index.html    the page
@@ -36,7 +36,7 @@ discarded rather than applied over the newer one.
 context — and no promise, because the values are already in memory:
 
 ```js
-const fk = new FeatkitClient({ clientKey, baseUrl, context: user, stream: true });
+const fk = new TogglekitClient({ clientKey, baseUrl, context: user, stream: true });
 await fk.ready();
 
 fk.get("new-checkout", false);          // boolean
@@ -49,7 +49,7 @@ await fk.identify(nextUser);                 // the one async operation
 
 ## The key it uses
 
-A **client** key (`fk_clt_…`), public by construction: it ships in the page and
+A **client** key (`tk_clt_…`), public by construction: it ships in the page and
 the network tab shows it. That is safe because it buys evaluated values for a
 context, not the ruleset. A server key here would hand every visitor the whole
 configuration, which is why the client tier refuses one outright.

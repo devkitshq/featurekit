@@ -29,7 +29,7 @@ export class RedisRateLimitBackend implements RateLimitBackend {
     const results = await this.client.multi().incr(this.key(key)).pexpire(this.key(key), ttlMs).exec();
     const first = results?.[0];
     if (first === undefined || first[0] !== null) {
-      throw first?.[0] ?? new Error("featkit: rate limit INCR failed");
+      throw first?.[0] ?? new Error("togglekit: rate limit INCR failed");
     }
     return Number(first[1]);
   }

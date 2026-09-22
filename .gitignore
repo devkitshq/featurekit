@@ -2,8 +2,8 @@ node_modules/
 dist/
 coverage/
 *.tsbuildinfo
-.featurekit/
-.featkit/
+.togglekit/
+.togglekit/
 .env
 __pycache__/
 *.pyc

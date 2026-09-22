@@ -10,7 +10,7 @@ POST /v1/events             Batched evaluation summaries
 
 ## No HTTP framework
 
-§2 lists the `featkit` package's runtime dependencies as drizzle, postgres,
+§2 lists the `togglekit` package's runtime dependencies as drizzle, postgres,
 ioredis, pino, prom-client and zod. No HTTP framework — a deliberate signal
 rather than an omission. The control plane serves a handful of routes plus two
 long-lived SSE endpoints, and SSE is the one thing framework abstractions

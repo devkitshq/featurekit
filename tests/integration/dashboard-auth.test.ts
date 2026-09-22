@@ -117,7 +117,7 @@ describe.skipIf(reason !== null)("dashboard authentication", () => {
     expect(response.status).toBe(200);
 
     const header = response.headers.get("set-cookie") ?? "";
-    expect(header).toContain("fk_session=");
+    expect(header).toContain("tk_session=");
     expect(header).toContain("HttpOnly");
     expect(header).toContain("SameSite=Strict");
     // Not `Secure` here: the test server is plain HTTP, and a `Secure` cookie
@@ -151,7 +151,7 @@ describe.skipIf(reason !== null)("dashboard authentication", () => {
 
     const with_ = await fetch(`${base}/v1/admin/projects`, {
       method: "POST",
-      headers: { cookie, "content-type": "application/json", "x-featkit-csrf": "1" },
+      headers: { cookie, "content-type": "application/json", "x-togglekit-csrf": "1" },
       body: JSON.stringify({ key: "csrf-probe", name: "CSRF probe" }),
     });
     expect(with_.status).toBe(200);
@@ -159,13 +159,13 @@ describe.skipIf(reason !== null)("dashboard authentication", () => {
 
   it("deletes the session row on logout", async () => {
     const cookie = cookieFrom(await login(EMAIL, PASSWORD));
-    const token = cookie.slice("fk_session=".length);
+    const token = cookie.slice("tk_session=".length);
 
     expect(await resolveSession(db, decodeURIComponent(token))).not.toBeNull();
 
     const response = await fetch(`${base}/v1/admin/auth/logout`, {
       method: "POST",
-      headers: { cookie, "x-featkit-csrf": "1" },
+      headers: { cookie, "x-togglekit-csrf": "1" },
     });
     expect(response.status).toBe(200);
 
@@ -182,7 +182,7 @@ describe.skipIf(reason !== null)("dashboard authentication", () => {
 
     const changed = await fetch(`${base}/v1/admin/auth/password`, {
       method: "POST",
-      headers: { cookie: laptop, "content-type": "application/json", "x-featkit-csrf": "1" },
+      headers: { cookie: laptop, "content-type": "application/json", "x-togglekit-csrf": "1" },
       body: JSON.stringify({ currentPassword: PASSWORD, newPassword: "a-much-longer-secret-1" }),
     });
     expect(changed.status).toBe(200);
@@ -205,7 +205,7 @@ describe.skipIf(reason !== null)("dashboard authentication", () => {
     const cookie = cookieFrom(await login(EMAIL, "a-much-longer-secret-1"));
     const response = await fetch(`${base}/v1/admin/auth/password`, {
       method: "POST",
-      headers: { cookie, "content-type": "application/json", "x-featkit-csrf": "1" },
+      headers: { cookie, "content-type": "application/json", "x-togglekit-csrf": "1" },
       body: JSON.stringify({ currentPassword: "a-much-longer-secret-1", newPassword: "short" }),
     });
     expect(response.status).toBe(400);
@@ -214,7 +214,7 @@ describe.skipIf(reason !== null)("dashboard authentication", () => {
 
   it("never stores the password or the session token in the clear", async () => {
     const cookie = cookieFrom(await login(EMAIL, "a-much-longer-secret-1"));
-    const token = decodeURIComponent(cookie.slice("fk_session=".length));
+    const token = decodeURIComponent(cookie.slice("tk_session=".length));
 
     const [row] = await db
       .select({ hash: members.passwordHash })

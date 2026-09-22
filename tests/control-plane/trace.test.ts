@@ -5,7 +5,7 @@
  * when nobody has time to work out whether they were implemented:
  *
  * - a request must be findable from the *caller's* trace, not only from
- *   featkit's own request id;
+ *   togglekit's own request id;
  * - no error response may carry anything an attacker did not already know.
  */
 
@@ -108,10 +108,10 @@ describe("the error surface", () => {
 
   it("never returns an exception message, however it was thrown", async () => {
     const secrets = [
-      new Error("connection postgres://user:hunter2@db/featkit refused"),
+      new Error("connection postgres://user:hunter2@db/togglekit refused"),
       new TypeError("Cannot read properties of undefined (reading 'sdkKey')"),
-      "a bare string with fk_srv_leaked in it",
-      { message: "object thrown", stack: "at /srv/featkit/src/secret.ts:12" },
+      "a bare string with tk_srv_leaked in it",
+      { message: "object thrown", stack: "at /srv/togglekit/src/secret.ts:12" },
     ];
 
     for (const [index, thrown] of secrets.entries()) {
@@ -126,7 +126,7 @@ describe("the error surface", () => {
       expect(response.status).toBe(500);
       expect(text).toBe(JSON.stringify({ error: "INTERNAL_ERROR" }));
       expect(text).not.toContain("hunter2");
-      expect(text).not.toContain("fk_srv_leaked");
+      expect(text).not.toContain("tk_srv_leaked");
       expect(text).not.toContain("secret.ts");
     }
   });

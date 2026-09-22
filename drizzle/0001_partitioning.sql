@@ -79,7 +79,7 @@ ALTER TABLE "change_requests"
 -- busiest table in the system.
 --
 -- The alternative is already specified: 7 days of runway, and
--- `featurekit_partition_runway_days` pages when it drops below two.
+-- `togglekit_partition_runway_days` pages when it drops below two.
 -- ---------------------------------------------------------------------------
 
 DO $$
@@ -109,22 +109,22 @@ BEGIN
 						'partman-maintenance', '@hourly', $cron$CALL partman.run_maintenance_proc()$cron$
 					);
 				EXCEPTION WHEN OTHERS THEN
-					RAISE WARNING 'featkit: pg_cron could not be enabled in this database (%). Relying on external scheduler or featkit_ensure_partitions().', SQLERRM;
+					RAISE WARNING 'togglekit: pg_cron could not be enabled in this database (%). Relying on external scheduler or togglekit_ensure_partitions().', SQLERRM;
 				END;
 			ELSE
 				RAISE WARNING
-					'featkit: pg_partman installed but pg_cron is not. Schedule partman.run_maintenance_proc() externally.';
+					'togglekit: pg_partman installed but pg_cron is not. Schedule partman.run_maintenance_proc() externally.';
 			END IF;
 		EXCEPTION WHEN OTHERS THEN
-			RAISE WARNING 'featkit: pg_partman could not be configured (%). Falling back to featkit_ensure_partitions().', SQLERRM;
+			RAISE WARNING 'togglekit: pg_partman could not be configured (%). Falling back to togglekit_ensure_partitions().', SQLERRM;
 		END;
 	ELSE
 		-- Fallback for managed Postgres with a locked extension allow-list.
 		-- The rule is unchanged and is the actual decision: TABLE LIFECYCLE
 		-- NEVER RUNS INSIDE THE NODE PROCESS. Whatever scheduler the operator
-		-- already runs calls featkit_ensure_partitions() instead.
+		-- already runs calls togglekit_ensure_partitions() instead.
 		RAISE WARNING
-			'featkit: pg_partman unavailable. Falling back to featkit_ensure_partitions(); schedule it externally at least daily.';
+			'togglekit: pg_partman unavailable. Falling back to togglekit_ensure_partitions(); schedule it externally at least daily.';
 	END IF;
 END
 $$;
@@ -132,7 +132,7 @@ $$;
 
 -- Idempotent declarative partition creation, for the no-extensions fallback and
 -- as a manual recovery tool. Safe to call concurrently and repeatedly.
-CREATE OR REPLACE FUNCTION featkit_ensure_partitions(days_ahead integer DEFAULT 7)
+CREATE OR REPLACE FUNCTION togglekit_ensure_partitions(days_ahead integer DEFAULT 7)
 RETURNS integer LANGUAGE plpgsql AS $$
 DECLARE
 	day date;
@@ -155,17 +155,17 @@ END
 $$;
 --> statement-breakpoint
 
-CREATE OR REPLACE FUNCTION featurekit_ensure_partitions(days_ahead integer DEFAULT 7)
+CREATE OR REPLACE FUNCTION togglekit_ensure_partitions(days_ahead integer DEFAULT 7)
 RETURNS integer LANGUAGE sql AS $$
-	SELECT featkit_ensure_partitions(days_ahead);
+	SELECT togglekit_ensure_partitions(days_ahead);
 $$;
 --> statement-breakpoint
 
 -- How many days of partition runway remain. The application's ONE contribution
 -- to partition lifecycle: fail readiness loudly when this drops below two, so a
 -- silent misconfiguration becomes a page instead of an outage at midnight.
--- Backs `featkit_partition_runway_days` (§15).
-CREATE OR REPLACE FUNCTION featkit_partition_runway_days()
+-- Backs `togglekit_partition_runway_days` (§15).
+CREATE OR REPLACE FUNCTION togglekit_partition_runway_days()
 RETURNS integer LANGUAGE sql STABLE AS $$
 	SELECT COALESCE(
 		MAX(
@@ -181,11 +181,11 @@ RETURNS integer LANGUAGE sql STABLE AS $$
 $$;
 --> statement-breakpoint
 
-CREATE OR REPLACE FUNCTION featurekit_partition_runway_days()
+CREATE OR REPLACE FUNCTION togglekit_partition_runway_days()
 RETURNS integer LANGUAGE sql STABLE AS $$
-	SELECT featkit_partition_runway_days();
+	SELECT togglekit_partition_runway_days();
 $$;
 --> statement-breakpoint
 
 -- Ensure the first week exists regardless of which path above was taken.
-SELECT featkit_ensure_partitions(7);
+SELECT togglekit_ensure_partitions(7);

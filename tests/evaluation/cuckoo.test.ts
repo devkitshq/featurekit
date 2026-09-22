@@ -153,7 +153,7 @@ describe("CuckooFilter - wire format is frozen (§9.7)", () => {
   it("writes the pinned header", () => {
     const f = CuckooFilter.create(1000, { fingerprintBits: 16, seed: 0xdeadbeef });
     const bytes = f.encode();
-    expect(String.fromCharCode(...bytes.slice(0, 4))).toBe("FKCF");
+    expect(String.fromCharCode(...bytes.slice(0, 4))).toBe("TKCF");
     expect(bytes[4]).toBe(1); // format version
     expect(bytes[5]).toBe(16); // fingerprint bits
     expect(bytes[6]).toBe(9); // log2(512) buckets

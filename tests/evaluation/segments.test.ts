@@ -143,7 +143,7 @@ describe("LruSegmentCache - the bounded confirmation cache for remote providers"
     expect(lru.peek("seg_b", "usr_1")).toBeUndefined();
   });
 
-  it("counts unresolved lookups for featkit_sdk_segment_unresolved_total", () => {
+  it("counts unresolved lookups for togglekit_sdk_segment_unresolved_total", () => {
     const index = new SegmentIndex({ enterprise: cuckoo(["usr_1"]) });
     expect(index.unresolvedCount).toBe(0);
     index.membership("enterprise", "usr_1");

@@ -14,9 +14,9 @@ Two files:
 ## The control plane, in four lines
 
 ```js
-import { FeatkitServer } from "featkit";
+import { TogglekitServer } from "togglekit";
 
-const server = new FeatkitServer({ services: ["all"], port: 3000 });
+const server = new TogglekitServer({ services: ["all"], port: 3000 });
 await server.start();
 ```
 
@@ -67,7 +67,7 @@ Two rules worth knowing before you edit it:
 The dashboard login comes from configuration:
 
 ```bash
-FEATKIT_ADMIN_EMAIL=you@example.com FEATKIT_ADMIN_PASSWORD=… npm run demo
+TOGGLEKIT_ADMIN_EMAIL=you@example.com TOGGLEKIT_ADMIN_PASSWORD=… npm run demo
 ```
 
 Seeded on start if that member does not exist, never overwritten if it does — a
@@ -91,12 +91,12 @@ the SDK holds a snapshot in memory, so evaluation is synchronous and survives
 the control plane being unreachable:
 
 ```js
-import { FeatkitSDK } from "featkit";
+import { TogglekitSDK } from "togglekit";
 
-const fk = new FeatkitSDK({
-  sdkKey: process.env.FEATKIT_SDK_KEY,   // an fk_srv_… key, from the dashboard
+const fk = new TogglekitSDK({
+  sdkKey: process.env.TOGGLEKIT_SDK_KEY,   // an tk_srv_… key, from the dashboard
   baseUrl: "http://127.0.0.1:3000",
-  persist: { kind: "file", path: ".featkit/snapshot.json" },
+  persist: { kind: "file", path: ".togglekit/snapshot.json" },
 });
 
 await fk.ready({ timeoutMs: 5_000 });        // never rejects; times out into defaults
@@ -107,4 +107,4 @@ if (fk.get("new-checkout", { key: user.id, plan: user.plan }, false)) {
 ```
 
 The default is a required argument. `false` there is what that line does when
-featkit is unavailable — the one decision a flag SDK must not make for you.
+togglekit is unavailable — the one decision a flag SDK must not make for you.

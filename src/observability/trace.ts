@@ -1,14 +1,14 @@
 /**
  * W3C trace context (§16, review PR-D5).
  *
- * A request id correlates featkit's own log lines. It does not correlate
+ * A request id correlates togglekit's own log lines. It does not correlate
  * them with anything *else*, and the question an operator actually has at 3am
- * is "the checkout service saw a slow flag fetch at 14:02 — what was featkit
+ * is "the checkout service saw a slow flag fetch at 14:02 — what was togglekit
  * doing?". Answering that needs the trace id the caller already has.
  *
  * So `traceparent` is parsed when present and generated when not, and the trace
  * id goes into every log line for the request. This is deliberately the
- * *propagation* half of tracing and not an exporter: featkit makes no
+ * *propagation* half of tracing and not an exporter: togglekit makes no
  * outbound HTTP calls, so there are no spans of its own worth shipping, and
  * adding an OpenTelemetry SDK to the dependency tree of a package whose selling
  * point is a small dependency tree needs a better reason than symmetry.
@@ -75,7 +75,7 @@ export function traceContextFrom(header: string | undefined): TraceContext {
 
   // No usable parent: this request is the root of its own trace. Sampled by
   // default, because a trace nobody sampled is a trace nobody can read, and
-  // featkit is not the component that should be deciding otherwise.
+  // togglekit is not the component that should be deciding otherwise.
   const traceId = newTraceId();
   const spanId = newSpanId();
   return {

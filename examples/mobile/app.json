@@ -1,10 +1,10 @@
 {
   "expo": {
     "name": "Acme Cloud",
-    "slug": "featkit-example-mobile",
+    "slug": "togglekit-example-mobile",
     "version": "0.1.0",
     "orientation": "portrait",
-    "scheme": "featkit-example",
+    "scheme": "togglekit-example",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "ios": {
@@ -12,7 +12,7 @@
     },
     "android": {
       "edgeToEdgeEnabled": true,
-      "package": "com.nillastudios.featkitexamplemobile"
+      "package": "com.nillastudios.togglekitexamplemobile"
     },
     "web": {
       "bundler": "metro"

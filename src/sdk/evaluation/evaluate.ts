@@ -357,7 +357,7 @@ function evaluateFlag<T>(
     if (index === null) {
       // The flag is on, the context cannot be placed, and there is no defined
       // answer. The caller's default is the honest backstop — and ERROR is
-      // what makes `featkit_sdk_default_served_total` rise so someone sees it.
+      // what makes `togglekit_sdk_default_served_total` rise so someone sees it.
       return withUnresolved(err("MALFORMED_CONTEXT", defaultValue), state);
     }
     return serve(flag, index, REASON_FALLTHROUGH, defaultValue, state);

@@ -96,7 +96,7 @@ export class HyperLogLog {
    */
   merge(other: HyperLogLog): void {
     if (other.precision !== this.precision) {
-      throw new Error("featkit: cannot merge HLL sketches of different precision");
+      throw new Error("togglekit: cannot merge HLL sketches of different precision");
     }
     for (let i = 0; i < this.registers.length; i++) {
       const value = other.registers[i]!;

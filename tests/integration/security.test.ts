@@ -323,8 +323,8 @@ describe.skipIf(reason !== null)("an attacker with a scoped token", () => {
     // Distinguishing unknown from revoked from wrong-tier is a probing oracle.
     const shapes = await Promise.all(
       [
-        "fk_srv_completely-made-up",
-        "fk_clt_completely-made-up",
+        "tk_srv_completely-made-up",
+        "tk_clt_completely-made-up",
         "not-even-a-key",
         "",
         "Bearer",
@@ -371,15 +371,15 @@ describe.skipIf(reason !== null)("an attacker with a scoped token", () => {
     expect(scrape).not.toContain(serverSdkKey);
     expect(scrape).not.toContain(clientSdkKey);
     // The route pattern is there; the environment key in the path is not.
-    expect(scrape).toContain("featkit_http_requests_total");
+    expect(scrape).toContain("togglekit_http_requests_total");
   });
 
   it("does not echo a credential in any error response", async () => {
     const probes = [
       fetch(`${base}/v1/snapshot/production`, {
-        headers: { authorization: `Bearer ${"fk_srv_leaky-secret-value"}` },
+        headers: { authorization: `Bearer ${"tk_srv_leaky-secret-value"}` },
       }),
-      call("/v1/admin/projects", {}, "fk_pat_leaky-secret-value"),
+      call("/v1/admin/projects", {}, "tk_pat_leaky-secret-value"),
     ];
     for (const probe of probes) {
       const text = await (await probe).text();

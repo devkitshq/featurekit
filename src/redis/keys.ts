@@ -10,37 +10,37 @@
 
 export const redisKeys = {
   /** Compiled ruleset snapshot. Rebuild: recompile from Postgres. */
-  snapshot: (environmentId: string) => `fk:snap:${environmentId}:server`,
+  snapshot: (environmentId: string) => `tk:snap:${environmentId}:server`,
   /** Snapshot version, served as `ETag`. Rebuild: recompile. */
-  snapshotVersion: (environmentId: string) => `fk:snap:${environmentId}:ver`,
+  snapshotVersion: (environmentId: string) => `tk:snap:${environmentId}:ver`,
   /**
    * Patch history for SSE resume (§10.3). Capped stream.
    * Rebuild: **lossy** — reconnects degrade to a full `put`, which is correct.
    */
-  patches: (environmentId: string) => `fk:patches:${environmentId}`,
+  patches: (environmentId: string) => `tk:patches:${environmentId}`,
   /** Change broadcast to every API node. Pub/sub, no rebuild. */
-  channel: (environmentId: string) => `fk:chan:${environmentId}`,
+  channel: (environmentId: string) => `tk:chan:${environmentId}`,
   /** Client-tier connection → context (§11.5). Rebuild: client re-identifies. */
-  clientContext: (connectionId: string) => `fk:cctx:${connectionId}`,
+  clientContext: (connectionId: string) => `tk:cctx:${connectionId}`,
   /** Raw summary batches from SDKs. **Lossy by design** (§14). */
-  events: "fk:events",
+  events: "tk:events",
   /** Sharded for single-writer rollup (§7.9). Lossy by design. */
-  rollup: (shard: number) => `fk:rollup:${shard}`,
+  rollup: (shard: number) => `tk:rollup:${shard}`,
   /** Rollup failures, replayable. */
-  dlq: "fk:dlq",
+  dlq: "tk:dlq",
   /** Sliding-window rate limit per SDK key. */
-  rateLimit: (keyId: string) => `fk:rl:${keyId}`,
+  rateLimit: (keyId: string) => `tk:rl:${keyId}`,
   /**
    * Membership for external segments; also the backing store a remote
    * `SegmentCacheProvider` reads (§9.7). Rebuild: reload from Postgres.
    */
-  segment: (segmentId: string) => `fk:seg:${segmentId}`,
+  segment: (segmentId: string) => `tk:seg:${segmentId}`,
   /**
    * Client-tier fingerprint → evaluated values (§11.5). Keyed by version so a
    * snapshot bump invalidates by construction rather than by an explicit sweep.
    */
   clientFingerprint: (environmentId: string, version: number) =>
-    `fk:cfp:${environmentId}:${version}`,
+    `tk:cfp:${environmentId}:${version}`,
   /** Compile lock; prevents a thundering herd. */
-  compileLock: (environmentId: string) => `fk:lock:snapshot:${environmentId}`,
+  compileLock: (environmentId: string) => `tk:lock:snapshot:${environmentId}`,
 } as const;

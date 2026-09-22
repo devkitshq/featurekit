@@ -27,7 +27,7 @@ function config(over: Record<string, string> = {}) {
     LOG_LEVEL: "silent",
     HOST: "127.0.0.1",
     PORT: "0",
-    DATABASE_URL: "postgres://featkit:featkit@127.0.0.1:59999/none",
+    DATABASE_URL: "postgres://togglekit:togglekit@127.0.0.1:59999/none",
     REDIS_URL: "redis://127.0.0.1:59998",
     ...over,
   });
@@ -71,15 +71,15 @@ describe("the app boots with nothing behind it", () => {
     const { base } = await start();
     await fetch(`${base}/live`);
     const body = await (await fetch(`${base}/metrics`)).text();
-    expect(body).toContain("featkit_http_requests_total");
-    expect(body).toContain("featkit_snapshot_degraded_serves_total");
+    expect(body).toContain("togglekit_http_requests_total");
+    expect(body).toContain("togglekit_snapshot_degraded_serves_total");
   });
 
   it("labels metrics with the route pattern, never the request path", async () => {
     // §17: labelling on the path is one series per environment key.
     const { base } = await start();
     await fetch(`${base}/v1/snapshot/production-eu-1`, {
-      headers: { authorization: "Bearer fk_srv_nope" },
+      headers: { authorization: "Bearer tk_srv_nope" },
     });
     const body = await (await fetch(`${base}/metrics`)).text();
     expect(body).toContain('route="/v1/snapshot/:envKey"');
@@ -110,7 +110,7 @@ describe("the app boots with nothing behind it", () => {
   it("never puts CORS headers on the server tier", async () => {
     const { base } = await start({ CORS_ALLOWED_ORIGINS: "https://app.example.com" });
     const response = await fetch(`${base}/v1/snapshot/production`, {
-      headers: { origin: "https://app.example.com", authorization: "Bearer fk_srv_x" },
+      headers: { origin: "https://app.example.com", authorization: "Bearer tk_srv_x" },
     });
     expect(response.headers.get("access-control-allow-origin")).toBeNull();
   });

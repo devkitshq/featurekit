@@ -1,7 +1,7 @@
 /**
  * A small router over `node:http`.
  *
- * §2 lists the `featurekit` package's runtime dependencies as drizzle,
+ * §2 lists the `togglekit` package's runtime dependencies as drizzle,
  * postgres, ioredis, pino, prom-client and zod. No HTTP framework — which is a
  * deliberate signal, not an omission. The control plane serves a handful of
  * routes plus two long-lived SSE endpoints, and SSE is the one thing framework
@@ -35,7 +35,7 @@ export interface RequestContext {
   /**
    * The caller's trace, continued — or a new one.
    *
-   * A request id correlates featurekit's own lines; a trace id correlates them
+   * A request id correlates togglekit's own lines; a trace id correlates them
    * with the service that made the call (§16).
    */
   trace: TraceContext;

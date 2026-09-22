@@ -1,7 +1,7 @@
 /**
  * CORS, for the client tier only (§11.5, §16).
  *
- * **The scope is the security property.** `featurekit-client` calls
+ * **The scope is the security property.** `togglekit-client` calls
  * `POST /v1/client/state` from a customer's origin, so those routes need CORS.
  * The server-tier routes — `/v1/stream/:envKey`, `/v1/snapshot/:envKey` — must
  * **never** carry CORS headers: they serve the full ruleset, and a browser that

@@ -99,7 +99,7 @@ export async function createMember(
       passwordHash,
     })
     .returning(memberColumns);
-  if (row === undefined) throw new Error("featkit: member insert returned nothing");
+  if (row === undefined) throw new Error("togglekit: member insert returned nothing");
   return toMember(row);
 }
 
@@ -286,7 +286,7 @@ export async function createToken(
     expiresAt?: Date | undefined;
   },
 ): Promise<{ id: string; token: string }> {
-  const token = `fk_pat_${randomBytes(32).toString("base64url")}`;
+  const token = `tk_pat_${randomBytes(32).toString("base64url")}`;
   const [row] = await db
     .insert(accessTokens)
     .values({
@@ -297,7 +297,7 @@ export async function createToken(
       expiresAt: input.expiresAt ?? null,
     })
     .returning({ id: accessTokens.id });
-  if (row === undefined) throw new Error("featkit: token insert returned nothing");
+  if (row === undefined) throw new Error("togglekit: token insert returned nothing");
   return { id: row.id, token };
 }
 

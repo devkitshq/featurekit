@@ -2,7 +2,7 @@
 
 `src/routes/client.ts` · §11.5, §14, §16
 
-There are two SDKs — `featkit` for server-side JavaScript, `featkit-client`
+There are two SDKs — `togglekit` for server-side JavaScript, `togglekit-client`
 for everything else that runs JavaScript. There is no Swift SDK, no Kotlin SDK,
 no Go SDK, and none is planned. The client tier is two HTTP endpoints and a
 JSON body; a language that can POST can implement it in an afternoon, and that
@@ -13,16 +13,16 @@ POST /v1/client/state    context in -> evaluated values out
 GET  /v1/client/stream   SSE value updates for that connection's context
 ```
 
-`featkit-client` is a reference implementation of exactly this. When
+`togglekit-client` is a reference implementation of exactly this. When
 something here is ambiguous, `packages/client/src/index.ts` is the answer.
 
 ## Authentication
 
-A **client** key (`fk_clt_…`) or a **mobile** key (`fk_mob_…`), in either the
+A **client** key (`tk_clt_…`) or a **mobile** key (`tk_mob_…`), in either the
 `Authorization` header or a `key` query parameter:
 
 ```
-Authorization: Bearer fk_clt_…
+Authorization: Bearer tk_clt_…
 ```
 
 The query parameter exists because `EventSource` cannot set headers. Use the
@@ -40,7 +40,7 @@ one context — never the rules that produced them.
 
 ```http
 POST /v1/client/state HTTP/1.1
-Authorization: Bearer fk_clt_…
+Authorization: Bearer tk_clt_…
 Content-Type: application/json
 
 {
@@ -100,7 +100,7 @@ a silently wrong answer rather than a visibly missing one.
 ## GET /v1/client/stream
 
 ```http
-GET /v1/client/stream?connection=c_8Xk2…&key=fk_clt_… HTTP/1.1
+GET /v1/client/stream?connection=c_8Xk2…&key=tk_clt_… HTTP/1.1
 Accept: text/event-stream
 ```
 
@@ -127,7 +127,7 @@ nobody proved.
 `/v1/client/state` to get a new one. This is ordinary: it happens after a server
 restart, and after a handle sits unused past its TTL (900s by default).
 
-When the stream ends for any reason, re-POST and re-open. `featurekit-client`
+When the stream ends for any reason, re-POST and re-open. `togglekit-client`
 waits 1.5s before doing so; anything in that neighbourhood is fine, with jitter
 if you have many clients.
 
@@ -165,12 +165,12 @@ the public client key could evaluate as any named account and read the flags
 targeted at it.
 
 Your own backend mints the signature, where the session is already trusted.
-`featkit/secure-mode` exports both halves so nobody has to reimplement them:
+`togglekit/secure-mode` exports both halves so nobody has to reimplement them:
 
 ```ts
-import { signContext, contextHash } from "featkit/secure-mode";
+import { signContext, contextHash } from "togglekit/secure-mode";
 
-app.get("/api/featkit-signature", requireSession, (req, res) => {
+app.get("/api/togglekit-signature", requireSession, (req, res) => {
   const context = { key: req.user.id, plan: req.user.plan };
   const expiresAt = Math.floor(Date.now() / 1000) + 3600;
   res.json({
@@ -180,7 +180,7 @@ app.get("/api/featkit-signature", requireSession, (req, res) => {
 });
 ```
 
-A separate entry point from `featkit` because of what it does not load: the
+A separate entry point from `togglekit` because of what it does not load: the
 main entry is the control plane, so importing it pulls Drizzle, a Postgres
 driver, ioredis and pino into a service whose only job is signing a string.
 This one reaches `node:crypto` and nothing else, and `tools/check-package.mjs`

@@ -1,7 +1,7 @@
 # Examples
 
 One control plane, and two clients reading from it — over two packages,
-`featkit` and `featkit-client`.
+`togglekit` and `togglekit-client`.
 
 | | What it is | Files |
 | :-- | :-- | :-- |
@@ -11,7 +11,7 @@ One control plane, and two clients reading from it — over two packages,
 
 Nothing here is stubbed. `server.js` starts the real control plane and pushes
 `flags.js` through the real management API; `app.js` uses the published
-`featkit-client` against the real client tier; `mobile/` uses that same
+`togglekit-client` against the real client tier; `mobile/` uses that same
 package with a twenty-line React adapter of its own, because there is no React
 SDK and no React Native SDK — one client runs anywhere there is `fetch`.
 

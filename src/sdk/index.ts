@@ -1,9 +1,9 @@
 /**
- * The server-tier SDK, inside `featurekit`.
+ * The server-tier SDK, inside `togglekit`.
  *
  * Evaluation is synchronous and in-memory: the SDK holds the compiled ruleset
  * and answers for **any** context passed per call, with no network round trip.
- * That is the difference from `featurekit-client`, which holds evaluated values
+ * That is the difference from `togglekit-client`, which holds evaluated values
  * for one identity and asks the server for another.
  *
  * Nothing under `src/sdk/` may import from the rest of `src/` — the evaluator
@@ -14,12 +14,10 @@
 export * from "./evaluation/index.js";
 
 export {
-  FeatkitSDK,
-  FeatkitSDK as FeaturekitSDK,
+  TogglekitSDK,
 } from "./client/sdk.js";
 export type {
-  FeatkitSdkOptions,
-  FeatkitSdkOptions as FeaturekitSdkOptions,
+  TogglekitSdkOptions,
   SdkState,
   SnapshotPersistence,
 } from "./client/sdk.js";

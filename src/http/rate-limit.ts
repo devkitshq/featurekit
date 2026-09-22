@@ -201,7 +201,7 @@ export function rateLimitIdentity(ctx: RequestContext, scope: string): string {
     .update(credential.length > 0 ? credential : peer, "utf8")
     .digest("hex")
     .slice(0, 24);
-  return `fk:rl:${scope}:${digest}`;
+  return `tk:rl:${scope}:${digest}`;
 }
 
 export interface RateLimitMiddlewareOptions {

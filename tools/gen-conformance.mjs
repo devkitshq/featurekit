@@ -537,7 +537,7 @@ const cuckoo = {
     "members. Parameters are frozen: (2,4) partial-key cuckoo, 16-bit " +
     "fingerprints, power-of-two buckets, i2 = i1 XOR h(fingerprint).",
   header: {
-    magic: "FKCF",
+    magic: "TKCF",
     formatVersion: 1,
     fingerprintBits: 16,
     slotsPerBucket: 4,

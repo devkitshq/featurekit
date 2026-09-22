@@ -10,7 +10,7 @@
  * every time, for every browser, on any deployment with more than one node.
  * The single-node case worked perfectly, which is exactly why this survived.
  *
- * `fk:cctx:{connectionId}` was reserved for this in the §8 key map from the
+ * `tk:cctx:{connectionId}` was reserved for this in the §8 key map from the
  * start ("Client-tier connection → context. Rebuild: client re-identifies").
  * This is the code that finally uses it.
  *

@@ -1,7 +1,7 @@
 /**
  * The client, and the twenty lines of React that sit on it.
  *
- * `featkit-client` ships no framework bindings, so this file is the whole
+ * `togglekit-client` ships no framework bindings, so this file is the whole
  * adapter — and it is short enough to read in one sitting, which is the point.
  * It is copied from `docs/client-tier/adapters.md`; nothing here is React
  * Native-specific except one line of `fetchImpl`.
@@ -19,7 +19,7 @@
 
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 import { fetch as expoFetch } from "expo/fetch";
-import { FeatkitClient, type EvaluationContextLike } from "@featkit/client";
+import { TogglekitClient, type EvaluationContextLike } from "togglekit-client";
 
 /** Falls back to the platform fetch: values still arrive, just not streamed. */
 export const streamingFetch: typeof fetch =
@@ -27,7 +27,7 @@ export const streamingFetch: typeof fetch =
 
 export const hasStreaming = typeof expoFetch === "function";
 
-let client: FeatkitClient | null = null;
+let client: TogglekitClient | null = null;
 
 /**
  * Built once, on purpose.
@@ -41,8 +41,8 @@ export function createClient(options: {
   baseUrl: string;
   context: EvaluationContextLike;
   onError: (error: unknown) => void;
-}): FeatkitClient {
-  client ??= new FeatkitClient({
+}): TogglekitClient {
+  client ??= new TogglekitClient({
     clientKey: options.clientKey,
     baseUrl: options.baseUrl,
     context: options.context,
@@ -53,12 +53,12 @@ export function createClient(options: {
   return client;
 }
 
-export function featkit(): FeatkitClient {
-  if (client === null) throw new Error("featkit: createClient() has not run yet");
+export function togglekit(): TogglekitClient {
+  if (client === null) throw new Error("togglekit: createClient() has not run yet");
   return client;
 }
 
-export const featurekit = featkit;
+export const togglekit = togglekit;
 
 /**
  * Subscribe to both events, not just `change`.
@@ -71,7 +71,7 @@ export const featurekit = featkit;
  */
 function useSubscribe(): (onChange: () => void) => () => void {
   return useCallback((onChange: () => void) => {
-    const fk = featkit();
+    const fk = togglekit();
     const offChange = fk.on("change", onChange);
     const offState = fk.on("state", onChange);
     return () => {
@@ -97,29 +97,29 @@ export function useFlag<T>(flagKey: string, defaultValue: T): T {
   // `get(key, {…})` would hand back the *default* for a missing object-valued
   // flag — a fresh literal every call, which React reads as a change and
   // re-renders forever.
-  const snapshot = useMemo(() => () => featkit().detail(flagKey), [flagKey]);
+  const snapshot = useMemo(() => () => togglekit().detail(flagKey), [flagKey]);
   const detail = useSyncExternalStore(subscribe, snapshot, snapshot);
 
   // `detail` drives the re-render; `get` produces the value, so the fallback
   // for a missing or wrong-typed flag is the SDK's, not a second copy here.
-  return detail === undefined ? defaultValue : featkit().get(flagKey, defaultValue);
+  return detail === undefined ? defaultValue : togglekit().get(flagKey, defaultValue);
 }
 
 /** Every value currently held, for the "what this device was told" panel. */
 export function useAllValues(): Readonly<Record<string, { value: unknown; reason: string }>> {
   const subscribe = useSubscribe();
-  const snapshot = useMemo(() => () => featkit().allValues(), []);
+  const snapshot = useMemo(() => () => togglekit().allValues(), []);
   return useSyncExternalStore(subscribe, snapshot, snapshot);
 }
 
 /** Connection state, for a "flags may be stale" indicator. */
-export function useFeatkitState(): string {
+export function useTogglekitState(): string {
   const subscribe = useCallback(
-    (onChange: () => void) => featkit().on("state", onChange),
+    (onChange: () => void) => togglekit().on("state", onChange),
     [],
   );
-  const snapshot = useMemo(() => () => featkit().state, []);
+  const snapshot = useMemo(() => () => togglekit().state, []);
   return useSyncExternalStore(subscribe, snapshot, snapshot);
 }
 
-export const useFeaturekitState = useFeatkitState;
+export const useTogglekitState = useTogglekitState;

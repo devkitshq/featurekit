@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { FeatkitSDK, type Snapshot } from "../../src/sdk/index.js";
+import { TogglekitSDK, type Snapshot } from "../../src/sdk/index.js";
 import { Router } from "../../src/http/router.js";
 import { HttpServer } from "../../src/http/server.js";
 import { MemorySnapshotStore } from "../../src/redis/memory-store.js";
@@ -14,7 +14,7 @@ import type { CompilerInput } from "../../src/snapshot/compile.js";
  */
 
 const ENV_ID = "env-1";
-const KEY = "fk_srv_test";
+const KEY = "tk_srv_test";
 
 const record: AuthenticatedEnvironment = {
   id: "k1",
@@ -68,7 +68,7 @@ function input(flagOn: boolean, keys = ["new-checkout"], flagVersion = 1): Compi
 
 const servers: HttpServer[] = [];
 const services: SnapshotService[] = [];
-const sdks: FeatkitSDK[] = [];
+const sdks: TogglekitSDK[] = [];
 
 async function controlPlane(options: { flagOn?: boolean; maxStreams?: number } = {}) {
   const state = { flagOn: options.flagOn ?? true, keys: ["new-checkout"], flagVersion: 1 };
@@ -101,13 +101,13 @@ async function controlPlane(options: { flagOn?: boolean; maxStreams?: number } =
   return { baseUrl: `http://${host}:${port}`, snapshots, state, server, received };
 }
 
-function makeSdk(over: Partial<ConstructorParameters<typeof FeatkitSDK>[0]>) {
-  const sdk = new FeatkitSDK({
+function makeSdk(over: Partial<ConstructorParameters<typeof TogglekitSDK>[0]>) {
+  const sdk = new TogglekitSDK({
     sdkKey: KEY,
     environmentKey: "production",
     events: { enabled: false },
     ...over,
-  } as ConstructorParameters<typeof FeatkitSDK>[0]);
+  } as ConstructorParameters<typeof TogglekitSDK>[0]);
   sdks.push(sdk);
   return sdk;
 }

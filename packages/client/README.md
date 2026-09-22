@@ -1,9 +1,9 @@
-# @featkit/client
+# togglekit-client
 
-The client-tier SDK for **featkit** — evaluated feature flag values, never the ruleset.
+The client-tier SDK for **togglekit** — evaluated feature flag values, never the ruleset.
 
 ```bash
-npm i @featkit/client
+npm i togglekit-client
 ```
 
 One client, zero runtime dependencies, and any JavaScript runtime:
@@ -13,7 +13,7 @@ One client, zero runtime dependencies, and any JavaScript runtime:
 
 ---
 
-## Why `@featkit/client`?
+## Why `togglekit-client`?
 
 ### The Security & Performance Split
 Shipping targeting rules and segment definitions to a client application exposes business logic:
@@ -22,18 +22,18 @@ Shipping targeting rules and segment definitions to a client application exposes
 - Segment definitions leak private user targeting rules.
 - Mobile binaries can be unzipped and inspected.
 
-**`@featkit/client` only ever receives evaluated values for a single identity.** Flags marked `clientAvailable: false` never leave the server. The connection *is* the context.
+**`togglekit-client` only ever receives evaluated values for a single identity.** Flags marked `clientAvailable: false` never leave the server. The connection *is* the context.
 
 ---
 
 ## Installation
 
 ```bash
-npm install @featkit/client
+npm install togglekit-client
 # or
-pnpm add @featkit/client
+pnpm add togglekit-client
 # or
-yarn add @featkit/client
+yarn add togglekit-client
 ```
 
 ---
@@ -41,11 +41,11 @@ yarn add @featkit/client
 ## Quick Start
 
 ```ts
-import { FeatkitClient } from "@featkit/client";
+import { TogglekitClient } from "togglekit-client";
 
-const flags = new FeatkitClient({
-  baseUrl: "https://flags.acme.com", // Your featkit server URL
-  clientKey: "fk_clt_development_...",
+const flags = new TogglekitClient({
+  baseUrl: "https://flags.acme.com", // Your togglekit server URL
+  clientKey: "tk_clt_development_...",
   context: {
     key: "user-123",
     email: "user@example.com",
@@ -80,10 +80,10 @@ flags.close();
 
 ## API Reference
 
-### `new FeatkitClient(options)`
+### `new TogglekitClient(options)`
 
 ```ts
-interface FeatkitClientOptions {
+interface TogglekitClientOptions {
   baseUrl: string;
   clientKey: string;
   context?: { key: string; [attribute: string]: unknown };
@@ -124,12 +124,12 @@ interface FeatkitClientOptions {
 For sensitive environments, enable **Secure Mode** to guarantee context integrity with HMAC signatures:
 
 ```ts
-const flags = new FeatkitClient({
+const flags = new TogglekitClient({
   baseUrl: "https://flags.acme.com",
-  clientKey: "fk_clt_production_...",
+  clientKey: "tk_clt_production_...",
   context: { key: "user-123", email: "alice@acme.com" },
   signature: {
-    hash: "a3f89e2...", // Generated server-side with @featkit/server/secure-mode
+    hash: "a3f89e2...", // Generated server-side with @togglekit/server/secure-mode
     issuedAt: 1718000000,
   },
 });
@@ -139,17 +139,17 @@ const flags = new FeatkitClient({
 
 ## Framework Integration
 
-Because `@featkit/client` has zero dependencies and synchronous reads, integrating with any UI framework takes only a few lines:
+Because `togglekit-client` has zero dependencies and synchronous reads, integrating with any UI framework takes only a few lines:
 
 ### React Hook Example
 
 ```tsx
 import { useState, useEffect } from "react";
-import { FeatkitClient } from "@featkit/client";
+import { TogglekitClient } from "togglekit-client";
 
-export const client = new FeatkitClient({
+export const client = new TogglekitClient({
   baseUrl: "https://flags.acme.com",
-  clientKey: "fk_clt_...",
+  clientKey: "tk_clt_...",
   context: { key: "anonymous" },
 });
 
@@ -172,4 +172,4 @@ export function useFlag<T>(flagKey: string, defaultValue: T): T {
 
 ## License
 
-MIT © [DevKits](https://github.com/devkitshq/featkit)
+MIT © [DevKits](https://github.com/devkitshq/togglekit)

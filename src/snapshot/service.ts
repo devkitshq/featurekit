@@ -4,8 +4,8 @@
  * ```
  * PATCH /v1/flags/:key/environments/:env
  *   -> transaction: write config, bump version, write audit row
- *   -> recompile snapshot (debounced ~200ms, guarded by fk:lock:snapshot:{envId})
- *   -> SET fk:snap:{envId}:server, XADD fk:patches:{envId}, PUBLISH fk:chan:{envId}
+ *   -> recompile snapshot (debounced ~200ms, guarded by tk:lock:snapshot:{envId})
+ *   -> SET tk:snap:{envId}:server, XADD tk:patches:{envId}, PUBLISH tk:chan:{envId}
  *   -> each API node pushes `patch` to its connections
  *   -> next evaluation reflects it
  * ```
@@ -92,7 +92,7 @@ export interface RecompileOptions {
  */
 class CompileFailure extends Error {
   constructor(override readonly cause: unknown) {
-    super("featkit: snapshot compile failed");
+    super("togglekit: snapshot compile failed");
     this.name = "CompileFailure";
   }
 }
@@ -219,7 +219,7 @@ export class SnapshotService {
       }
       // Redis is gone, Postgres is gone, and this node never held a snapshot for
       // this environment. There is genuinely nothing to serve.
-      throw new Error(`featkit: could not obtain a snapshot for ${environmentId}`);
+      throw new Error(`togglekit: could not obtain a snapshot for ${environmentId}`);
     }
   }
 

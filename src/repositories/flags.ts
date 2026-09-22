@@ -422,7 +422,7 @@ export async function writeFlagConfig(
                 : normalizeRollout(rolloutFromBody(rule.rollout), target),
           })
           .returning({ id: targetingRules.id });
-        if (inserted === undefined) throw new Error("featurekit: rule insert returned nothing");
+        if (inserted === undefined) throw new Error("togglekit: rule insert returned nothing");
         if (rule.clauses.length > 0) {
           await tx.insert(ruleClauses).values(
             rule.clauses.map((clause, clauseIdx) => ({
@@ -704,7 +704,7 @@ export async function writeAudit(db: Database, input: AuditInput): Promise<strin
       entryHash,
     })
     .returning({ id: auditLog.id });
-  if (row === undefined) throw new Error("featurekit: audit insert returned nothing");
+  if (row === undefined) throw new Error("togglekit: audit insert returned nothing");
   return row.id;
 }
 

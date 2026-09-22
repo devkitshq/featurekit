@@ -1,4 +1,4 @@
-# featkit
+# togglekit
 
 Feature flags with a control plane you run.
 
@@ -8,13 +8,13 @@ if (flags.get("new-checkout", false)) {
 }
 ```
 
-Two packages. `@featkit/server` is the server side — the control plane, and an
-evaluator that holds the ruleset in memory. `@featkit/client` is one client
+Two packages. `@togglekit/server` is the server side — the control plane, and an
+evaluator that holds the ruleset in memory. `togglekit-client` is one client
 for everything else, with no framework bindings and no per-runtime build.
 
 ```bash
-npm i @featkit/server  # runs the control plane; evaluates server-side
-npm i @featkit/client  # browsers, React Native, Node, Deno, Bun, edge
+npm i @togglekit/server  # runs the control plane; evaluates server-side
+npm i togglekit-client  # browsers, React Native, Node, Deno, Bun, edge
 ```
 
 Not writing JavaScript? Skip both and implement
@@ -52,14 +52,14 @@ service you rent.
 ```bash
 mkdir acme-flags && cd acme-flags
 npm init -y && npm pkg set type=module
-npm i @featkit/server
+npm i @togglekit/server
 ```
 
 ```js
 // server.js
-import { FeatkitServer } from "@featkit/server";
+import { TogglekitServer } from "@togglekit/server";
 
-const server = new FeatkitServer({
+const server = new TogglekitServer({
   services: ["all"],
   port: 3000,
 });
@@ -75,7 +75,7 @@ That is a working control plane: the management API, the client tier, the
 streams, event ingest, the rollup worker, the scheduler, and a dashboard on
 `http://127.0.0.1:3000/admin`.
 
-**It needs no database setup to start.** Outside production, featkit brings
+**It needs no database setup to start.** Outside production, togglekit brings
 up Postgres and Redis in Docker when it cannot reach them, and runs the
 migrations. Only for addresses you did *not* specify — an explicit
 `databaseUrl` that does not answer is an error, never a silent redirect to a
@@ -121,7 +121,7 @@ export default {
 ```js
 import flags from "./flags.js";
 
-const server = new FeatkitServer({ services: ["all"], port: 3000, flags });
+const server = new TogglekitServer({ services: ["all"], port: 3000, flags });
 await server.start();
 ```
 
@@ -136,7 +136,7 @@ server-only flag.
 ### Going to production
 
 ```js
-const server = new FeatkitServer({
+const server = new TogglekitServer({
   services: ["all"],
   port: 3000,
   host: "0.0.0.0",
@@ -155,7 +155,7 @@ const server = new FeatkitServer({
   // values. Native apps send no Origin and are unaffected.
   corsAllowedOrigins: ["https://app.acme.com"],
 
-  // Leave this off for a fleet and run `featkit/migrate` as a deploy step
+  // Leave this off for a fleet and run `togglekit/migrate` as a deploy step
   // instead — see below. It defaults to off in production for that reason.
   autoMigrate: false,
 });
@@ -192,7 +192,7 @@ queue behind it, during a deploy, while traffic is shifting.
 
 ```js
 // migrate.js — a deploy job, run once
-import { migrate } from "@featkit/server/migrate";
+import { migrate } from "@togglekit/server/migrate";
 await migrate();
 ```
 
@@ -203,7 +203,7 @@ node migrate.js && kubectl rollout restart deploy/acme-flags
 Or without a file at all:
 
 ```bash
-node -e 'import("@featkit/server/migrate").then(m => m.migrate())'
+node -e 'import("@togglekit/server/migrate").then(m => m.migrate())'
 ```
 
 `migrate()` reads `DATABASE_URL`, or takes `{ databaseUrl }`. It refuses to
@@ -217,7 +217,7 @@ part of the same step, since a deploy that leaves the analytics table without
 partitions has not finished, it has just not failed yet.
 
 ```js
-import { migrationStatus } from "@featkit/server/migrate";
+import { migrationStatus } from "@togglekit/server/migrate";
 
 const { applied, partitionRunwayDays } = await migrationStatus();
 ```
@@ -255,12 +255,12 @@ Docker, from inside Docker.
 Split the process by service when one machine stops being enough:
 
 ```js
-new FeatkitServer({ services: ["api", "stream"] });      // scale horizontally
-new FeatkitServer({ services: ["rollup", "scheduler"] }); // keep it small
+new TogglekitServer({ services: ["api", "stream"] });      // scale horizontally
+new TogglekitServer({ services: ["rollup", "scheduler"] }); // keep it small
 ```
 
-Or set `FEATKIT_SERVICES=api,stream` and run the packaged entrypoint,
-`node node_modules/@featkit/server/dist/main.js`, if you would rather configure by
+Or set `TOGGLEKIT_SERVICES=api,stream` and run the packaged entrypoint,
+`node node_modules/@togglekit/server/dist/main.js`, if you would rather configure by
 environment than by file.
 
 ### Your first key
@@ -273,10 +273,10 @@ To get a login without a shell, seed the first account — created if it does no
 exist, never overwriting one that does:
 
 ```js
-new FeatkitServer({
+new TogglekitServer({
   env: {
-    FEATKIT_ADMIN_EMAIL: "you@acme.com",
-    FEATKIT_ADMIN_PASSWORD: process.env.FEATKIT_ADMIN_PASSWORD,
+    TOGGLEKIT_ADMIN_EMAIL: "you@acme.com",
+    TOGGLEKIT_ADMIN_PASSWORD: process.env.TOGGLEKIT_ADMIN_PASSWORD,
   },
 });
 ```
@@ -286,12 +286,12 @@ new FeatkitServer({
 ## Using it: server side
 
 ```ts
-import { FeatkitSDK } from "@featkit/server";
+import { TogglekitSDK } from "@togglekit/server";
 
-const flags = new FeatkitSDK({
-  sdkKey: process.env.FEATKIT_SDK_KEY!,
+const flags = new TogglekitSDK({
+  sdkKey: process.env.TOGGLEKIT_SDK_KEY!,
   baseUrl: "https://flags.internal.acme.com",
-  persist: { kind: "file", path: ".featkit/snapshot.json" },
+  persist: { kind: "file", path: ".togglekit/snapshot.json" },
   mode: "streaming",
 });
 
@@ -310,10 +310,10 @@ run in rather than a failed deploy.
 
 **The default is a required argument.** An optional one produces `undefined`
 during an outage, and `if (undefined)` is a wrong answer that looks like a right
-one. Requiring it forces every call site to say what happens when featkit is
+one. Requiring it forces every call site to say what happens when togglekit is
 unavailable — the one decision a flag SDK must not make for you.
 
-The one difference from `@featkit/client` is the **context per call**. This
+The one difference from `togglekit-client` is the **context per call**. This
 SDK holds the ruleset, so a single instance answers for every identity your
 process serves; nothing is held per user, and there is no round trip. The client
 takes no context because the connection is the context, and holds one identity
@@ -322,9 +322,9 @@ at a time.
 ## Using it: everywhere else
 
 ```ts
-import { FeatkitClient } from "@featkit/client";
+import { TogglekitClient } from "togglekit-client";
 
-export const flags = new FeatkitClient({
+export const flags = new TogglekitClient({
   clientKey: PUBLIC_CLIENT_KEY,
   baseUrl: "https://flags.acme.com",
   context: { key: user.id, plan: user.plan },
@@ -343,7 +343,7 @@ await flags.identify(nextUser);         // the one async operation
 ```
 
 One `get` for every type. The default is required and does two jobs: it states
-what happens when featkit is unavailable, and its type is the expected type —
+what happens when togglekit is unavailable, and its type is the expected type —
 `get("new-checkout", false)` is a `boolean` with no annotation, and a value that
 somehow is not one falls back rather than handing `"false"` to an `if`.
 
@@ -383,7 +383,7 @@ open and the SDK falls back to re-fetching on a timer. Pass a streaming fetch:
 ```ts
 import { fetch as expoFetch } from "expo/fetch";
 
-new FeatkitClient({ …options, fetchImpl: expoFetch as unknown as typeof fetch });
+new TogglekitClient({ …options, fetchImpl: expoFetch as unknown as typeof fetch });
 ```
 
 [`examples/mobile`](examples/mobile) is that, in a working app.
@@ -395,9 +395,9 @@ identity it is handed. Your backend mints the signature where the session is
 already trusted:
 
 ```ts
-import { signContext, contextHash } from "@featkit/server/secure-mode";
+import { signContext, contextHash } from "@togglekit/server/secure-mode";
 
-app.get("/api/featkit-signature", requireSession, (req, res) => {
+app.get("/api/togglekit-signature", requireSession, (req, res) => {
   const context = { key: req.user.id, plan: req.user.plan };
   const expiresAt = Math.floor(Date.now() / 1000) + 3600;
   res.json({
@@ -410,10 +410,10 @@ app.get("/api/featkit-signature", requireSession, (req, res) => {
 Then hand the pair to the client, with `onSignatureExpiring` to refresh before
 it lapses.
 
-A separate entry point from `featkit` because of what it does not load: the
+A separate entry point from `togglekit` because of what it does not load: the
 main entry is the control plane, so importing it pulls Drizzle, a Postgres
 driver and ioredis into a service whose only job is signing a string —
-`featkit/secure-mode` imports in 15ms where `featkit` takes 3.5s.
+`togglekit/secure-mode` imports in 15ms where `togglekit` takes 3.5s.
 
 **Pass the `attributesHash`.** A signature over the key alone authenticates
 *who* the context claims to be and nothing about what it claims to be true — a
@@ -458,7 +458,7 @@ connection it already holds.
 | [Evaluation](docs/evaluation/evaluator.md) | Bucketing, operators, segments, determinism |
 | [Decisions](docs/decisions.md) | Where the implementation departs from the plan, and why |
 
-## Working on featkit itself
+## Working on togglekit itself
 
 The commands above are for *using* the package. From a checkout of this
 repository:

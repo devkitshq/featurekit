@@ -1,5 +1,5 @@
 {
-  "name": "@featkit/server",
+  "name": "@togglekit/server",
   "version": "0.1.4",
   "type": "module",
   "main": "./dist/index.js",
@@ -52,9 +52,9 @@
     "check:package": "node tools/check-package.mjs",
     "conformance:python": "python conformance/python/run.py",
     "admin:user": "node scripts/admin-user.mjs",
-    "build:dashboard": "npm run build --workspace=@featkit/dashboard",
-    "dashboard:dev": "npm run dev --workspace=@featkit/dashboard",
-    "typecheck:dashboard": "npm run typecheck --workspace=@featkit/dashboard"
+    "build:dashboard": "npm run build --workspace=@togglekit/dashboard",
+    "dashboard:dev": "npm run dev --workspace=@togglekit/dashboard",
+    "typecheck:dashboard": "npm run typecheck --workspace=@togglekit/dashboard"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.1",
@@ -82,7 +82,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/devkitshq/featkit.git"
+    "url": "git+https://github.com/devkitshq/togglekit.git"
   },
   "publishConfig": {
     "access": "public"
@@ -90,7 +90,7 @@
   "keywords": [
     "feature-flags",
     "feature-toggles",
-    "featkit",
+    "togglekit",
     "experimentation"
   ]
 }

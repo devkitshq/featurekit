@@ -39,7 +39,7 @@ export function LoginPage() {
             f
           </span>
           <div>
-            <h1 className="text-sm font-semibold text-foreground">featkit</h1>
+            <h1 className="text-sm font-semibold text-foreground">togglekit</h1>
             <p className="text-xs text-muted-foreground">Feature management & real-time control plane</p>
           </div>
         </div>
@@ -55,8 +55,8 @@ export function LoginPage() {
                 npm run admin:user -- create you@example.com --role owner
               </pre>
               <p className="mt-2 text-xs">
-                Or configure <code className="font-mono text-foreground">FEATKIT_ADMIN_EMAIL</code> and{" "}
-                <code className="font-mono text-foreground">FEATKIT_ADMIN_PASSWORD</code> environment variables and restart the service.
+                Or configure <code className="font-mono text-foreground">TOGGLEKIT_ADMIN_EMAIL</code> and{" "}
+                <code className="font-mono text-foreground">TOGGLEKIT_ADMIN_PASSWORD</code> environment variables and restart the service.
               </p>
             </InfoNote>
             <Button variant="secondary" className="w-full" onClick={() => void session.refresh()}>

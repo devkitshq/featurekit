@@ -1,4 +1,4 @@
-"""A second implementation of the featurekit evaluation core, in Python.
+"""A second implementation of the togglekit evaluation core, in Python.
 
 Its only purpose is to answer a question the TypeScript SDK cannot answer about
 itself: **is the wire format and the evaluation semantics actually portable?**
@@ -302,7 +302,7 @@ def apply_operator(op: str, attr: Any, values: Iterable[Any]) -> bool:
 
 
 class CuckooFilter:
-    """Decoder for the frozen `FKCF` wire format (§9.7).
+    """Decoder for the frozen `TKCF` wire format (§9.7).
 
     Only membership is implemented — a porting SDK reads filters, it does not
     build them. This is the part of the corpus that tests the *format* rather
@@ -312,7 +312,7 @@ class CuckooFilter:
 
     | Offset | Size | Field |
     | --: | --: | :-- |
-    | 0 | 4 | magic, ASCII `FKCF` |
+    | 0 | 4 | magic, ASCII `TKCF` |
     | 4 | 1 | format version (1) |
     | 5 | 1 | fingerprint bits (12 or 16) |
     | 6 | 1 | log2 of the bucket count |
@@ -335,8 +335,8 @@ class CuckooFilter:
     ALT_SEED_XOR = 0x5BD1E995
 
     def __init__(self, data: bytes) -> None:
-        if len(data) < 16 or data[0:4] != b"FKCF":
-            raise ValueError("not a featkit cuckoo filter")
+        if len(data) < 16 or data[0:4] != b"TKCF":
+            raise ValueError("not a togglekit cuckoo filter")
         self.format_version = data[4]
         self.fingerprint_bits = data[5]
         self.buckets_log2 = data[6]

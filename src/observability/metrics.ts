@@ -129,17 +129,17 @@ export class Metrics {
     const registers = [this.registry];
 
     if (options.defaultMetrics !== false) {
-      collectDefaultMetrics({ register: this.registry, prefix: "featkit_" });
+      collectDefaultMetrics({ register: this.registry, prefix: "togglekit_" });
     }
 
     this.httpRequests = new Counter({
-      name: "featkit_http_requests_total",
+      name: "togglekit_http_requests_total",
       help: "HTTP requests by route pattern, method and status class",
       labelNames: ["route", "method", "status"],
       registers,
     });
     this.httpDuration = new Histogram({
-      name: "featkit_http_request_duration_seconds",
+      name: "togglekit_http_request_duration_seconds",
       help: "HTTP request duration by route pattern",
       labelNames: ["route", "method"],
       // Tuned for this system: a snapshot poll is single-digit ms, a compile is
@@ -148,111 +148,111 @@ export class Metrics {
       registers,
     });
     this.rateLimited = new Counter({
-      name: "featkit_rate_limited_total",
+      name: "togglekit_rate_limited_total",
       help: "Requests rejected by the rate limiter",
       labelNames: ["route"],
       registers,
     });
 
     this.snapshotVersion = new Gauge({
-      name: "featkit_snapshot_version",
+      name: "togglekit_snapshot_version",
       help: "Current compiled snapshot version per environment",
       labelNames: ["environment"],
       registers,
     });
     this.snapshotAgeSeconds = new Gauge({
-      name: "featkit_snapshot_age_seconds",
+      name: "togglekit_snapshot_age_seconds",
       help: "Seconds since this node last compiled or fetched a snapshot",
       labelNames: ["environment"],
       registers,
     });
     this.snapshotCompileDuration = new Histogram({
-      name: "featkit_snapshot_compile_duration_seconds",
+      name: "togglekit_snapshot_compile_duration_seconds",
       help: "Time to compile one environment's snapshot from Postgres rows",
       buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30],
       registers,
     });
     this.snapshotCompileFailures = new Counter({
-      name: "featkit_snapshot_compile_failures_total",
+      name: "togglekit_snapshot_compile_failures_total",
       help: "Compiles that threw, leaving the previous snapshot serving",
       labelNames: ["reason"],
       registers,
     });
     this.snapshotDegradedServes = new Counter({
-      name: "featkit_snapshot_degraded_serves_total",
+      name: "togglekit_snapshot_degraded_serves_total",
       help: "Snapshots served from a fallback source because Redis was unavailable",
       labelNames: ["source"],
       registers,
     });
 
     this.streamConnections = new Gauge({
-      name: "featkit_stream_connections",
+      name: "togglekit_stream_connections",
       help: "Open SSE connections on this node",
       labelNames: ["tier"],
       registers,
     });
     this.streamEvents = new Counter({
-      name: "featkit_stream_events_total",
+      name: "togglekit_stream_events_total",
       help: "SSE events written, by tier and event name",
       labelNames: ["tier", "op"],
       registers,
     });
     this.streamRejections = new Counter({
-      name: "featkit_stream_rejections_total",
+      name: "togglekit_stream_rejections_total",
       help: "Stream connections refused, by reason",
       labelNames: ["tier", "reason"],
       registers,
     });
 
     this.eventsIngested = new Counter({
-      name: "featkit_events_ingested_total",
+      name: "togglekit_events_ingested_total",
       help: "Evaluation summary rows accepted from SDKs",
       registers,
     });
     this.eventsDropped = new Counter({
-      name: "featkit_events_dropped_total",
+      name: "togglekit_events_dropped_total",
       help: "Summary rows dropped, by reason. Analytics is explicitly lossy (§14)",
       labelNames: ["reason"],
       registers,
     });
     this.rollupWritten = new Counter({
-      name: "featkit_rollup_rows_written_total",
+      name: "togglekit_rollup_rows_written_total",
       help: "Rows written into evaluation_summaries",
       registers,
     });
     this.rollupLagSeconds = new Gauge({
-      name: "featkit_rollup_lag_seconds",
+      name: "togglekit_rollup_lag_seconds",
       help: "Age of the oldest buffered summary awaiting rollup",
       registers,
     });
     this.rollupDlq = new Counter({
-      name: "featkit_rollup_dlq_total",
+      name: "togglekit_rollup_dlq_total",
       help: "Batches diverted to the dead-letter queue",
       labelNames: ["reason"],
       registers,
     });
 
     this.partitionRunwayDays = new Gauge({
-      name: "featkit_partition_runway_days",
+      name: "togglekit_partition_runway_days",
       help: "Days of pre-created evaluation_summaries partitions remaining",
       registers,
     });
     this.dbErrors = new Counter({
-      name: "featkit_db_errors_total",
+      name: "togglekit_db_errors_total",
       help: "Database operations that failed, by operation name",
       labelNames: ["operation"],
       registers,
     });
 
     this.sdkConnections = new Counter({
-      name: "featkit_sdk_connections_total",
+      name: "togglekit_sdk_connections_total",
       help: "SDK connections by reported name and version, for skew detection",
       labelNames: ["sdk", "version"],
       registers,
     });
 
     this.defaultServed = new Counter({
-      name: "featkit_sdk_default_served_total",
+      name: "togglekit_sdk_default_served_total",
       help: "Evaluations reported by SDKs that fell back to the caller's default",
       labelNames: ["environment"],
       registers,
@@ -288,7 +288,7 @@ export class Metrics {
 }
 
 /**
- * Parse a featkit SDK user agent: `featkit-node/0.1.0` or `featurekit-node/0.1.0`.
+ * Parse a togglekit SDK user agent: `togglekit-node/0.1.0` or `togglekit-node/0.1.0`.
  *
  * Strict by design. The value arrives in a header from a client that may be
  * hostile, and a permissive parser here is a per-request time series — the
@@ -299,7 +299,7 @@ export function parseSdkUserAgent(userAgent: string | undefined): {
   version: string;
 } {
   if (userAgent === undefined) return { sdk: "unknown", version: "unknown" };
-  const match = /^((?:featkit|featurekit)-[a-z]{1,20})\/(\d{1,3}\.\d{1,3}\.\d{1,3}(?:-[0-9A-Za-z.]{1,20})?)/.exec(
+  const match = /^((?:togglekit|togglekit)-[a-z]{1,20})\/(\d{1,3}\.\d{1,3}\.\d{1,3}(?:-[0-9A-Za-z.]{1,20})?)/.exec(
     userAgent.trim(),
   );
   if (match === null) return { sdk: "unknown", version: "unknown" };

@@ -1,6 +1,6 @@
 # Framework adapters
 
-`featkit-client` ships no framework bindings. Not "not yet" — it is the
+`togglekit-client` ships no framework bindings. Not "not yet" — it is the
 design.
 
 A binding is twenty lines wrapping two methods that already exist:
@@ -23,10 +23,10 @@ Each of these assumes a client built once at module scope or in your app's
 composition root:
 
 ```ts
-import { FeatkitClient } from "featkit-client";
+import { TogglekitClient } from "togglekit-client";
 
-export const featkit = new FeatkitClient({
-  clientKey: process.env.FEATKIT_CLIENT_KEY,
+export const togglekit = new TogglekitClient({
+  clientKey: process.env.TOGGLEKIT_CLIENT_KEY,
   baseUrl: "https://flags.acme.com",
   context: { key: user.id, plan: user.plan },
   stream: true,
@@ -44,15 +44,15 @@ response for one user off another user's screen.
 
 ```tsx
 import { useCallback, useMemo, useSyncExternalStore } from "react";
-import { featkit } from "./featkit";
+import { togglekit } from "./togglekit";
 
 export function useFlag<T>(flagKey: string, defaultValue: T): T {
   const subscribe = useCallback((onChange: () => void) => {
     // Both events: `change` is a value moving, `state` is an identify()
     // dropping the previous user's values before the network answers. A UI
     // that misses the second shows the old user's flags for a frame.
-    const offChange = featkit.on("change", onChange);
-    const offState = featkit.on("state", onChange);
+    const offChange = togglekit.on("change", onChange);
+    const offState = togglekit.on("state", onChange);
     return () => {
       offChange();
       offState();
@@ -65,7 +65,7 @@ export function useFlag<T>(flagKey: string, defaultValue: T): T {
   // and replaces only on a real change. `get(key, {…})` would return the
   // *default* for a missing object-valued flag — a fresh literal on every call,
   // which React sees as a change every time and re-renders forever.
-  const getSnapshot = useMemo(() => () => featkit.detail(flagKey), [flagKey]);
+  const getSnapshot = useMemo(() => () => togglekit.detail(flagKey), [flagKey]);
 
   // The third argument is the server snapshot. Passing the same function means
   // SSR and hydration read the same bootstrap values, which is what removes
@@ -75,15 +75,15 @@ export function useFlag<T>(flagKey: string, defaultValue: T): T {
   // `detail` drives the re-render; `get` produces the value, so the fallback
   // for a missing or wrong-typed flag is the one your whole app already uses
   // rather than a second copy of it that drifts.
-  return detail === undefined ? defaultValue : featkit.get(flagKey, defaultValue);
+  return detail === undefined ? defaultValue : togglekit.get(flagKey, defaultValue);
 }
 
-export function useFeatkitState(): string {
-  const subscribe = useCallback((onChange: () => void) => featkit.on("state", onChange), []);
+export function useTogglekitState(): string {
+  const subscribe = useCallback((onChange: () => void) => togglekit.on("state", onChange), []);
   return useSyncExternalStore(
     subscribe,
-    () => featkit.state,
-    () => featkit.state,
+    () => togglekit.state,
+    () => togglekit.state,
   );
 }
 ```
@@ -95,18 +95,18 @@ directly. React is the one that needs the two-step.
 
 ```ts
 import { onScopeDispose, shallowRef, watchEffect, type Ref } from "vue";
-import { featkit } from "./featkit";
+import { togglekit } from "./togglekit";
 
 export function useFlag<T>(flagKey: string, defaultValue: T): Ref<T> {
-  const read = (): T => featkit.get(flagKey, defaultValue);
+  const read = (): T => togglekit.get(flagKey, defaultValue);
 
   const value = shallowRef(read());
   const update = () => {
     value.value = read();
   };
 
-  const offChange = featkit.on("change", update);
-  const offState = featkit.on("state", update);
+  const offChange = togglekit.on("change", update);
+  const offState = togglekit.on("state", update);
   onScopeDispose(() => {
     offChange();
     offState();
@@ -122,15 +122,15 @@ A store is the subscribe contract almost verbatim.
 
 ```ts
 import { readable, type Readable } from "svelte/store";
-import { featkit } from "./featkit";
+import { togglekit } from "./togglekit";
 
 export function flag<T>(flagKey: string, defaultValue: T): Readable<T> {
-  const read = (): T => featkit.get(flagKey, defaultValue);
+  const read = (): T => togglekit.get(flagKey, defaultValue);
 
   return readable(read(), (set) => {
     const update = () => set(read());
-    const offChange = featkit.on("change", update);
-    const offState = featkit.on("state", update);
+    const offChange = togglekit.on("change", update);
+    const offState = togglekit.on("state", update);
     return () => {
       offChange();
       offState();
@@ -144,11 +144,11 @@ export function flag<T>(flagKey: string, defaultValue: T): Readable<T> {
 No framework, no adapter.
 
 ```js
-featkit.on("change", () => render());
-await featkit.ready();
+togglekit.on("change", () => render());
+await togglekit.ready();
 
 function render() {
-  document.body.classList.toggle("new-checkout", featkit.get("new-checkout", false));
+  document.body.classList.toggle("new-checkout", togglekit.get("new-checkout", false));
 }
 ```
 
@@ -186,7 +186,7 @@ and it behaves exactly as it does in a browser:
 ```ts
 import { fetch as expoFetch } from "expo/fetch";
 
-new FeatkitClient({ ...options, fetchImpl: expoFetch as unknown as typeof fetch });
+new TogglekitClient({ ...options, fetchImpl: expoFetch as unknown as typeof fetch });
 ```
 
 See [`examples/mobile`](../../examples/mobile), which is this page's React

@@ -16,7 +16,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 try:
-    from featkit import (  # noqa: E402
+    from togglekit import (  # noqa: E402
         CuckooFilter,
         HASH_SPACE,
         SegmentIndex,
@@ -28,7 +28,7 @@ try:
         murmur3_utf8,
     )
 except ImportError:
-    from featurekit import (  # noqa: E402
+    from togglekit import (  # noqa: E402
         CuckooFilter,
         HASH_SPACE,
         SegmentIndex,
@@ -132,7 +132,7 @@ else:
 
 # ─────────────────────────────── report ────────────────────────────────────
 
-print(f"featkit conformance (python): {checks} checks")
+print(f"togglekit conformance (python): {checks} checks")
 if failures:
     print(f"\n{len(failures)} FAILED:\n")
     for failure in failures:

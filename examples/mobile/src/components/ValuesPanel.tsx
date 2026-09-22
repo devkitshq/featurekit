@@ -15,7 +15,7 @@
 
 import type { ReactNode } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { useAllValues } from "../featkit";
+import { useAllValues } from "../togglekit";
 import { mono, theme } from "../theme";
 import { Pill } from "./ui";
 

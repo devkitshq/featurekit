@@ -1,5 +1,5 @@
 /**
- * `featurekit-client` — the client-tier SDK (§11.5, §14, §16).
+ * `togglekit-client` — the client-tier SDK (§11.5, §14, §16).
  *
  * **This SDK never receives the ruleset.** It receives evaluated values for one
  * context. That is a real architectural split, not a deployment detail: shipping
@@ -8,7 +8,7 @@
  * A mobile binary a stranger can unzip makes that sharper, not softer.
  *
  * ```ts
- * const flags = new FeaturekitClient({ clientKey, baseUrl, context: user });
+ * const flags = new TogglekitClient({ clientKey, baseUrl, context: user });
  * await flags.ready();
  *
  * flags.get("new-checkout", false);
@@ -62,7 +62,7 @@ export interface SignaturePair {
   expiresAt: number;
 }
 
-export interface FeatkitClientOptions {
+export interface TogglekitClientOptions {
   clientKey: string;
   baseUrl: string;
   context: EvaluationContextLike;
@@ -79,11 +79,10 @@ export interface FeatkitClientOptions {
   stream?: boolean;
 }
 
-export type FeaturekitClientOptions = FeatkitClientOptions;
 
 type Listener = (payload: never) => void;
 
-export class FeatkitClient {
+export class TogglekitClient {
   private values: Record<string, FlagValue> = {};
   private context: EvaluationContextLike;
   private currentState: ClientState = "initializing";
@@ -113,7 +112,7 @@ export class FeatkitClient {
   private readonly readyPromise: Promise<void>;
   private isReady = false;
 
-  constructor(private readonly options: FeatkitClientOptions) {
+  constructor(private readonly options: TogglekitClientOptions) {
     this.context = options.context;
     this.readyPromise = new Promise((resolve) => {
       this.readyResolve = resolve;
@@ -157,7 +156,7 @@ export class FeatkitClient {
    * **No context argument**, because the connection *is* the context.
    *
    * **The default is required**, and it does two jobs. It states what happens
-   * when featurekit is unavailable — the one decision a flag SDK must not make
+   * when togglekit is unavailable — the one decision a flag SDK must not make
    * on your behalf, because an optional default produces `undefined` during an
    * outage and `if (undefined)` is a wrong answer that reads like a right one.
    * And its type is the expected type: `T` is inferred from it, so
@@ -482,4 +481,3 @@ export class FeatkitClient {
   }
 }
 
-export { FeatkitClient as FeaturekitClient };

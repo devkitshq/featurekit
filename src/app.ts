@@ -20,7 +20,7 @@
  */
 
 import { createDatabase, type Database } from "./db/client.js";
-import { commaList, secureModeSecrets, type FeatkitConfig } from "./config/index.js";
+import { commaList, secureModeSecrets, type TogglekitConfig } from "./config/index.js";
 import { createLogger, type Logger } from "./observability/logger.js";
 import { Metrics } from "./observability/metrics.js";
 import { Router } from "./http/router.js";
@@ -78,9 +78,8 @@ const CLIENT_ROUTES = new Set(["/v1/client/state", "/v1/client/stream"]);
  * open by memory and file descriptors, rollup is bounded by Postgres write
  * throughput — and the split is how they stop competing for the same node.
  */
-export type FeatkitService = "api" | "stream" | "events" | "rollup" | "scheduler" | "all";
-export type FeaturekitService = FeatkitService;
-export type { FeatkitConfig, FeatkitConfig as FeaturekitConfig };
+export type TogglekitService = "api" | "stream" | "events" | "rollup" | "scheduler" | "all";
+export type { TogglekitConfig };
 
 /**
  * Which service owns which route.
@@ -89,7 +88,7 @@ export type { FeatkitConfig, FeatkitConfig as FeaturekitConfig };
  * `/metrics` are registered by every process whatever it runs, because a
  * rollup-only node still has to answer its orchestrator.
  */
-const ROUTE_SERVICE: Readonly<Record<string, FeatkitService>> = {
+const ROUTE_SERVICE: Readonly<Record<string, TogglekitService>> = {
   "/v1/snapshot/:envKey": "api",
   "/v1/stream/:envKey": "stream",
   "/v1/events": "events",
@@ -106,7 +105,7 @@ const ROUTE_SERVICE: Readonly<Record<string, FeatkitService>> = {
  * is a 404, which is the truth: this process does not serve it.
  */
 class ServiceRouter extends Router {
-  constructor(private readonly enabled: ReadonlySet<FeatkitService>) {
+  constructor(private readonly enabled: ReadonlySet<TogglekitService>) {
     super();
   }
 
@@ -119,22 +118,22 @@ class ServiceRouter extends Router {
 
 export interface CreateAppOptions {
   /** Defaults to `["all"]`: one process that does everything. */
-  services?: readonly FeatkitService[];
+  services?: readonly TogglekitService[];
 }
 
-function serviceSet(services: readonly FeatkitService[] | undefined): Set<FeatkitService> {
+function serviceSet(services: readonly TogglekitService[] | undefined): Set<TogglekitService> {
   const requested = services === undefined || services.length === 0 ? ["all" as const] : services;
   if (requested.includes("all")) {
-    return new Set<FeatkitService>(["api", "stream", "events", "rollup", "scheduler"]);
+    return new Set<TogglekitService>(["api", "stream", "events", "rollup", "scheduler"]);
   }
   return new Set(requested);
 }
 
-export function createApp(config: FeatkitConfig, options: CreateAppOptions = {}): App {
+export function createApp(config: TogglekitConfig, options: CreateAppOptions = {}): App {
   const services = serviceSet(options.services);
   const logger = createLogger({
     level: config.LOG_LEVEL,
-    base: { service: "featkit", env: config.NODE_ENV },
+    base: { service: "togglekit", env: config.NODE_ENV },
   });
   const metrics = new Metrics();
 
@@ -313,7 +312,7 @@ export function createApp(config: FeatkitConfig, options: CreateAppOptions = {})
      * would have seen, and leaves nothing behind.
      */
     dryRun: async (target, patch) => {
-      const ROLLBACK = Symbol("featurekit: dry run rollback");
+      const ROLLBACK = Symbol("togglekit: dry run rollback");
       try {
         await db.transaction(async (tx) => {
           const scoped = tx as unknown as typeof db;
@@ -325,7 +324,7 @@ export function createApp(config: FeatkitConfig, options: CreateAppOptions = {})
               kind: "token",
               tokenId: "dry-run",
               memberId: "00000000-0000-0000-0000-000000000000",
-              memberEmail: "dry-run@featurekit",
+              memberEmail: "dry-run@togglekit",
               role: "owner",
               environmentIds: null,
             },
@@ -343,7 +342,7 @@ export function createApp(config: FeatkitConfig, options: CreateAppOptions = {})
       } catch (error) {
         if (error !== ROLLBACK) throw error;
       }
-      if (dryRunSnapshot === null) throw new Error("featurekit: dry run produced no snapshot");
+      if (dryRunSnapshot === null) throw new Error("togglekit: dry run produced no snapshot");
       return dryRunSnapshot;
     },
     // A revoked key must stop working now, not when its cache entry expires.
@@ -393,7 +392,7 @@ export function createApp(config: FeatkitConfig, options: CreateAppOptions = {})
       // SSE requests are logged when they end, which for a stream is hours
       // later; that is correct, and their duration is the connection lifetime.
       // The trace id is in `fields`, so a slow flag fetch seen by the calling
-      // service can be found here without knowing featurekit's request id.
+      // service can be found here without knowing togglekit's request id.
       logger.debug(fields, "request");
     },
     onError: (error, ctx) => logger.error({ err: error, ...ctx }, "unhandled request error"),
@@ -424,7 +423,7 @@ export function createApp(config: FeatkitConfig, options: CreateAppOptions = {})
     snapshotAges: () => snapshots.ages(),
     minimumRunwayDays: config.PARTITION_RUNWAY_MIN_DAYS,
     isShuttingDown: () => server.isShuttingDown,
-    version: process.env["FEATUREKIT_VERSION"] ?? "dev",
+    version: process.env["TOGGLEKIT_VERSION"] ?? "dev",
   });
 
   /* ── the dashboard ─────────────────────────────────────────────────── */
@@ -464,7 +463,7 @@ export function createApp(config: FeatkitConfig, options: CreateAppOptions = {})
       if (services.has("rollup")) rollup.start();
       if (services.has("scheduler")) scheduler.start();
       const address = await server.listen();
-      logger.info({ ...address, nodeEnv: config.NODE_ENV }, "featurekit control plane listening");
+      logger.info({ ...address, nodeEnv: config.NODE_ENV }, "togglekit control plane listening");
 
       // Warm the snapshot cache in the background. A node that has already
       // compiled every environment answers its first SDK connection from memory
@@ -500,7 +499,7 @@ export function createApp(config: FeatkitConfig, options: CreateAppOptions = {})
       await rollup.close();
       await store.close().catch(() => undefined);
       await closeDatabase();
-      logger.info("featurekit control plane stopped");
+      logger.info("togglekit control plane stopped");
     },
   };
 }
@@ -562,7 +561,7 @@ function parseRateLimitOverrides(
  * per-identity ceiling relative to its cost. `/v1/stream` is limited on
  * *connection attempts*, which is what a reconnect storm consists of.
  */
-function rateLimitRules(config: FeatkitConfig): Map<string, RateLimitRule> {
+function rateLimitRules(config: TogglekitConfig): Map<string, RateLimitRule> {
   const perMinute = (limit: number): RateLimitRule => ({ limit, windowMs: 60_000 });
   return new Map<string, RateLimitRule>([
     ["/v1/client/state", perMinute(config.RATE_LIMIT_CLIENT_STATE_PER_MIN)],

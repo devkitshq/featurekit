@@ -7,8 +7,8 @@ import { SnapshotService } from "../../src/snapshot/service.js";
 import type { CompilerInput } from "../../src/snapshot/compile.js";
 
 const ENV_ID = "env-1";
-const SERVER_KEY = "fk_srv_test";
-const CLIENT_KEY = "fk_clt_test";
+const SERVER_KEY = "tk_srv_test";
+const CLIENT_KEY = "tk_clt_test";
 
 let flagKeys = ["f"];
 
@@ -228,7 +228,7 @@ describe("GET /v1/snapshot/:envKey — polling is first class (§10.2)", () => {
       await fetch(`http://${host}:${port}/v1/snapshot/production`, { headers: auth() })
     ).json();
     // The tagged form survives; the SDK's deserializer revives it as bytes.
-    expect(body.segments.big.filter).toEqual({ $fkBytes: Buffer.from([9, 8, 7]).toString("base64") });
+    expect(body.segments.big.filter).toEqual({ $tkBytes: Buffer.from([9, 8, 7]).toString("base64") });
   });
 });
 

@@ -5,8 +5,8 @@
 ```
 PATCH /v1/flags/:key/environments/:env
   -> transaction: write config, bump version, write audit row
-  -> recompile snapshot (debounced ~200ms, guarded by fk:lock:snapshot:{envId})
-  -> SET fk:snap:{envId}:server, XADD fk:patches:{envId}, PUBLISH fk:chan:{envId}
+  -> recompile snapshot (debounced ~200ms, guarded by tk:lock:snapshot:{envId})
+  -> SET tk:snap:{envId}:server, XADD tk:patches:{envId}, PUBLISH tk:chan:{envId}
   -> each API node pushes `patch` to its connections
   -> next evaluation reflects it
 ```
@@ -48,7 +48,7 @@ Segment filters are `Uint8Array`. `JSON.stringify` turns one into
 answers `false` for **every** member. Silent, and only visible weeks later as
 "the flag didn't turn on for that customer".
 
-So binary fields are tagged (`$fkBytes`, base64) and revived on read. The SDK
+So binary fields are tagged (`$tkBytes`, base64) and revived on read. The SDK
 carries a byte-identical codec that hand-rolls its base64, because that file
 compiles into browser bundles where `Buffer` does not exist.
 

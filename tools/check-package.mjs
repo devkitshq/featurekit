@@ -9,11 +9,11 @@
  *   source, comments included, to every customer's bundle analyser.
  * - **Test material and secret-shaped files**, shipped by a `files` field that
  *   was widened once and never narrowed again.
- * - **Runtime dependencies on the client.** `featkit-client` claims zero. A
+ * - **Runtime dependencies on the client.** `togglekit-client` claims zero. A
  *   stray import puts something in every browser bundle and every mobile binary
  *   that ships it.
  * - **Control-plane code reachable from the evaluator.** `src/sdk/` is the
- *   server-tier SDK. It lives inside `featkit` alongside the control plane,
+ *   server-tier SDK. It lives inside `togglekit` alongside the control plane,
  *   so the boundary that used to be free — two separate packages — now has to
  *   be asserted. An evaluator that imports `src/db/` needs Postgres to answer
  *   a question it should answer from memory.
@@ -28,7 +28,7 @@ import { dirname, join } from "node:path";
 const PACKAGES = [".", "packages/client"];
 
 /** Zero runtime dependencies, asserted rather than intended. */
-const ZERO_DEPENDENCY = new Set(["@featkit/client", "featkit-client", "featurekit-client"]);
+const ZERO_DEPENDENCY = new Set(["togglekit-client", "togglekit-client", "togglekit-client"]);
 
 const problems = [];
 
@@ -105,7 +105,7 @@ for (const directory of PACKAGES) {
  */
 const RUNTIME_DEPENDENCIES = Object.keys(
   JSON.parse(readFileSync("package.json", "utf8")).dependencies ?? {},
-).filter((name) => name !== "featkit" && name !== "featurekit" && name !== "@featkit/server" && name !== "@featkit/client");
+).filter((name) => name !== "togglekit" && name !== "togglekit" && name !== "@togglekit/server" && name !== "togglekit-client");
 
 function sourcesUnder(directory) {
   const out = [];
@@ -141,7 +141,7 @@ for (const [path, source] of sourcesUnder(join("src", "sdk"))) {
 }
 
 /**
- * `featkit/secure-mode` must not drag the control plane in.
+ * `togglekit/secure-mode` must not drag the control plane in.
  *
  * Its entire reason to exist as a separate entry point is that a customer's
  * backend can mint a signed context without loading Drizzle, a Postgres driver,
@@ -190,10 +190,10 @@ function closureOf(entry) {
  */
 const ENTRY_BUDGETS = [
   // Signing is an HMAC over a string. It needs nothing.
-  { entry: join("src", "secure-mode.ts"), name: "featkit/secure-mode", allow: [] },
+  { entry: join("src", "secure-mode.ts"), name: "togglekit/secure-mode", allow: [] },
   // Migrating is talking to Postgres, so it may. Not Redis, not the logger,
   // not the metrics registry.
-  { entry: join("src", "migrate.ts"), name: "featkit/migrate", allow: ["drizzle-orm", "postgres"] },
+  { entry: join("src", "migrate.ts"), name: "togglekit/migrate", allow: ["drizzle-orm", "postgres"] },
 ];
 
 for (const { entry, name, allow } of ENTRY_BUDGETS) {
@@ -207,9 +207,9 @@ for (const { entry, name, allow } of ENTRY_BUDGETS) {
 
 if (problems.length > 0) {
   process.stderr.write(
-    `featkit: package check failed\n${problems.map((p) => `  - ${p}`).join("\n")}\n`,
+    `togglekit: package check failed\n${problems.map((p) => `  - ${p}`).join("\n")}\n`,
   );
   process.exit(1);
 }
 
-process.stdout.write("featkit: package contents OK\n");
+process.stdout.write("togglekit: package contents OK\n");

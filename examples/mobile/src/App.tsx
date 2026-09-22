@@ -5,8 +5,8 @@
  * demo in `examples/app` — run both at once and they agree, because the answer
  * is computed in one place and pushed to whoever is connected.
  *
- * There is no React Native SDK, and no React SDK either. `featkit-client` is
- * one client with no framework bindings; `src/featkit.ts` is the whole React
+ * There is no React Native SDK, and no React SDK either. `togglekit-client` is
+ * one client with no framework bindings; `src/togglekit.ts` is the whole React
  * adapter, twenty lines of `useSyncExternalStore` copied from
  * `docs/client-tier/adapters.md`. The only things this app supplies that a
  * browser supplies for itself are a streaming `fetch` and the address of the
@@ -27,7 +27,7 @@ import {
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { CONFIG_URL, CONTROL_PLANE_URL, DASHBOARD_URL, loadConfig, type AppConfig } from "./config";
-import { createClient, featkit, hasStreaming, useFeatkitState, useFlag } from "./featkit";
+import { createClient, togglekit, hasStreaming, useTogglekitState, useFlag } from "./togglekit";
 import { PERSONAS, type Persona } from "./personas";
 import { theme } from "./theme";
 import { CheckoutCard } from "./components/CheckoutCard";
@@ -72,7 +72,7 @@ export default function App(): ReactNode {
   // The SDK's two event streams, into the log.
   useEffect(() => {
     if (!ready) return;
-    const client = featkit();
+    const client = togglekit();
     const offState = client.on("state", (state) => {
       log.append(state === "offline" ? "bad" : "state", `connection ${state}`);
     });
@@ -95,7 +95,7 @@ export default function App(): ReactNode {
   useEffect(() => {
     if (!ready) return;
     const subscription = AppState.addEventListener("change", (next) => {
-      if (next === "active") void featkit().identify(persona.context);
+      if (next === "active") void togglekit().identify(persona.context);
     });
     return () => subscription.remove();
   }, [ready, persona]);
@@ -119,7 +119,7 @@ export default function App(): ReactNode {
               // The one async operation. On a key change the SDK empties its
               // values before this promise settles, so nothing renders Ana's
               // flags to Ben — not even for a frame.
-              void featkit().identify(next.context);
+              void togglekit().identify(next.context);
             }}
           />
         )}
@@ -133,7 +133,7 @@ function Screen(props: {
   entries: readonly Entry[];
   onSelect: (persona: Persona) => void;
 }): ReactNode {
-  const state = useFeatkitState();
+  const state = useTogglekitState();
   const promo = useFlag("promo-banner", "");
   const pill = stateColor(state);
 
@@ -218,8 +218,8 @@ function Unreachable(props: { message: string; onRetry: () => void }): ReactNode
       </View>
       <Text style={styles.errorBody}>
         Run `npm run demo` in the repository root, and make sure this device is on the same network
-        as that machine. If the host above is wrong, set EXPO_PUBLIC_FEATKIT_URL and
-        EXPO_PUBLIC_FEATKIT_CONFIG_URL — see the README.
+        as that machine. If the host above is wrong, set EXPO_PUBLIC_TOGGLEKIT_URL and
+        EXPO_PUBLIC_TOGGLEKIT_CONFIG_URL — see the README.
       </Text>
       <Pressable
         onPress={props.onRetry}

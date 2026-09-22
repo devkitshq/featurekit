@@ -1,7 +1,7 @@
-# featkit — implementation docs
+# togglekit — implementation docs
 
 These pages describe **what is actually built**, the architectural decisions taken,
-and the benchmarks and design contracts of FeatKit.
+and the benchmarks and design contracts of Togglekit.
 
 ## Status
 
@@ -71,19 +71,19 @@ M1's exit criteria (§18) and their evidence:
 
 ## Layout
 
-Two packages ship. `featkit` is server-side — the control plane and the
-evaluator that runs inside it. `featkit-client` is one client for everything
+Two packages ship. `togglekit` is server-side — the control plane and the
+evaluator that runs inside it. `togglekit-client` is one client for everything
 else: browsers, React Native, Node, Deno, Bun and edge runtimes, with no
 framework bindings and no per-runtime build. Non-JavaScript apps skip both and
 speak [the client-tier HTTP contract](client-tier/http.md) directly.
 
 ```
-src/                    the `featkit` package
+src/                    the `togglekit` package
   sdk/evaluation/       the pure core. imports nothing.
-  sdk/client/           FeatkitSDK: transport, version guards, persistence
+  sdk/client/           TogglekitSDK: transport, version guards, persistence
   sdk/events/           the summarizer
-  secure-mode.ts        featkit/secure-mode -- signing, node:crypto only
-  migrate.ts            featkit/migrate -- the deploy step, as a function
+  secure-mode.ts        togglekit/secure-mode -- signing, node:crypto only
+  migrate.ts            togglekit/migrate -- the deploy step, as a function
   db/ repositories/     schema, migrations, row loading
   snapshot/             the compiler (pure) and the propagation service
   redis/                SnapshotStore port + memory and Redis implementations
@@ -91,7 +91,7 @@ src/                    the `featkit` package
   auth/ config/         SDK keys, secure mode, the §17 schema
   evaluation-service/   client-tier evaluation and fingerprint fan-out
 packages/
-  client/src/index.ts   featkit-client -- the whole client, zero deps
+  client/src/index.ts   togglekit-client -- the whole client, zero deps
 drizzle/                migrations, including the hand-written partitioned DDL
 tests/                  evaluation, conformance, snapshot, control-plane,
                         sdk, client-tier, chaos, integration (container-gated)

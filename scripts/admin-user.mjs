@@ -8,7 +8,7 @@
  *   node scripts/admin-user.mjs delete <email>
  *
  * The password is read from the terminal with echo off, or from
- * `FEATKIT_PASSWORD` for a non-interactive run. It is never taken as an
+ * `TOGGLEKIT_PASSWORD` for a non-interactive run. It is never taken as an
  * argument: arguments are in `ps`, in shell history, and in CI logs.
  */
 
@@ -36,23 +36,23 @@ async function databaseUrl() {
     // port it chose. Without this the CLI would talk to a different database
     // than the server and report that the account it just made does not exist.
     const state = JSON.parse(
-      await readFile(join(process.cwd(), ".featkit", "dev.json"), "utf8").catch(() =>
-        readFile(join(process.cwd(), ".featurekit", "dev.json"), "utf8"),
+      await readFile(join(process.cwd(), ".togglekit", "dev.json"), "utf8").catch(() =>
+        readFile(join(process.cwd(), ".togglekit", "dev.json"), "utf8"),
       ),
     );
     if (typeof state.databaseUrl === "string") return state.databaseUrl;
   } catch {
     /* no dev state; fall through to the default */
   }
-  return "postgres://featkit:featkit@127.0.0.1:5432/featkit";
+  return "postgres://togglekit:togglekit@127.0.0.1:5432/togglekit";
 }
 
 /** Read a line with the terminal's echo turned off. */
 async function readPassword(prompt) {
-  const fromEnv = process.env["FEATKIT_PASSWORD"] ?? process.env["FEATUREKIT_PASSWORD"];
+  const fromEnv = process.env["TOGGLEKIT_PASSWORD"] ?? process.env["TOGGLEKIT_PASSWORD"];
   if (fromEnv !== undefined) return fromEnv;
   if (!process.stdin.isTTY) {
-    throw new Error("no TTY: set FEATKIT_PASSWORD to run this non-interactively");
+    throw new Error("no TTY: set TOGGLEKIT_PASSWORD to run this non-interactively");
   }
 
   process.stdout.write(prompt);
@@ -68,7 +68,7 @@ async function readPassword(prompt) {
 
 async function askPasswordTwice() {
   const first = await readPassword(`password (min ${MIN_PASSWORD_LENGTH} chars): `);
-  if (process.env["FEATUREKIT_PASSWORD"] !== undefined) return first;
+  if (process.env["TOGGLEKIT_PASSWORD"] !== undefined) return first;
   const second = await readPassword("again: ");
   if (first !== second) throw new Error("passwords did not match");
   return first;
@@ -151,7 +151,7 @@ try {
     default:
       console.log(
         [
-          "featkit accounts",
+          "togglekit accounts",
           "",
           "  node scripts/admin-user.mjs list",
           "  node scripts/admin-user.mjs create <email> [--role owner|admin|writer|reader]",
@@ -164,7 +164,7 @@ try {
   }
 } catch (error) {
   const message = error instanceof PasswordError ? error.message : String(error?.message ?? error);
-  process.stderr.write(`featkit: ${message}\n`);
+  process.stderr.write(`togglekit: ${message}\n`);
   process.exitCode = 1;
 } finally {
   await close();
@@ -176,6 +176,6 @@ function required(value, what) {
 }
 
 function fail(message) {
-  process.stderr.write(`featkit: ${message}\n`);
+  process.stderr.write(`togglekit: ${message}\n`);
   process.exit(1);
 }

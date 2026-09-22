@@ -125,8 +125,8 @@ function input(flagCount, { rollout = false } = {}) {
   };
 }
 
-const KEY = "fk_srv_load";
-const CLIENT_KEY = "fk_clt_load";
+const KEY = "tk_srv_load";
+const CLIENT_KEY = "tk_clt_load";
 const record = (kind) => ({
   id: `k-${kind}`,
   environmentId: ENV_ID,
@@ -170,7 +170,7 @@ async function controlPlane(flagCount) {
 
 /* ─────────────────────────────── runs ────────────────────────────────── */
 
-console.log(`featkit load report`);
+console.log(`togglekit load report`);
 console.log(`node ${process.version}  ${process.platform}/${process.arch}  ${new Date().toISOString()}`);
 console.log(`connections=${CONNECTIONS} requests=${REQUESTS}\n`);
 console.log("| Scenario | n | p50 | p95 | p99 | p99.9 | max | notes |");

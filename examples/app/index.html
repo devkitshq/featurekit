@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Acme Cloud — FeatKit Live Demo</title>
+    <title>Acme Cloud — Togglekit Live Demo</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -22,12 +22,12 @@
     <div class="admin-helper-bar">
       <div class="admin-helper-left">
         <span class="pulse-dot"></span>
-        <span>Control Plane: <strong>FeatKit Server</strong> (<code>http://127.0.0.1:3000</code>)</span>
+        <span>Control Plane: <strong>Togglekit Server</strong> (<code>http://127.0.0.1:3000</code>)</span>
       </div>
       <div class="admin-helper-right">
         <span class="admin-cred">Admin: <code>you@example.com</code> / <code>password12345</code></span>
         <a id="admin-top-link" href="http://127.0.0.1:3000/admin" target="_blank" class="admin-btn">
-          Open FeatKit Admin ↗
+          Open Togglekit Admin ↗
         </a>
       </div>
     </div>
@@ -53,7 +53,7 @@
       </div>
 
       <div class="connection-status">
-        <span id="state" class="pill" data-state="connecting" title="FeatKit Browser SDK Connection State">connecting…</span>
+        <span id="state" class="pill" data-state="connecting" title="Togglekit Browser SDK Connection State">connecting…</span>
       </div>
     </header>
 
@@ -97,7 +97,7 @@
             <h2>🧪 How to test this live</h2>
             <ol class="guide-steps">
               <li>
-                <strong>Open the FeatKit Admin Dashboard</strong>: Click 
+                <strong>Open the Togglekit Admin Dashboard</strong>: Click 
                 <a id="dash-inline-link" href="http://127.0.0.1:3000/admin" target="_blank">http://127.0.0.1:3000/admin</a> 
                 and log in with <code>you@example.com</code> / <code>password12345</code>.
               </li>
@@ -112,7 +112,7 @@
               </li>
             </ol>
             <div style="margin-top: 1rem; padding: 0.75rem; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 8px; font-size: 0.8rem; color: #93c5fd; line-height: 1.5;">
-              💡 <strong>Why only announcement flag updated for Ana?</strong> FeatKit only pushes an SSE frame when the evaluated value <em>actually changes</em> for that persona. <code>new-checkout</code> and <code>loyalty-discount</code> target Pro/Enterprise plans, so Ana evaluates to <code>false</code>/<code>0</code> both when ON and OFF. <strong>Switch to Ben (Pro) or Cleo (Enterprise)</strong> in the top dropdown to see checkout, discount, and flow flags stream live!
+              💡 <strong>Why only announcement flag updated for Ana?</strong> Togglekit only pushes an SSE frame when the evaluated value <em>actually changes</em> for that persona. <code>new-checkout</code> and <code>loyalty-discount</code> target Pro/Enterprise plans, so Ana evaluates to <code>false</code>/<code>0</code> both when ON and OFF. <strong>Switch to Ben (Pro) or Cleo (Enterprise)</strong> in the top dropdown to see checkout, discount, and flow flags stream live!
             </div>
           </section>
         </div>
@@ -140,7 +140,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr><td colspan="3" class="muted">Connecting to FeatKit...</td></tr>
+                  <tr><td colspan="3" class="muted">Connecting to Togglekit...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -174,8 +174,8 @@
 
     <footer>
       <p>
-        Built with <strong>Vanilla HTML/CSS/JS</strong> and <strong>featkit-client</strong> · 
-        Control Plane running on <a id="dash-footer-link" href="http://127.0.0.1:3000/admin" target="_blank">FeatKit Server</a>
+        Built with <strong>Vanilla HTML/CSS/JS</strong> and <strong>togglekit-client</strong> · 
+        Control Plane running on <a id="dash-footer-link" href="http://127.0.0.1:3000/admin" target="_blank">Togglekit Server</a>
       </p>
     </footer>
 

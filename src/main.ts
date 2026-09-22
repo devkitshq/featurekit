@@ -15,14 +15,14 @@
  *    state.** A process that logs one and keeps serving flags is a process
  *    whose next answer nobody can reason about.
  *
- * `FEATUREKIT_SERVICES` splits a deployment: `api,stream` on one, `rollup,
+ * `TOGGLEKIT_SERVICES` splits a deployment: `api,stream` on one, `rollup,
  * scheduler` on another. Unset means one process running everything.
  */
 
 import { ConfigError } from "./config/index.js";
-import { FeatkitServer, type FeatkitService } from "./server.js";
+import { TogglekitServer, type TogglekitService } from "./server.js";
 
-const SERVICES: readonly FeatkitService[] = [
+const SERVICES: readonly TogglekitService[] = [
   "api",
   "stream",
   "events",
@@ -31,34 +31,34 @@ const SERVICES: readonly FeatkitService[] = [
   "all",
 ];
 
-function servicesFromEnv(): readonly FeatkitService[] | undefined {
-  const raw = process.env["FEATKIT_SERVICES"] ?? process.env["FEATUREKIT_SERVICES"];
+function servicesFromEnv(): readonly TogglekitService[] | undefined {
+  const raw = process.env["TOGGLEKIT_SERVICES"] ?? process.env["TOGGLEKIT_SERVICES"];
   if (raw === undefined) return undefined;
   const requested = raw
     .split(",")
     .map((entry) => entry.trim())
     .filter((entry) => entry.length > 0);
-  const unknown = requested.filter((entry) => !SERVICES.includes(entry as FeatkitService));
+  const unknown = requested.filter((entry) => !SERVICES.includes(entry as TogglekitService));
   if (unknown.length > 0) {
     // A typo here silently produces a process that serves nothing, and the
     // symptom — every request 404s — points nowhere near the cause.
     throw new ConfigError(
-      `featkit: unknown FEATKIT_SERVICES entries: ${unknown.join(", ")}\n` +
+      `togglekit: unknown TOGGLEKIT_SERVICES entries: ${unknown.join(", ")}\n` +
         `  valid: ${SERVICES.join(", ")}`,
     );
   }
-  return requested as FeatkitService[];
+  return requested as TogglekitService[];
 }
 
 async function main(): Promise<void> {
   const services = servicesFromEnv();
-  const server = new FeatkitServer({
+  const server = new TogglekitServer({
     ...(services !== undefined ? { services } : {}),
     // Migrations are a deploy step here, not something a booting node does:
     // every node running them is a lock convoy during a rolling deploy.
     autoMigrate:
-      process.env["FEATKIT_AUTO_MIGRATE"] === "1" ||
-      process.env["FEATUREKIT_AUTO_MIGRATE"] === "1",
+      process.env["TOGGLEKIT_AUTO_MIGRATE"] === "1" ||
+      process.env["TOGGLEKIT_AUTO_MIGRATE"] === "1",
     devServices: false,
   });
 
@@ -71,7 +71,7 @@ async function main(): Promise<void> {
       process.stderr.write(`${error.message}\n`);
       process.exit(78); // EX_CONFIG
     }
-    process.stderr.write(`featkit: failed to start: ${String(error)}\n`);
+    process.stderr.write(`togglekit: failed to start: ${String(error)}\n`);
     process.exit(1);
   }
 
@@ -81,7 +81,7 @@ async function main(): Promise<void> {
     if (stopping) {
       // Second signal: the operator has decided waiting is worse than dropping
       // connections. Honour that.
-      process.stderr.write(`featkit: ${signal} during shutdown, exiting now\n`);
+      process.stderr.write(`togglekit: ${signal} during shutdown, exiting now\n`);
       process.exit(130);
     }
     stopping = true;

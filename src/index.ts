@@ -1,19 +1,19 @@
 /**
- * `featkit` — the server-side package: the control plane, and the evaluator.
+ * `togglekit` — the server-side package: the control plane, and the evaluator.
  *
  * ```ts
- * import { FeatkitServer } from "featkit";
+ * import { TogglekitServer } from "togglekit";
  *
- * const server = new FeatkitServer({ services: ["all"], port: 3000 });
+ * const server = new TogglekitServer({ services: ["all"], port: 3000 });
  * await server.start();
  * ```
  *
  * Two things live here because both are server-side and neither belongs in a
  * client bundle:
  *
- * - **`FeatkitServer`** — the control plane. Owns Postgres, Redis, the
+ * - **`TogglekitServer`** — the control plane. Owns Postgres, Redis, the
  *   management API, the client tier and the dashboard.
- * - **`FeatkitSDK`** — the server-tier SDK. Holds the compiled ruleset in
+ * - **`TogglekitSDK`** — the server-tier SDK. Holds the compiled ruleset in
  *   memory and evaluates any context synchronously, with no network call.
  *
  * The import boundary still runs between them: nothing under `src/sdk/` may
@@ -21,48 +21,42 @@
  * database. `tools/check-package.mjs` asserts it.
  *
  * Clients — browsers, mobile apps, and backends that would rather ask than
- * evaluate — use `featkit-client`, which is never sent the ruleset.
+ * evaluate — use `togglekit-client`, which is never sent the ruleset.
  */
 
 export {
-  FeatkitServer,
-  FeatkitServer as FeaturekitServer,
+  TogglekitServer,
 } from "./server.js";
 export type {
-  FeatkitServerOptions,
-  FeatkitAddress,
-  FeatkitService,
-  FeatkitServerOptions as FeaturekitServerOptions,
-  FeatkitAddress as FeaturekitAddress,
-  FeatkitService as FeaturekitService,
+  TogglekitServerOptions,
+  TogglekitAddress,
+  TogglekitService,
 } from "./server.js";
 
 export { createApp } from "./app.js";
 export type { App, CreateAppOptions } from "./app.js";
 export { loadConfig, ConfigError, configSchema } from "./config/index.js";
-export type { FeatkitConfig, FeatkitConfig as FeaturekitConfig } from "./config/index.js";
+export type { TogglekitConfig } from "./config/index.js";
 
 export {
-  FeatkitSDK,
-  FeatkitSDK as FeaturekitSDK,
+  TogglekitSDK,
 } from "./sdk/index.js";
 export type {
-  FeatkitSdkOptions,
+  TogglekitSdkOptions,
   SdkState,
   Snapshot,
-  FeatkitSdkOptions as FeaturekitSdkOptions,
 } from "./sdk/index.js";
 
 /**
  * Secure mode, for a process that already imports the control plane.
  *
  * A backend whose only job is signing contexts should import
- * `featkit/secure-mode` instead — same functions, without loading Drizzle,
+ * `togglekit/secure-mode` instead — same functions, without loading Drizzle,
  * Postgres, Redis and the rest at import time (§16).
  */
 /**
  * Migrations, for a process that already imports the control plane. A deploy
- * job should import `featkit/migrate` instead — same functions, without the
+ * job should import `togglekit/migrate` instead — same functions, without the
  * route layer, Redis and the metrics registry (§16).
  */
 export { migrate, migrationStatus, MIGRATION_LOCK } from "./migrate.js";

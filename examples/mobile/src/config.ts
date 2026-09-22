@@ -9,7 +9,7 @@
  * so it is read from `hostUri` rather than pasted into a constant that goes
  * stale the next time you join a different Wi-Fi.
  *
- * **The key.** In the browser demo the page is served by featurekit's dev app
+ * **The key.** In the browser demo the page is served by togglekit's dev app
  * host, which hands it `/api/config`. Nothing serves this app, so it asks that
  * same endpoint over the network. In a real mobile app this is *your* backend:
  * the call that happens right after login, returning the client key and — in a
@@ -36,17 +36,17 @@ const host = developmentHost();
  * Overridable, because the one case `hostUri` cannot answer for you is a
  * device on a different network from the server. Put either in `.env`:
  *
- *   EXPO_PUBLIC_FEATKIT_URL=http://192.168.1.24:3000
- *   EXPO_PUBLIC_FEATKIT_CONFIG_URL=http://192.168.1.24:4000/api/config
+ *   EXPO_PUBLIC_TOGGLEKIT_URL=http://192.168.1.24:3000
+ *   EXPO_PUBLIC_TOGGLEKIT_CONFIG_URL=http://192.168.1.24:4000/api/config
  */
 export const CONTROL_PLANE_URL =
-  process.env.EXPO_PUBLIC_FEATKIT_URL ??
-  process.env.EXPO_PUBLIC_FEATUREKIT_URL ??
+  process.env.EXPO_PUBLIC_TOGGLEKIT_URL ??
+  process.env.EXPO_PUBLIC_TOGGLEKIT_URL ??
   `http://${host}:3000`;
 
 export const CONFIG_URL =
-  process.env.EXPO_PUBLIC_FEATKIT_CONFIG_URL ??
-  process.env.EXPO_PUBLIC_FEATUREKIT_CONFIG_URL ??
+  process.env.EXPO_PUBLIC_TOGGLEKIT_CONFIG_URL ??
+  process.env.EXPO_PUBLIC_TOGGLEKIT_CONFIG_URL ??
   `http://${host}:4000/api/config`;
 
 export const DASHBOARD_URL = `${CONTROL_PLANE_URL}/admin`;
@@ -57,7 +57,7 @@ export interface AppConfig {
 }
 
 /**
- * A **client** key (`fk_clt_…`), public by construction — it ships inside the
+ * A **client** key (`tk_clt_…`), public by construction — it ships inside the
  * binary and anyone who unzips the IPA can read it. That is safe: it buys
  * evaluated values for one context, never the ruleset. A server key in a mobile
  * app would hand every installer the whole configuration, which is why the
