@@ -140,7 +140,7 @@ describe("HttpServer", () => {
   });
 });
 
-describe("SSE (§10.2)", () => {
+describe("SSE", () => {
   it("streams events with an id, and keeps the connection open", async () => {
     const { openSse } = await import("../../src/http/server.js");
     const router = new Router().get("/stream", (ctx) => {

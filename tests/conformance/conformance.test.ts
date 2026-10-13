@@ -13,12 +13,12 @@ import type {
 } from "../../src/sdk/evaluation/types.js";
 
 /**
- * The conformance corpus IS the spec (§9.5).
+ * The conformance corpus IS the spec.
  *
  * `bucketing.json` is produced by `tools/gen-conformance.mjs`, an independent
  * BigInt transcription of the murmur3 specification that shares no code with
  * `src/sdk`. Agreement between the two is therefore evidence, not a
- * tautology — which is exactly what r1's corpus would have lacked (§9.4).
+ * tautology — which is exactly what r1's corpus would have lacked.
  *
  * Every SDK in every language runs this corpus.
  */
@@ -164,7 +164,7 @@ describe("evaluation corpus", () => {
 
 /* ──────────────────────────── cuckoo corpus ─────────────────────────── */
 
-describe("cuckoo corpus - a porting SDK is verified against bytes (§9.7)", () => {
+describe("cuckoo corpus - a porting SDK is verified against bytes", () => {
   const built = buildCuckooFilter(cuckooCorpus.members, {
     fingerprintBits: cuckooCorpus.header.fingerprintBits as 16,
     loadFactor: cuckooCorpus.header.targetLoadFactor,

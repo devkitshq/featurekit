@@ -38,7 +38,7 @@ import type { CompilerInput } from "../snapshot/compile.js";
  * **Loud, not lossy.** The alternative — truncate and build a filter from part
  * of the list — produces a snapshot that answers "not a member" for real
  * members, and under a negated segment clause that grants a gated feature to
- * exactly the people who should not have it (§22.3). A compile that throws
+ * exactly the people who should not have it. A compile that throws
  * leaves the previous snapshot serving, which is the correct failure: stale
  * beats wrong, and both beat a silent wrong answer.
  */

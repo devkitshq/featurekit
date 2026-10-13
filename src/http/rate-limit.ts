@@ -1,5 +1,5 @@
 /**
- * Rate limiting (§15, §16, §22).
+ * Rate limiting.
  *
  * The question this answers is §22's: *can one tenant create resource
  * exhaustion for all tenants?* Without a limiter the answer is yes, trivially —
@@ -33,7 +33,7 @@ export interface RateLimitRule {
 
 /**
  * The counter store. Deliberately one method: `SnapshotStore` is a class with
- * one method for the same reason (§2), and it means a test can substitute a
+ * one method for the same reason, and it means a test can substitute a
  * Map without a container.
  */
 export interface RateLimitBackend {
@@ -191,7 +191,7 @@ export class RateLimiter {
  *
  * The credential is hashed and truncated: Redis keys end up in `MONITOR`
  * output, slow logs and support tickets, and an SDK key that reaches any of
- * those is a leaked credential (§7). The peer address is included so that
+ * those is a leaked credential. The peer address is included so that
  * rotating through unauthenticated requests does not reset the counter.
  */
 export function rateLimitIdentity(ctx: RequestContext, scope: string): string {

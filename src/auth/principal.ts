@@ -1,5 +1,5 @@
 /**
- * Who is making a management request, and what they may touch (§8, §12, §16).
+ * Who is making a management request, and what they may touch.
  *
  * **Authorization is checked at the data-access boundary, not at the route.**
  * The rule every IDOR in every product violates is the same one: the route

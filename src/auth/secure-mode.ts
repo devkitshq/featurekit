@@ -1,5 +1,5 @@
 /**
- * Client-tier secure mode (§16).
+ * Client-tier secure mode.
  *
  * Because the server evaluates *as* a claimed identity, an unsigned context key
  * would let anyone evaluate as anyone — including reading flags targeted at a
@@ -81,7 +81,7 @@ export interface VerifyOptions {
  * `SIGNATURE_EXPIRED` is deliberately distinct from `SIGNATURE_INVALID`,
  * because the SDK's response differs: expired triggers `onSignatureExpiring`
  * and a re-identify **while the last known values keep serving**, whereas
- * invalid drops to caller defaults (§14).
+ * invalid drops to caller defaults.
  */
 export function verifyContext(
   signed: Partial<SignedContext> | null | undefined,

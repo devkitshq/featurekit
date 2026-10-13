@@ -1,5 +1,5 @@
 /**
- * The regex safety guard (§9.6).
+ * The regex safety guard.
  *
  * Two failure directions, and both matter:
  *

@@ -1,5 +1,5 @@
 /**
- * The composition root actually composes (§16).
+ * The composition root actually composes.
  *
  * Before `src/app.ts` existed, every part of this system was only ever
  * assembled inside a test file — which meant "can it start" had no answer, and
@@ -63,7 +63,7 @@ describe("the app boots with nothing behind it", () => {
     expect(body.status).toBe("not_ready");
     expect(body.checks["database"]?.state).toBe("failed");
     // Redis is degraded, never failed: a node serving last-known-good snapshots
-    // belongs in the load balancer (§8).
+    // belongs in the load balancer.
     expect(body.checks["redis"]?.state).toBe("degraded");
   });
 
@@ -129,7 +129,7 @@ describe("the app boots with nothing behind it", () => {
 
   it("sanitises a hostile request id rather than echoing it", async () => {
     // A request id lands in a log line and in a response header. Unfiltered,
-    // that is log injection (§15). Note that the CRLF case cannot be tested
+    // that is log injection. Note that the CRLF case cannot be tested
     // over HTTP at all — every HTTP client refuses to send such a header — so
     // the filtering itself is asserted directly below.
     const { base } = await start();

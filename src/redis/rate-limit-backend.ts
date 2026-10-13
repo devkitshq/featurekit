@@ -1,5 +1,5 @@
 /**
- * The Redis counter behind the rate limiter (§8, §15).
+ * The Redis counter behind the rate limiter.
  *
  * Two commands, pipelined: `INCR` then `PEXPIRE`. Not a Lua script, because the
  * only race here is two nodes setting the same expiry on the same key, and the

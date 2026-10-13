@@ -11,7 +11,7 @@ import {
 } from "../../src/auth/keys.js";
 import { signContext, verifyContext } from "../../src/auth/secure-mode.js";
 
-describe("SDK key generation (§7.2)", () => {
+describe("SDK key generation", () => {
   it("prefixes by tier, so a misused key is obvious in a log", () => {
     expect(generateSdkKey("server")).toMatch(/^fk_srv_/);
     expect(generateSdkKey("client")).toMatch(/^fk_clt_/);
@@ -30,7 +30,7 @@ describe("SDK key generation (§7.2)", () => {
   });
 });
 
-describe("key storage is asymmetric on purpose (§7.2)", () => {
+describe("key storage is asymmetric on purpose", () => {
   it("hashes a server key and never stores it in the clear", () => {
     const key = generateSdkKey("server");
     const stored = storageFor("server", key);
@@ -135,7 +135,7 @@ describe("access tokens", () => {
 
 /* ───────────────────────────── secure mode ──────────────────────────── */
 
-describe("secure mode signatures (§16)", () => {
+describe("secure mode signatures", () => {
   const SECRET = "s".repeat(32);
   const NOW = 1_800_000_000;
   const opts = { secrets: [SECRET], maxTtlSeconds: 86_400, nowSeconds: NOW };
@@ -165,7 +165,7 @@ describe("secure mode signatures (§16)", () => {
 
   it("returns SIGNATURE_EXPIRED, distinctly from SIGNATURE_INVALID", () => {
     // The SDK's response differs: expired keeps serving the last known values
-    // while it refreshes; invalid drops to caller defaults (§14).
+    // while it refreshes; invalid drops to caller defaults.
     const expiresAt = NOW - 1;
     const signature = signContext("usr_1", expiresAt, [SECRET]);
     expect(verifyContext({ key: "usr_1", expiresAt, signature }, opts)).toEqual({

@@ -1,5 +1,5 @@
 /**
- * Prometheus metrics (§15, §17).
+ * Prometheus metrics.
  *
  * **The failure mode this file is built around is not "no metrics". It is
  * "metrics that take the system down."** A label whose value is a flag key, a
@@ -12,7 +12,7 @@
  *
  * - **No metric here takes a context key, user id, or flag key as a label.**
  *   Per-flag numbers belong in `evaluation_summaries`, which is partitioned and
- *   retained on purpose (§7.9).
+ *   retained on purpose.
  * - Environment appears as a label because operators genuinely need
  *   per-environment snapshot age, but it goes through `bounded()`, which caps
  *   distinct values and collapses the overflow into `"other"`. A runaway label
@@ -211,7 +211,7 @@ export class Metrics {
     });
     this.eventsDropped = new Counter({
       name: "featurekit_events_dropped_total",
-      help: "Summary rows dropped, by reason. Analytics is explicitly lossy (§14)",
+      help: "Summary rows dropped, by reason. Analytics is explicitly lossy",
       labelNames: ["reason"],
       registers,
     });

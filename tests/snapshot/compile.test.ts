@@ -227,7 +227,7 @@ describe("compileSnapshot - prerequisites", () => {
   });
 });
 
-describe("compileSnapshot - referenced attributes (§11.5, §22.1)", () => {
+describe("compileSnapshot - referenced attributes", () => {
   it("emits the attributes a flag's rules actually reference, kind-qualified", () => {
     const i = booleanFlag("f");
     i.rules = [{ id: "r0", flagEnvironmentId: "fe-f", idx: 0, variationId: "flag-f-v1", rollout: null }];
@@ -265,7 +265,7 @@ describe("compileSnapshot - referenced attributes (§11.5, §22.1)", () => {
 
   it("marks a flag whose value cannot be shared across contexts", () => {
     // A rollout buckets on the context key, so the flag has a per-context
-    // answer by construction and cannot share a fan-out fingerprint (§11.5).
+    // answer by construction and cannot share a fan-out fingerprint.
     const rolled = booleanFlag("f");
     rolled.flagEnvironments[0]!.fallthroughVariationId = null;
     rolled.flagEnvironments[0]!.fallthroughRollout = { variations: [{ variationIndex: 1, weight: 50_000 }] };
@@ -302,7 +302,7 @@ const seg = (id: string, key: string, over = {}) => ({
   ...over,
 });
 
-describe("compileSnapshot - segment encodings (§9.7)", () => {
+describe("compileSnapshot - segment encodings", () => {
   it("inlines a small segment", () => {
     const i = booleanFlag("f");
     i.segments = [seg("s1", "beta")];
@@ -451,7 +451,7 @@ describe("compileSnapshot - segment encodings (§9.7)", () => {
 
 /**
  * There is deliberately **no second "client snapshot" compile**. The client
- * tier receives *evaluated values* (§11.5), which the evaluation service in M5
+ * tier receives *evaluated values*, which the evaluation service in M5
  * produces per-context from this same server-side snapshot. Compiling a second
  * artifact would duplicate the work and give the ruleset a second path out of
  * the building — and §16 is explicit that the tier split is the security
@@ -461,7 +461,7 @@ describe("compileSnapshot - segment encodings (§9.7)", () => {
  * What M2 owes the client tier is therefore just the flag on each compiled
  * flag, plus `referencedAttributes` for M5's fan-out.
  */
-describe("client-tier availability (§7.3, §16)", () => {
+describe("client-tier availability", () => {
   it("carries clientAvailable onto the compiled flag", () => {
     const i = booleanFlag("f");
     i.flags[0]!.clientAvailable = true;

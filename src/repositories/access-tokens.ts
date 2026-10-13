@@ -1,5 +1,5 @@
 /**
- * Personal access tokens for the management API (§7.11, §12, §16).
+ * Personal access tokens for the management API.
  *
  * PATs are hashed at rest exactly like server SDK keys and for the same reason:
  * they carry write access to production flag configuration, so a database leak

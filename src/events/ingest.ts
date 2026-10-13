@@ -1,5 +1,5 @@
 /**
- * Analytics ingest (§7.9, §14, §22).
+ * Analytics ingest.
  *
  * **The architectural rule this file enforces: analytics loss is acceptable,
  * and analytics must never be able to slow down or break evaluation.** The

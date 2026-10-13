@@ -1,5 +1,5 @@
 /**
- * The canonical hash of an evaluation context (§11.5, §16).
+ * The canonical hash of an evaluation context.
  *
  * Two callers, and they must agree byte for byte or the second one is a
  * security hole rather than a mismatch:

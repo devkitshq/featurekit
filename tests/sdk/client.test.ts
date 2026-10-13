@@ -144,7 +144,7 @@ describe("streaming", () => {
     });
   });
 
-  it("discards a patch at or below the version it already holds (§10.2)", async () => {
+  it("discards a patch at or below the version it already holds", async () => {
     // Duplicate broadcasts and out-of-order delivery must be non-events rather
     // than corruption. Recompiling without bumping the flag version is exactly
     // that case: the payload changes, the version does not, and the SDK is
@@ -161,7 +161,7 @@ describe("streaming", () => {
     expect(sdk.get("new-checkout", ctx, false)).toBe(true);
   });
 
-  it("propagates a change quickly enough to be a kill switch (§10.4)", async () => {
+  it("propagates a change quickly enough to be a kill switch", async () => {
     // The target is p99 under 300ms from toggle to flip. On a loopback with no
     // debounce this is generous, but it fails loudly if a buffering or polling
     // regression creeps in.
@@ -207,7 +207,7 @@ describe("streaming", () => {
   });
 });
 
-describe("polling is a first-class fallback (§10.2)", () => {
+describe("polling is a first-class fallback", () => {
   it("fetches a snapshot and evaluates", async () => {
     const cp = await controlPlane();
     const sdk = makeSdk({ baseUrl: cp.baseUrl, mode: "polling", pollIntervalMs: 50 });
@@ -237,7 +237,7 @@ describe("polling is a first-class fallback (§10.2)", () => {
   });
 });
 
-describe("failing should be invisible to your users (§14)", () => {
+describe("failing should be invisible to your users", () => {
   it("serves the caller default when the control plane was never reachable", async () => {
     const sdk = makeSdk({ baseUrl: "http://127.0.0.1:1" });
     await sdk.ready({ timeoutMs: 300 });
@@ -306,7 +306,7 @@ describe("failing should be invisible to your users (§14)", () => {
   });
 });
 
-describe("persistence (§11.2)", () => {
+describe("persistence", () => {
   it("restores from a persisted snapshot when the control plane is down", async () => {
     const saved: Snapshot[] = [];
     const persist = {

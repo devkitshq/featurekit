@@ -1,5 +1,5 @@
 /**
- * Adversarial security scenarios (review §7, §8, §17, PR-C5).
+ * Adversarial security scenarios (PR-C5).
  *
  * The management-API suite covers the headline isolation cases. This one covers
  * what the review asks for and those did not: escalation through *nested*
@@ -351,7 +351,7 @@ describe.skipIf(reason !== null)("an attacker with a scoped token", () => {
     expect(new Set(attempts)).toEqual(new Set([409]));
   });
 
-  /* ── telemetry leakage (§17) ──────────────────────────────────────── */
+  /* ── telemetry leakage ──────────────────────────────────────── */
 
   it("puts no context key, flag key or tenant id in the metrics", async () => {
     // Ask for a flag as a very identifiable user, then scrape.

@@ -1,5 +1,5 @@
 /**
- * The management API against real Postgres and real Redis (§8, §9, §18).
+ * The management API against real Postgres and real Redis.
  *
  * These are the tests the production review's §8 and §18 actually ask for, and
  * they cannot be written against mocks: tenant isolation is a property of the
@@ -156,7 +156,7 @@ describe.skipIf(reason !== null)("management API", () => {
     expect((await fetch(`${base}/v1/admin/projects`)).status).toBe(401);
   });
 
-  /* ── tenant isolation (§8) ───────────────────────────────────────── */
+  /* ── tenant isolation ───────────────────────────────────────── */
 
   it("hides another tenant's flag behind a 404, never a 403", async () => {
     // 403 would confirm the object exists, turning any id list into an
@@ -213,7 +213,7 @@ describe.skipIf(reason !== null)("management API", () => {
     expect(response.status).toBe(403);
   });
 
-  /* ── optimistic concurrency (§18) ────────────────────────────────── */
+  /* ── optimistic concurrency ────────────────────────────────── */
 
   it("refuses the second of two concurrent edits instead of losing one", async () => {
     // The §18 scenario, exactly: one engineer changes targeting, the other
@@ -293,7 +293,7 @@ describe.skipIf(reason !== null)("management API", () => {
     expect(after.version).toBe(current.version);
   });
 
-  /* ── audit and revert (§18) ──────────────────────────────────────── */
+  /* ── audit and revert ──────────────────────────────────────── */
 
   it("writes an audit row in the same transaction as the change", async () => {
     const path = await seedTenant("tenant-audit");
@@ -369,7 +369,7 @@ describe.skipIf(reason !== null)("management API", () => {
     expect(response.status).toBe(404);
   });
 
-  /* ── kill switch (§18, §23-A) ────────────────────────────────────── */
+  /* ── kill switch (§23-A) ────────────────────────────────────── */
 
   it("turns a flag off without an expected version", async () => {
     const path = await seedTenant("tenant-kill");
@@ -392,7 +392,7 @@ describe.skipIf(reason !== null)("management API", () => {
     expect(audit.entries[0]?.action).toBe("flag.killed");
   });
 
-  /* ── SDK keys (§7.2, §16) ────────────────────────────────────────── */
+  /* ── SDK keys ────────────────────────────────────────── */
 
   it("returns a server key once and never again", async () => {
     await seedTenant("tenant-keys");
@@ -464,7 +464,7 @@ describe.skipIf(reason !== null)("management API", () => {
     expect(response.status).toBe(404);
   });
 
-  /* ── segments (§9, Scenario F) ───────────────────────────────────── */
+  /* ── segments (Scenario F) ───────────────────────────────────── */
 
   it("imports segment members idempotently, page by page", async () => {
     await seedTenant("tenant-segments");

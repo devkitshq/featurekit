@@ -1,5 +1,5 @@
 /**
- * The `SnapshotStore` port (§2, §6, §8).
+ * The `SnapshotStore` port.
  *
  * "Plugins are a class with one method" — notifkit had `Transport.send()`;
  * featurekit has `SnapshotStore` and `EventSink`. This one owns everything the
@@ -17,7 +17,7 @@
 
 import type { Snapshot } from "../sdk/index.js";
 
-/** One entry in `fk:patches:{envId}` (§10.3). */
+/** One entry in `fk:patches:{envId}`. */
 export interface StreamPatch {
   /** The snapshot version this patch produced. Becomes the SSE `id:`. */
   version: number;
@@ -94,7 +94,7 @@ export interface SnapshotStore {
  * Segment filters are `Uint8Array`. `JSON.stringify` turns one into
  * `{"0":1,"1":2,...}`, and `JSON.parse` gives back a plain object — a filter
  * that answers `false` for every member. Silent, and only visible weeks later
- * as "the flag didn't turn on for that customer" (§9.7).
+ * as "the flag didn't turn on for that customer".
  *
  * So binary fields are tagged on the way out and revived on the way in.
  */

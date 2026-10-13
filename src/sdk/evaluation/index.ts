@@ -1,5 +1,5 @@
 /**
- * The evaluation core — the shared source of truth (§3, §5).
+ * The evaluation core — the shared source of truth.
  *
  * Everything re-exported here is pure, synchronous and dependency-free.
  */

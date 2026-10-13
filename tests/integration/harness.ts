@@ -1,7 +1,7 @@
 /**
  * Integration-test harness.
  *
- * Real Postgres and Redis via testcontainers (§2: "Zero-config dev, explicit
+ * Real Postgres and Redis via testcontainers ("Zero-config dev, explicit
  * prod"). These tests exercise the layer that a pure unit test cannot reach —
  * generated columns, check constraints, composite foreign keys, partitioned
  * DDL — which is exactly the layer where a schema bug hides.

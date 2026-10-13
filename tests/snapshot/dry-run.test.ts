@@ -1,5 +1,5 @@
 /**
- * Production dry run (§18, review PR-E2).
+ * Production dry run (review PR-E2).
  *
  * The failure this exists to catch is the one that looks fine on every chart:
  * a rollout whose *proportion* is unchanged but whose *membership* churned

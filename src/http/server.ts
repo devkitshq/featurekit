@@ -185,7 +185,7 @@ export class HttpServer {
       }
       // Never leak an internal message or stack to a caller. The request id
       // travels in the header instead — the caller quotes it, the operator greps
-      // it — so the body stays a stable, minimal contract (§15).
+      // it — so the body stays a stable, minimal contract.
       status = 500;
       await send(res, {
         status,
@@ -211,7 +211,7 @@ export class HttpServer {
     const port = this.options.port ?? 3000;
     this.server = createServer((req, res) => void this.handle(req, res));
     // A slow-loris client that opens a socket and never sends a request must not
-    // hold a connection slot forever (§15).
+    // hold a connection slot forever.
     this.server.headersTimeout = 20_000;
     this.server.requestTimeout = 60_000;
     return new Promise((resolve, reject) => {
@@ -234,7 +234,7 @@ export class HttpServer {
    *    sending work *before* the socket refuses it.
    * 2. `server.close()` — stop accepting, keep serving what is already here.
    * 3. Drain SSE with a jittered reconnect hint — otherwise every SDK on this
-   *    node reconnects in the same millisecond (§6).
+   *    node reconnects in the same millisecond.
    * 4. Wait for in-flight requests, bounded by the grace period.
    * 5. `closeAllConnections()` — the backstop for a client that will not leave.
    */

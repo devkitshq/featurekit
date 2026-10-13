@@ -180,7 +180,7 @@ describe("SnapshotService.recompile", () => {
   });
 });
 
-describe("SnapshotService debounce (§10.4)", () => {
+describe("SnapshotService debounce", () => {
   it("coalesces a burst of changes into one compile", async () => {
     // Editing five rules in a dashboard session is five PATCHes. Recompiling
     // and broadcasting five times is five snapshots every connected SDK has to

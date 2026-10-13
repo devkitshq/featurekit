@@ -309,7 +309,7 @@ describe("precedence step 6 - fallthrough", () => {
   });
 });
 
-/* ─────────────────────── errors: never throw (§9.1) ─────────────────── */
+/* ─────────────────────── errors: never throw ─────────────────── */
 
 describe("the evaluator never throws", () => {
   it("reports a malformed context rather than throwing", () => {
@@ -364,7 +364,7 @@ describe("the evaluator never throws", () => {
   });
 });
 
-/* ───────────── segments: unresolved fails the RULE closed (§9.7) ─────── */
+/* ───────────── segments: unresolved fails the RULE closed ─────── */
 
 describe("segmentMatch", () => {
   const inlineSeg: CompiledSegment = { kind: "inline", version: 1, members: ["usr_1"] };
@@ -394,7 +394,7 @@ describe("segmentMatch", () => {
   });
 });
 
-describe("an UNRESOLVED segment fails the whole rule closed, in BOTH polarities (§22.3)", () => {
+describe("an UNRESOLVED segment fails the whole rule closed, in BOTH polarities", () => {
   const members = Array.from({ length: 2_000 }, (_, i) => `usr_${i}`);
   const bigSeg = (): CompiledSegment => ({
     kind: "cuckoo",

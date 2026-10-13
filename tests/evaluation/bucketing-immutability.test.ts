@@ -1,5 +1,5 @@
 /**
- * The bucketing corpus is frozen (review §4).
+ * The bucketing corpus is frozen.
  *
  * **This test exists to fail.** If someone changes the hash, the seed handling,
  * the salt composition, the string encoding, or `WEIGHT_SCALE`, every

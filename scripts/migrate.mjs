@@ -1,5 +1,5 @@
 /**
- * The migration step, as a command (§9, §16).
+ * The migration step, as a command.
  *
  *   node scripts/migrate.mjs            apply
  *   node scripts/migrate.mjs --check    report status, change nothing

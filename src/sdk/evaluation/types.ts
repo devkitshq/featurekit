@@ -1,5 +1,5 @@
 /**
- * The evaluation core's type surface (§9.2, §9.8, §10.1).
+ * The evaluation core's type surface.
  *
  * This file — and every file in `evaluation/` — imports nothing. Not zod, not
  * the logger, nothing. It is the only source compiled into both the control
@@ -8,7 +8,7 @@
  * `tests/evaluation/purity.test.ts` enforces that.
  */
 
-/* ─────────────────────────── Context (§9.8) ─────────────────────────── */
+/* ─────────────────────────── Context ─────────────────────────── */
 
 /** One context kind's identity and attributes. `key` is mandatory. */
 export interface ContextAttributes {
@@ -41,7 +41,7 @@ export interface NormalizedContext {
   get(contextKind: string): ContextAttributes | undefined;
 }
 
-/* ────────────────────────── Results (§9.2) ─────────────────────────── */
+/* ────────────────────────── Results ─────────────────────────── */
 
 export type EvaluationErrorKind =
   | "MALFORMED_FLAG"
@@ -62,7 +62,7 @@ export type EvaluationReason =
 
 /**
  * A rule that could not be fully evaluated because segment membership was
- * unverifiable (§9.7). The rule failed closed and evaluation continued past
+ * unverifiable. The rule failed closed and evaluation continued past
  * it, so this is an *annotation*, not the outcome: `reason` still reports what
  * was actually served. Without it, `POST /v1/debug/evaluate` could only say
  * "no match", which is the difference between a five-minute diagnosis and an
@@ -84,7 +84,7 @@ export interface EvaluationDetail<T> {
   unresolved?: UnresolvedRule[];
 }
 
-/* ───────────────────────── Targeting (§7.5, §9.6) ───────────────────── */
+/* ───────────────────────── Targeting ───────────────────── */
 
 export type Operator =
   | "in"
@@ -123,7 +123,7 @@ export interface Rollout {
   contextKind?: string;
   /** Attribute to bucket on instead of the key. Default `"key"`. */
   bucketBy?: string;
-  /** Frozen seed, replacing the flag key in the hash prefix (§9.3). */
+  /** Frozen seed, replacing the flag key in the hash prefix. */
   seed?: number;
   variations: readonly RolloutVariation[];
 }
@@ -164,28 +164,28 @@ export interface CompiledFlag {
   targets: readonly CompiledTarget[];
   rules: readonly CompiledRule[];
   /**
-   * Every attribute this flag's rules read, emitted by the compiler (§10.1),
+   * Every attribute this flag's rules read, emitted by the compiler,
    * kind-qualified as `"user.country"`. Client-tier fan-out collapses 50,000
    * connections to the few hundred distinct value combinations of this set
-   * (§11.5). Unused by the server tier.
+   *. Unused by the server tier.
    */
   referencedAttributes?: readonly string[];
   /**
    * True when this flag's value depends on the context *key* and not only on
    * its attributes — a percentage rollout, an individual target, or a segment
    * clause. Such a flag cannot share a fan-out fingerprint and is specialised
-   * per connection (§11.5). Emitted by the compiler alongside
+   * per connection. Emitted by the compiler alongside
    * `referencedAttributes`; the retrofit this avoids is the one §22.1 warns of.
    */
   perContext?: boolean;
   /**
-   * Whether the client tier may see this flag at all (§7.3). Defaults false, so
+   * Whether the client tier may see this flag at all. Defaults false, so
    * an unreleased feature's *existence* stays private, not just its value.
    */
   clientAvailable?: boolean;
 }
 
-/* ───────────────────────── Segments (§9.7, §10.1) ───────────────────── */
+/* ───────────────────────── Segments ───────────────────── */
 
 export interface CompiledSegmentBase {
   version: number;
@@ -229,7 +229,7 @@ export interface Snapshot {
   /** Monotonic per environment. */
   version: number;
   environmentKey: string;
-  /** Server tier only — the client tier never buckets (§11.5). */
+  /** Server tier only — the client tier never buckets. */
   salt: string;
   flags: Readonly<Record<string, CompiledFlag>>;
   segments: Readonly<Record<string, CompiledSegment>>;

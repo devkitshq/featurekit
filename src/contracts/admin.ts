@@ -1,10 +1,10 @@
 /**
- * Management API request schemas (§12, §15, §18).
+ * Management API request schemas.
  *
  * **Variations are referenced by index, not by uuid.** The database stores rule
  * outcomes as `variation_id` foreign keys — which is right, because an array of
  * bare indices has no referential integrity and reordering silently rewrites
- * every rule (§7.3). But an *API* that requires callers to look up uuids to
+ * every rule. But an *API* that requires callers to look up uuids to
  * turn a flag off is an API people script around, and the wire snapshot already
  * speaks indices. So indices are resolved to ids inside the write transaction,
  * where a bad index is a 400 rather than a dangling reference.
@@ -45,7 +45,7 @@ export const rolloutSchema = z.object({
  *
  * A `in` clause with a million strings is a snapshot every SDK in the fleet has
  * to hold in memory, sent to them over a stream that then has to carry it on
- * every reconnect (§14, Scenario N). Large lists are what segments are for, and
+ * every reconnect (Scenario N). Large lists are what segments are for, and
  * the error message says so.
  */
 export const clauseSchema = z
@@ -64,7 +64,7 @@ export const clauseSchema = z
    * writer validated anything. But a rule that silently never matches is a
    * terrible way to learn your regex was rejected, and the author is right here
    * with a request to fail. `^(a+)+$` inside a customer's request path is the
-   * one operator whose cost a rule author controls (§9.6).
+   * one operator whose cost a rule author controls.
    */
   .refine(
     (clause) =>

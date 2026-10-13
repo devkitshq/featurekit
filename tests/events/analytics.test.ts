@@ -1,5 +1,5 @@
 /**
- * The analytics tier (§7.9, §10, §14, §22).
+ * The analytics tier.
  *
  * The claim under test is the architectural one: **analytics loss is
  * acceptable, evaluation correctness is not**. That is only true if the ingest
@@ -216,7 +216,7 @@ describe("HyperLogLog", () => {
   });
 
   it("merges idempotently, so a duplicated batch changes nothing", () => {
-    // This is what makes a replayed or duplicated event harmless (§10).
+    // This is what makes a replayed or duplicated event harmless.
     const a = new HyperLogLog();
     for (let i = 0; i < 1_000; i++) a.add(`u-${i}`);
     const before = a.count();

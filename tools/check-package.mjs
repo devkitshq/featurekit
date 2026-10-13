@@ -1,5 +1,5 @@
 /**
- * What the published packages actually contain (§20).
+ * What the published packages actually contain.
  *
  * `npm pack` is the only honest answer to "what does a customer get". A `files`
  * field is a promise; this checks it. The failures it catches are the ones that

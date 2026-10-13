@@ -1,5 +1,5 @@
 /**
- * SDK keys and access tokens (§7.2, §16).
+ * SDK keys and access tokens.
  *
  * The asymmetry here is the whole design, and it is not an oversight:
  *
@@ -10,7 +10,7 @@
  *   construction — they ship in a JS bundle or an app binary — and the
  *   dashboard has to be able to display them. A public client key is not a
  *   vulnerability here, because it buys evaluated values for a context the
- *   holder can prove, not the ruleset (§11.5).
+ *   holder can prove, not the ruleset.
  *
  * **The tier split is the security boundary**, not a filter applied at
  * serialisation time — which is a filter someone eventually forgets on a new

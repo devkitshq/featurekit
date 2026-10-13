@@ -1,5 +1,5 @@
 /**
- * The client tier behind more than one node (§11.5, review PR-A6).
+ * The client tier behind more than one node (review PR-A6).
  *
  * This is the test that would have caught the bug. Every existing client-tier
  * test drives a single control plane, and the flow works perfectly there: POST

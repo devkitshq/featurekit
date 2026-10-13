@@ -1,5 +1,5 @@
 /**
- * Regex safety for the `matches` operator (§9.6, review §3).
+ * Regex safety for the `matches` operator.
  *
  * **The threat is a customer's own rule.** `matches` runs a pattern that came
  * from a targeting rule against an attribute that came from a request, inside
@@ -42,7 +42,7 @@
 
 /**
  * Longest regex a clause may carry. The dashboard complexity-checks patterns at
- * write time (§9.6), but a snapshot is a wire format arriving over the network,
+ * write time, but a snapshot is a wire format arriving over the network,
  * and the SDK does not get to assume the writer validated it.
  */
 export const MAX_REGEX_LENGTH = 1_000;

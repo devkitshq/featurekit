@@ -1,5 +1,5 @@
 /**
- * The Redis `ClientConnectionStore` (§8, §11.5).
+ * The Redis `ClientConnectionStore`.
  *
  * One key per connection, `fk:cctx:{connectionId}`, holding the context a
  * second node needs to take over the stream. Every entry has a TTL: this is
@@ -46,7 +46,7 @@ export class RedisClientConnectionStore implements ClientConnectionStore {
   async save(id: string, record: StoredConnection, ttlSeconds: number): Promise<void> {
     try {
       const payload = JSON.stringify(record);
-      // The client tier already caps context size (§15); this is the backstop
+      // The client tier already caps context size; this is the backstop
       // for a cap that gets loosened later without anyone thinking about Redis.
       if (Buffer.byteLength(payload) > this.maxBytes) return;
       await this.client.set(this.key(id), payload, "EX", ttlSeconds);

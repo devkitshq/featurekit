@@ -1,5 +1,5 @@
 /**
- * The Redis segment cache, against a real Redis (§9.7, review PR-B6).
+ * The Redis segment cache, against a real Redis (review PR-B6).
  *
  * The SDK half of external segment resolution has existed since M1; this is the
  * server half that was missing, which meant "external segment resolution

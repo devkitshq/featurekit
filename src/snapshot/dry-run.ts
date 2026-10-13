@@ -1,5 +1,5 @@
 /**
- * What would this change actually do? (§18, review PR-E2)
+ * What would this change actually do? (review PR-E2)
  *
  * **The question an operator has before pressing save is not "is this valid".**
  * It is "how many people does this move, and are they the ones I meant?" A

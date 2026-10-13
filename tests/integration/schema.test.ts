@@ -94,7 +94,7 @@ describe.skipIf(reason !== null)("schema against real Postgres", () => {
 
   it("has NO default partition", async () => {
     // A DEFAULT partition converts a loud failure into a silent trap: one row
-    // in it and future partition creation errors out permanently (§7.9).
+    // in it and future partition creation errors out permanently.
     const rows = await db.execute<{ n: number }>(
       sql`SELECT count(*)::int AS n
             FROM pg_partitioned_table pt

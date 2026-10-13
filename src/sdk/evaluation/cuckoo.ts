@@ -1,6 +1,6 @@
 /**
  * (2,4) partial-key cuckoo filter — the default large-segment membership
- * structure (§9.7).
+ * structure.
  *
  * **This is a wire format.** The compiler writes it, every SDK reads it, and a
  * future Go or Python SDK must read the same bytes. A disagreement about

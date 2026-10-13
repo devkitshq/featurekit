@@ -1,5 +1,5 @@
 /**
- * The evaluator (§9.1, §9.2).
+ * The evaluator.
  *
  * A pure, synchronous, dependency-free function with exactly one
  * implementation. It runs in-process for server SDKs and server-side on behalf
@@ -65,7 +65,7 @@ export interface EvaluateOptions {
  *
  * A boolean is something `negate` can invert, and inverting an unverified miss
  * grants the gated feature to everyone unconfirmed. Collapsing this back into
- * a boolean is precisely the bug a well-meaning refactor reintroduces (§22.3).
+ * a boolean is precisely the bug a well-meaning refactor reintroduces.
  */
 type ClauseResult =
   | { matched: true }
@@ -196,7 +196,7 @@ function evaluateSegmentClause(
 
 /**
  * Is this context in this segment? Membership structure first, then the
- * segment's own rules (§7.6) — a context is a member if it is listed OR any
+ * segment's own rules — a context is a member if it is listed OR any
  * segment rule matches it.
  */
 function segmentMembership(

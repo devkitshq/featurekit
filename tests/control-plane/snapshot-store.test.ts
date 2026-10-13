@@ -23,7 +23,7 @@ const patch = (version: number, flagKey = "f"): StreamPatch => ({
 
 /**
  * One suite, run against every implementation. `SnapshotStore` is a plugin
- * (§2: "Plugins are a class with one method"), so its contract has to be a
+ * ("Plugins are a class with one method"), so its contract has to be a
  * property of the interface rather than of whichever backend is convenient —
  * otherwise the in-memory store used by tests and the Redis store used in
  * production quietly diverge, and the tests stop meaning anything.
@@ -62,7 +62,7 @@ function storeContract(name: string, create: () => Promise<SnapshotStore> | Snap
       it("survives a Uint8Array in a segment filter", async () => {
         // Cuckoo and roaring payloads are binary. A store that JSON-round-trips
         // them into `{"0":1,...}` produces a filter that answers `false` for
-        // every member -- silent, and only visible weeks later (§9.7).
+        // every member -- silent, and only visible weeks later.
         const withFilter: Snapshot = {
           ...snapshot(1),
           segments: {
@@ -84,7 +84,7 @@ function storeContract(name: string, create: () => Promise<SnapshotStore> | Snap
       });
     });
 
-    describe("patch history and resume (§10.3)", () => {
+    describe("patch history and resume", () => {
       it("replays patches strictly after the version the SDK holds", async () => {
         for (const v of [2, 3, 4]) await store.appendPatch(ENV, patch(v));
         const replay = await store.patchesSince(ENV, 2, 200);
@@ -152,7 +152,7 @@ function storeContract(name: string, create: () => Promise<SnapshotStore> | Snap
         // The failure this replaces: put, then patches, then publish, as three
         // round trips. A subscriber woken by the broadcast could read the
         // PREVIOUS snapshot under the new version and cache it — a stale
-        // configuration that looks fresh (§5).
+        // configuration that looks fresh.
         const observed: Array<{ broadcast: number; stored: number | undefined }> = [];
         await store.subscribe(ENV, (m) => {
           void store.get(ENV).then((got) => {

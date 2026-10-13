@@ -1,5 +1,5 @@
 /**
- * Configuration (§17).
+ * Configuration.
  *
  * **The defaults are for laptops, never for prod.** Development starts
  * containers and binds to localhost; production start fails loudly on a missing
@@ -52,7 +52,7 @@ export const configSchema = z
     /**
      * Signs client-tier context HMACs. Comma-separated for rotation: sign with
      * the first, verify against all. Required in production once a client key
-     * exists (§16).
+     * exists.
      */
     SECURE_MODE_SECRET: z.string().min(32).optional(),
     /** Longest signature lifetime the server will honour, whatever was signed. */
@@ -61,18 +61,18 @@ export const configSchema = z
     /**
      * Origins allowed to call the client tier, comma-separated. Exact matches
      * only, and never `*`: the client tier answers with a browser's flag values
-     * (§16). Empty means same-origin only, which is correct for a deployment
+     *. Empty means same-origin only, which is correct for a deployment
      * that serves its app and its flags from one host.
      */
     CORS_ALLOWED_ORIGINS: z.string().default(""),
     /**
      * Environment ids that may evaluate unsigned contexts even in production.
      * An explicit, auditable list — the default for a production environment is
-     * to require a signature (§16).
+     * to require a signature.
      */
     UNSIGNED_CONTEXT_ENVIRONMENT_IDS: z.string().default(""),
 
-    /** Per-identity request ceilings, per minute (§15, §22). */
+    /** Per-identity request ceilings, per minute. */
     RATE_LIMIT_CLIENT_STATE_PER_MIN: z.coerce.number().int().min(1).default(600),
     RATE_LIMIT_SNAPSHOT_PER_MIN: z.coerce.number().int().min(1).default(240),
     RATE_LIMIT_STREAM_PER_MIN: z.coerce.number().int().min(1).default(60),
@@ -116,11 +116,11 @@ export const configSchema = z
     FEATUREKIT_ADMIN_EMAIL: z.string().optional(),
     FEATUREKIT_ADMIN_PASSWORD: z.string().optional(),
 
-    /** Revocation bound for the SDK-key lookup cache (§16). */
+    /** Revocation bound for the SDK-key lookup cache. */
     SDK_KEY_CACHE_TTL_MS: z.coerce.number().int().min(0).max(300_000).default(30_000),
     /** How long a drain gets before sockets are closed (§16 rolling deploys). */
     SHUTDOWN_GRACE_MS: z.coerce.number().int().min(0).max(120_000).default(10_000),
-    /** Below this many days of partition runway, readiness fails (§7.9). */
+    /** Below this many days of partition runway, readiness fails. */
     PARTITION_RUNWAY_MIN_DAYS: z.coerce.number().int().min(0).default(2),
 
     SNAPSHOT_DEBOUNCE_MS: z.coerce.number().int().min(0).default(200),
@@ -137,7 +137,7 @@ export const configSchema = z
      * serving. Truncating instead would build a membership filter from part of
      * the list, which answers "not a member" for real members — and under a
      * negated segment clause that grants the gated feature to exactly the wrong
-     * people (§22.3).
+     * people.
      */
     SEGMENT_MEMBER_CEILING: z.coerce.number().int().min(1_000).default(2_000_000),
     /** Rows per round trip while reading segment members. */
@@ -147,7 +147,7 @@ export const configSchema = z
     SEGMENT_CUCKOO_FINGERPRINT_BITS: z.coerce
       .number()
       .refine((n): n is 12 | 16 => n === 12 || n === 16, {
-        message: "must be 12 or 16 — the cuckoo wire format is frozen (§9.7)",
+        message: "must be 12 or 16 — the cuckoo wire format is frozen",
       })
       .default(16),
     /** SDK-side: confirmed-membership LRU when a remote provider is used. */
@@ -156,13 +156,13 @@ export const configSchema = z
     /**
      * How long a client connection handle stays resumable on another node.
      *
-     * The record lives in Redis so any node can take over a stream (§11.5).
+     * The record lives in Redis so any node can take over a stream.
      * Long enough to survive a reconnect and a rolling deploy; short enough
      * that abandoned browsers do not accumulate.
      */
     CLIENT_CONNECTION_TTL_SECONDS: z.coerce.number().int().min(30).max(86_400).default(900),
 
-    /** Client-tier fingerprint fan-out (§11.5). */
+    /** Client-tier fingerprint fan-out. */
     CLIENT_EVAL_CACHE_MAX: z.coerce.number().int().min(100).default(50_000),
     CLIENT_FANOUT_BATCH: z.coerce.number().int().min(1).default(500),
 
@@ -170,7 +170,7 @@ export const configSchema = z
     EVENT_FLUSH_INTERVAL_MS: z.coerce.number().int().min(100).default(5_000),
     ROLLUP_SHARDS: z.coerce.number().int().min(1).default(8),
     ROLLUP_BUCKET_SECONDS: z.coerce.number().int().min(60).default(60),
-    /** Written into partman.part_config at migration time — not read at runtime (§7.9). */
+    /** Written into partman.part_config at migration time — not read at runtime. */
     ROLLUP_RETENTION_DAYS: z.coerce.number().int().min(1).default(90),
     ROLLUP_PARTITION_PREMAKE_DAYS: z.coerce.number().int().min(2).default(7),
 
@@ -194,7 +194,7 @@ export type FeaturekitConfig = z.infer<typeof configSchema>;
 export interface LoadConfigOptions {
   /**
    * Whether the deployment has any client or mobile SDK key. Secure mode is
-   * required in production only once one exists (§16) — a server-tier-only
+   * required in production only once one exists — a server-tier-only
    * deployment should not be forced to configure a secret it cannot use.
    */
   clientKeysExist?: boolean;
@@ -258,7 +258,7 @@ export function commaList(value: string | undefined): string[] {
  * The secure-mode secrets, newest first.
  *
  * Rotation without a flag day: signing uses the first, verification tries all,
- * so rotation becomes two ordinary deploys (§16).
+ * so rotation becomes two ordinary deploys.
  */
 export function secureModeSecrets(config: FeaturekitConfig): string[] {
   return commaList(config.SECURE_MODE_SECRET);

@@ -18,7 +18,7 @@
  *    that it was called.
  * 3. It **creates partition runway**, because a deploy that leaves the
  *    analytics table without partitions has not finished, it has just not
- *    failed yet (§7.9).
+ *    failed yet.
  */
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";

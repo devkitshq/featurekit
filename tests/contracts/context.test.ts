@@ -1,5 +1,5 @@
 /**
- * Context caps (§15).
+ * Context caps.
  *
  * These limits are a memory-safety boundary. The client tier hashes,
  * normalises, evaluates and then *retains* a caller-supplied context for the

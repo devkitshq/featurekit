@@ -1,5 +1,5 @@
 /**
- * Client-tier evaluation and fingerprint-keyed fan-out (§11.5, §22.1).
+ * Client-tier evaluation and fingerprint-keyed fan-out.
  *
  * **The problem.** The naive fan-out is a thundering herd pointed at your own
  * control plane. Toggle one flag with 50,000 connected browsers and the control
@@ -11,7 +11,7 @@
  *
  * **The observation that collapses it.** An evaluation is a function of the
  * attributes the flag's rules actually reference, and nothing else. The
- * compiler already emits that set (`referencedAttributes`, §10.1), so contexts
+ * compiler already emits that set (`referencedAttributes`), so contexts
  * are normalised down to those attributes and grouped. 50,000 contexts collapse
  * to the few hundred distinct `(country, plan)` pairs that exist. Evaluation
  * count drops from *connections* to *distinct attribute combinations*.

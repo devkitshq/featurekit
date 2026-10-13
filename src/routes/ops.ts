@@ -1,5 +1,5 @@
 /**
- * Operational endpoints (§15, §16).
+ * Operational endpoints.
  *
  * ```
  * GET /live     process is alive        — never touches a dependency
@@ -12,7 +12,7 @@
  * implementation.** A liveness probe that checks Postgres restarts every API
  * node during a database blip — turning a degraded system into an outage, and
  * doing it at the exact moment the control plane most needs to keep serving its
- * last-known-good snapshots (§14). Liveness answers "is this process wedged";
+ * last-known-good snapshots. Liveness answers "is this process wedged";
  * readiness answers "should the load balancer send me work".
  *
  * Readiness deliberately fails on **partition runway below two days**. That is
@@ -38,7 +38,7 @@ export interface OpsDeps {
   /** Round-trips a trivial query. Truth is in Postgres, so this gates readiness. */
   checkDatabase: () => Promise<CheckResult>;
   /**
-   * Redis is a cache and a bus (§8), so its loss is `degraded`, never `failed`:
+   * Redis is a cache and a bus, so its loss is `degraded`, never `failed`:
    * a node that can still serve last-known-good snapshots from memory is a node
    * that should keep receiving traffic. Pulling it out of the load balancer
    * during a Redis outage is how a cache incident becomes a flag outage.

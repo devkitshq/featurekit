@@ -1,5 +1,5 @@
 /**
- * The rollup worker: buffered summaries → `evaluation_summaries` (§7.9, §10).
+ * The rollup worker: buffered summaries → `evaluation_summaries`.
  *
  * **Idempotency is the whole design.** Writes go through
  * `ON CONFLICT (environment_id, flag_key, variation_idx, reason, bucket_at) DO
@@ -18,7 +18,7 @@
  * partition fails loudly — correctly. The worker catches exactly that, sends
  * the batch to the DLQ and keeps going, because a stalled drain becomes an
  * unbounded buffer, and an unbounded buffer in the analytics path is how
- * analytics takes down evaluation (§22).
+ * analytics takes down evaluation.
  */
 
 import { sql } from "drizzle-orm";

@@ -1,5 +1,5 @@
 /**
- * Chaos against real infrastructure (review §12, PR-C4).
+ * Chaos against real infrastructure (PR-C4).
  *
  * The existing chaos suite kills an in-process HTTP server and swaps a
  * fault-injecting store. That is genuinely useful and it cannot prove the
@@ -183,7 +183,7 @@ describe.skipIf(reason !== null)("infrastructure chaos", () => {
     await client.flushall();
     await client.quit();
 
-    // Expected: every key in Redis is rebuildable (§8). The flag survives.
+    // Expected: every key in Redis is rebuildable. The flag survives.
     const after = await service.get(environmentId);
     expect(after.snapshot.flags["checkout"]).toBeDefined();
   }, 120_000);
@@ -348,7 +348,7 @@ describe.skipIf(reason !== null)("analytics when the partition is missing", () =
     // range fails — correctly and loudly. What must NOT happen is the drain
     // stalling, because a stalled drain becomes an unbounded buffer, and an
     // unbounded buffer in the analytics path is how analytics takes down
-    // evaluation (§22).
+    // evaluation.
     const buffer = new EventBuffer();
     // Two years out: no partition exists, and none is premade that far ahead.
     const farFuture = Date.now() + 730 * 24 * 60 * 60 * 1000;

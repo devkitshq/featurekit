@@ -1,5 +1,5 @@
 /**
- * The process entrypoint (§16, §17).
+ * The process entrypoint.
  *
  * Everything interesting is in `server.ts`. This file exists to do the four
  * things a long-lived server process must do and that are wrong by default in

@@ -1,5 +1,5 @@
 /**
- * Client-tier routes (§11.5, §12, §16).
+ * Client-tier routes.
  *
  * ```
  * POST /v1/client/state    Context in -> evaluated values out
@@ -70,14 +70,14 @@ export interface ClientRouteDeps {
    * not from this option: a production environment requires a signature unless
    * its id appears here. Previously this was a boolean the caller had to
    * remember to pass, which meant the security boundary depended on wiring —
-   * and the wiring is exactly what a new deployment gets wrong (§16).
+   * and the wiring is exactly what a new deployment gets wrong.
    */
   unsignedContextEnvironmentIds?: ReadonlySet<string>;
   /** Force the requirement on for non-production environments too. */
   requireSignature?: boolean;
   contextLimits?: ContextLimits;
   /**
-   * Where connection state is shared between nodes (§11.5).
+   * Where connection state is shared between nodes.
    *
    * A browser POSTs `/v1/client/state` and then opens `/v1/client/stream` — two
    * requests, which any ordinary load balancer will send to two different
@@ -138,7 +138,7 @@ export function registerClientRoutes(router: Router, deps: ClientRouteDeps): Rou
    * Production does, always, unless it has been explicitly and visibly opted
    * out. Because the server evaluates *as* a claimed identity, an unsigned key
    * in production lets anyone read the flags targeted at any named account
-   * (§16).
+   *.
    */
   function signatureRequired(env: AuthenticatedEnvironment): boolean {
     if (deps.unsignedContextEnvironmentIds?.has(env.environmentId) === true) return false;
@@ -176,7 +176,7 @@ export function registerClientRoutes(router: Router, deps: ClientRouteDeps): Rou
     // Never a silent downgrade to unsigned in a signed deployment.
     if (result.reason === "SIGNATURE_MISSING" && !required) return;
     // `SIGNATURE_EXPIRED` stays distinct: the SDK keeps serving its last values
-    // and refreshes, whereas invalid drops to caller defaults (§14).
+    // and refreshes, whereas invalid drops to caller defaults.
     throw new HttpError(401, result.reason, "context signature rejected");
   }
 
@@ -253,7 +253,7 @@ export function registerClientRoutes(router: Router, deps: ClientRouteDeps): Rou
 
     // Capped before it is hashed, normalised, evaluated against every flag, and
     // retained for the life of the connection. Each of those is proportional to
-    // a size the caller chose (§15).
+    // a size the caller chose.
     const contextCheck = checkContext(body.context, deps.contextLimits ?? DEFAULT_CONTEXT_LIMITS);
     if (!contextCheck.ok) {
       throw new HttpError(400, contextCheck.reason, "context rejected");
@@ -300,7 +300,7 @@ export function registerClientRoutes(router: Router, deps: ClientRouteDeps): Rou
     const state: FlagState = {
       contextHash: hash,
       // Echoed, never generated here: the SDK uses it to drop a response that
-      // was superseded while in flight (§11.5).
+      // was superseded while in flight.
       seq: body.seq ?? 0,
       version,
       values,

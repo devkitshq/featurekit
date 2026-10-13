@@ -1,5 +1,5 @@
 /**
- * CORS, for the client tier only (§11.5, §16).
+ * CORS, for the client tier only.
  *
  * **The scope is the security property.** `featurekit-client` calls
  * `POST /v1/client/state` from a customer's origin, so those routes need CORS.

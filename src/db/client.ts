@@ -1,7 +1,7 @@
 /**
  * Postgres connection and migration.
  *
- * Postgres is truth (§8). Everything in Redis is a cache or a bus and is
+ * Postgres is truth. Everything in Redis is a cache or a bus and is
  * rebuildable from here.
  */
 
@@ -32,7 +32,7 @@ export function createDatabase(options: DatabaseOptions) {
 }
 
 /**
- * Apply migrations, including the hand-written partitioned DDL (§7.9).
+ * Apply migrations, including the hand-written partitioned DDL.
  *
  * `autoMigrate` is a development convenience. In production this is normally a
  * deliberate deploy step, because a migration that runs concurrently on every

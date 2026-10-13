@@ -1,5 +1,5 @@
 /**
- * CORS, rate limiting and body limits (§15, §16, §22).
+ * CORS, rate limiting and body limits.
  *
  * Three properties, each of which is a finding if it regresses:
  *
@@ -68,7 +68,7 @@ describe("CORS", () => {
 
   it("never sends CORS headers on the server tier", async () => {
     // The ruleset endpoint. A browser must not be able to read this
-    // cross-origin no matter what is configured (§11.5).
+    // cross-origin no matter what is configured.
     const base = await serve([cors]);
     const response = await fetch(`${base}/v1/snapshot/production`, { headers: { origin: ORIGIN } });
     expect(response.headers.get("access-control-allow-origin")).toBeNull();

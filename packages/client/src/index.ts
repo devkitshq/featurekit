@@ -1,5 +1,5 @@
 /**
- * `featurekit-client` — the client-tier SDK (§11.5, §14, §16).
+ * `featurekit-client` — the client-tier SDK.
  *
  * **This SDK never receives the ruleset.** It receives evaluated values for one
  * context. That is a real architectural split, not a deployment detail: shipping
@@ -66,7 +66,7 @@ export interface FeaturekitClientOptions {
   clientKey: string;
   baseUrl: string;
   context: EvaluationContextLike;
-  /** HMAC over `${key}:${expiresAt}`, minted by your own server (§16). */
+  /** HMAC over `${key}:${expiresAt}`, minted by your own server. */
   contextSignature?: string;
   contextSignatureExpiresAt?: number;
   /** Called before expiry; returns a fresh pair. */
@@ -266,7 +266,7 @@ export class FeaturekitClient {
         const body = (await response.json().catch(() => ({}))) as { error?: string };
         if (body.error === "SIGNATURE_EXPIRED") {
           // An expired signature is NOT an identity change: the last known
-          // values keep serving while a fresh pair is fetched (§14).
+          // values keep serving while a fresh pair is fetched.
           this.signature = null;
           await this.ensureSignature();
           if (this.signature !== null) await this.refresh();

@@ -51,7 +51,7 @@ describe("murmur3 — tail handling across every length residue", () => {
   });
 });
 
-describe("murmur3Utf8 — bytes, not UTF-16 code units (§9.3)", () => {
+describe("murmur3Utf8 — bytes, not UTF-16 code units", () => {
   it("hashes non-ASCII as UTF-8 bytes", () => {
     // "é" is U+00E9: one UTF-16 code unit (233), two UTF-8 bytes (0xC3 0xA9).
     // A charCodeAt implementation would hash [233] and diverge from every
@@ -73,7 +73,7 @@ describe("murmur3Utf8 — bytes, not UTF-16 code units (§9.3)", () => {
   });
 });
 
-describe("murmur3Utf8 — ASCII fast path is byte-identical to the UTF-8 path (§9.4)", () => {
+describe("murmur3Utf8 — ASCII fast path is byte-identical to the UTF-8 path", () => {
   it("agrees with TextEncoder on every single-byte ASCII code point", () => {
     for (let c = 0; c < 128; c++) {
       const s = String.fromCharCode(c);

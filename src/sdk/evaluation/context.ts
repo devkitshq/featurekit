@@ -1,11 +1,11 @@
 /**
- * Multi-context normalisation and attribute resolution (§9.8).
+ * Multi-context normalisation and attribute resolution.
  *
  * Multi-context exists from day one because retrofitting it is brutal, but
  * `"user"` is implicit and default everywhere so the simple case stays simple.
  *
  * Nothing here throws. Invalid input yields `null` or `undefined` and the
- * evaluator turns that into the caller's default with `reason: ERROR` (§9.1).
+ * evaluator turns that into the caller's default with `reason: ERROR`.
  *
  * **This file is on the hot path and is written for it.** Normalisation used
  * to allocate a `Map` and copy every attribute into a fresh object, which

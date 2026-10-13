@@ -1,5 +1,5 @@
 /**
- * Request body schemas for the SDK- and client-facing endpoints (§15).
+ * Request body schemas for the SDK- and client-facing endpoints.
  *
  * Every public endpoint validates before it uses. The rule this file exists to
  * enforce is that **an unvalidated body must never reach code that allocates
@@ -53,13 +53,13 @@ export type ClientStateBody = z.infer<typeof clientStateSchema>;
  *   caller a per-request allocation multiplier.
  * - `bucketAt` is bounded to a sane window. A batch claiming to be from 1970 or
  *   2170 would otherwise create a partition-shaped problem in `evaluation_
- *   summaries` (§10 "late events"), and inserting it is how a partitioned table
+ *   summaries`, and inserting it is how a partitioned table
  *   acquires rows nothing will ever drop.
  *
  * Strict about size, tolerant about shape:
  *
  * The caps are hard because they bound allocation. The optional fields are
- * optional because analytics is explicitly lossy (§14): rejecting a batch that
+ * optional because analytics is explicitly lossy: rejecting a batch that
  * omits `variationIndex` buys nothing — the SDK cannot resend it usefully, and
  * a 400 on the events endpoint is a retry loop on the one path that is allowed
  * to drop data. An absent `variationIndex` already has a meaning ("the caller's

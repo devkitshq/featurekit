@@ -1,5 +1,5 @@
 /**
- * Operational endpoints (§15, §16).
+ * Operational endpoints.
  *
  * The assertions that matter here are the ones about *which* failures take a
  * node out of rotation. Getting that backwards is how a Redis blip becomes a
@@ -78,7 +78,7 @@ describe("GET /ready", () => {
   });
 
   it("stays in rotation when Redis is unreachable", async () => {
-    // Redis is a cache and a bus (§8). A node that can still serve its
+    // Redis is a cache and a bus. A node that can still serve its
     // last-known-good snapshots should keep receiving traffic.
     const { base } = await serve({ redis: async () => ({ state: "degraded", detail: "unreachable" }) });
     const response = await fetch(`${base}/ready`);
@@ -171,7 +171,7 @@ describe("SDK version skew", () => {
 
   it("collapses anything it does not recognise", () => {
     // The header is attacker-controlled. A permissive parser here is one time
-    // series per request (§17).
+    // series per request.
     for (const agent of [
       undefined,
       "",

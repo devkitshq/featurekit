@@ -132,7 +132,7 @@ describe("authentication", () => {
   it("REFUSES a client key on the ruleset stream", async () => {
     // The single most important authorisation check in the system: a client key
     // reaching this endpoint hands a browser the rules the entire client tier
-    // exists to withhold (§16).
+    // exists to withhold.
     const { base } = await harness();
     for (const path of ["/v1/snapshot/production", "/v1/stream/production"]) {
       const response = await fetch(`${base}${path}`, { headers: auth(CLIENT_KEY) });
@@ -163,7 +163,7 @@ describe("authentication", () => {
   });
 });
 
-describe("GET /v1/snapshot/:envKey — polling is first class (§10.2)", () => {
+describe("GET /v1/snapshot/:envKey — polling is first class", () => {
   it("returns the compiled snapshot with an ETag", async () => {
     const { base } = await harness();
     const response = await fetch(`${base}/v1/snapshot/production`, { headers: auth() });
@@ -260,7 +260,7 @@ async function readSse(
   return text;
 }
 
-describe("GET /v1/stream/:envKey (§10.2, §10.3)", () => {
+describe("GET /v1/stream/:envKey", () => {
   it("sends a full put on connect, with the version as the event id", async () => {
     const { base } = await harness();
     const text = await readSse(`${base}/v1/stream/production`, auth(), (t) => t.includes("event: put"));
@@ -411,7 +411,7 @@ describe("POST /v1/events", () => {
   });
 
   it("still returns 202 when ingest fails", async () => {
-    // Analytics loss is acceptable; blocking an SDK is not (§14). Failing here
+    // Analytics loss is acceptable; blocking an SDK is not. Failing here
     // makes the SDK retry a batch that is already stale.
     const errors: unknown[] = [];
     const { base } = await harness({

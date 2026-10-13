@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildCuckooFilter, CuckooFilter } from "../../src/sdk/evaluation/cuckoo.js";
 
 /**
- * M1 exit criterion (§18): a large import must complete with zero relocation
+ * M1 exit criterion: a large import must complete with zero relocation
  * failures and zero rebuilds at the pinned load factor. A construction bug
  * here is silent at 10k members and a rebuild loop at 1M, so it is asserted at
  * scale rather than inferred from a small case.

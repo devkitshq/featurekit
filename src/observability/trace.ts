@@ -1,5 +1,5 @@
 /**
- * W3C trace context (§16, review PR-D5).
+ * W3C trace context (review PR-D5).
  *
  * A request id correlates featurekit's own log lines. It does not correlate
  * them with anything *else*, and the question an operator actually has at 3am

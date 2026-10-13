@@ -1,5 +1,5 @@
 /**
- * HyperLogLog for distinct-context counts (§7.9, §19.2).
+ * HyperLogLog for distinct-context counts.
  *
  * **Why a sketch at all.** "How many distinct users saw this variation" cannot
  * be answered by summing per-minute counts — the same user appears in many
@@ -16,7 +16,7 @@
  * The encoding is deliberately trivial — a version byte, `p`, then the raw
  * registers — because these bytes live in a Postgres column and will be read
  * back by a future version of this code, and possibly by a port in another
- * language (§L). No library, no dependency, no format that needs a changelog.
+ * language. No library, no dependency, no format that needs a changelog.
  */
 
 const HEADER_BYTES = 2;
@@ -94,7 +94,7 @@ export class HyperLogLog {
    *
    * Register-wise max, which is why merging is associative, commutative and
    * idempotent — the three properties that make a duplicated or replayed batch
-   * harmless (§10 "idempotency").
+   * harmless.
    */
   merge(other: HyperLogLog): void {
     if (other.precision !== this.precision) {
@@ -139,7 +139,7 @@ export class HyperLogLog {
    * Returns `null` rather than throwing on anything unrecognised. A corrupt
    * analytics sketch must degrade to "no unique count for this bucket", never to
    * an exception in the rollup worker — which would stall the drain and turn an
-   * analytics problem into a Redis backlog (§10, §22).
+   * analytics problem into a Redis backlog.
    */
   static fromBytes(bytes: Uint8Array | null | undefined): HyperLogLog | null {
     if (bytes === null || bytes === undefined || bytes.length < HEADER_BYTES) return null;

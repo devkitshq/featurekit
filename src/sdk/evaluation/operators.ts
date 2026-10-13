@@ -1,5 +1,5 @@
 /**
- * Clause operators (§9.6).
+ * Clause operators.
  *
  * Three rules govern everything in this file:
  *
@@ -12,7 +12,7 @@
  *
  * `segmentMatch` is deliberately absent: it needs segment state, so it is
  * resolved one level up in `evaluate.ts`, where the unresolved third state
- * exists (§9.7).
+ * exists.
  *
  * @see docs/evaluation/operators.md
  */

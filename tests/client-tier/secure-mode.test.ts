@@ -1,5 +1,5 @@
 /**
- * Secure mode as a property of the environment (§16, §7).
+ * Secure mode as a property of the environment.
  *
  * The regression this suite exists to prevent is subtle and was live: whether
  * production rejected unsigned contexts depended on the *caller* passing
@@ -184,7 +184,7 @@ describe("secure mode enforcement", () => {
     });
     expect(response.status).toBe(401);
     // The SDK keeps serving its last values on EXPIRED and drops to defaults on
-    // INVALID, so the distinction has to survive to the wire (§14).
+    // INVALID, so the distinction has to survive to the wire.
     expect(((await response.json()) as { error: string }).error).toBe("SIGNATURE_EXPIRED");
   });
 

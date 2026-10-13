@@ -34,7 +34,7 @@ describe("normalizeContext — single context", () => {
   });
 });
 
-describe("normalizeContext — multi-context (§9.8)", () => {
+describe("normalizeContext — multi-context", () => {
   it("splits every kind out", () => {
     const n = norm({
       kind: "multi",
@@ -59,7 +59,7 @@ describe("normalizeContext — multi-context (§9.8)", () => {
   });
 });
 
-describe("normalizeContext — invalid input yields null, never a throw (§9.1)", () => {
+describe("normalizeContext — invalid input yields null, never a throw", () => {
   it.each([
     ["null", null],
     ["undefined", undefined],
@@ -115,12 +115,12 @@ describe("getAttribute", () => {
     expect(getAttribute(n, "user", "address.constructor")).toBeUndefined();
   });
 
-  it("returns array attributes whole, for the any-element match rule (§9.6)", () => {
+  it("returns array attributes whole, for the any-element match rule", () => {
     expect(getAttribute(n, "user", "groups")).toEqual(["a", "b"]);
   });
 });
 
-describe("bucketValue — what a rollout hashes (§9.3)", () => {
+describe("bucketValue — what a rollout hashes", () => {
   const n = norm({
     kind: "multi",
     user: { key: "usr_123", accountId: 88, ratio: 1.5, missing: null, obj: {}, arr: [1] },

@@ -1,5 +1,5 @@
 /**
- * The control plane without Redis (§8, §11, §14, Scenarios A and C).
+ * The control plane without Redis (Scenarios A and C).
  *
  * The design says Postgres is truth and Redis is a disposable cache. Before
  * this suite existed, that was an assertion: `SnapshotService.get` read Redis on

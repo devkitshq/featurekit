@@ -1,5 +1,5 @@
 /**
- * Redis-backed segment membership (§9.7).
+ * Redis-backed segment membership.
  *
  * **The problem this solves.** A ten-million-member segment cannot live in the
  * heap of every SDK process — `Set<string>` at that size is well over a gigabyte
@@ -10,7 +10,7 @@
  * as a hash so many processes share one copy.
  *
  * **The hard constraint is that `has()` must not do I/O.** Evaluation is
- * synchronous by design (§9.2) — a promise per check poisons every call site and
+ * synchronous by design — a promise per check poisons every call site and
  * cannot be used in a React render. So this provider answers from a bounded
  * local cache and returns `false`-as-unresolved on a miss, warming the answer in
  * the background. The `SegmentIndex` treats an unconfirmed positive as

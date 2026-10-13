@@ -1,6 +1,6 @@
 /**
  * Roaring bitmaps — the exact large-segment structure, used only where the
- * context key is integral on its own (§7.6, §9.7).
+ * context key is integral on its own.
  *
  * Where eligible this is strictly better than a cuckoo filter: exact matching,
  * so the confirmation step is unnecessary and the unresolved state cannot

@@ -1,6 +1,6 @@
 /**
  * `featurekit-server/secure-mode` — everything a customer's backend needs to mint a
- * signed context, and nothing else (§16).
+ * signed context, and nothing else.
  *
  * ```ts
  * import { signContext, contextHash } from "featurekit-server/secure-mode";

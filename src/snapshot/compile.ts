@@ -1,5 +1,5 @@
 /**
- * The snapshot compiler (§10.1).
+ * The snapshot compiler.
  *
  * Compiles Postgres rows into the immutable snapshot every server SDK holds.
  * It does the work the SDK shouldn't: resolves variation uuids to positional
@@ -152,7 +152,7 @@ export interface CompilerInput {
 export interface CompileOptions {
   /** Monotonic per environment. The caller owns allocation. */
   version: number;
-  /** Above this member count a segment gets a membership filter (§17). */
+  /** Above this member count a segment gets a membership filter. */
   segmentInlineMax?: number;
   /**
    * `"auto"` prefers roaring when every member key is integral. The other two
@@ -344,13 +344,13 @@ export function compileSnapshot(input: CompilerInput, options: CompileOptions): 
   };
 }
 
-/* ─────────────────── referenced attributes (§11.5) ─────────────────── */
+/* ─────────────────── referenced attributes ─────────────────── */
 
 /**
  * Every attribute this flag's rules read, kind-qualified and sorted.
  *
  * This is what lets the client tier collapse 50,000 connections down to the few
- * hundred distinct attribute combinations that actually exist (§11.5). The
+ * hundred distinct attribute combinations that actually exist. The
  * *cache* is M5 work and small; emitting the set is the part that cannot be
  * retrofitted into a shipped evaluator, which is why §22.1 puts it here.
  */
@@ -378,7 +378,7 @@ function referencedAttributes(
 /**
  * True when the flag's value depends on the context *key*, not only on its
  * attributes — so it cannot share a fan-out fingerprint and must be
- * specialised per connection (§11.5).
+ * specialised per connection.
  *
  * Three sources: a rollout buckets on the key; an individual target is a key
  * lookup; a segment clause resolves membership by key.
@@ -527,10 +527,10 @@ function compileSegments(
 }
 
 /**
- * The flag keys the client tier may see (§7.3, §16).
+ * The flag keys the client tier may see.
  *
  * This is the *entire* client-visible surface at compile time. There is no
- * second "client snapshot": the client tier receives evaluated values (§11.5),
+ * second "client snapshot": the client tier receives evaluated values,
  * produced per-context by the evaluation service from this same snapshot.
  */
 export function clientFlagKeys(snapshot: Snapshot): string[] {

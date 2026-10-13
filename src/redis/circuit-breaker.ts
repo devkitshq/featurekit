@@ -1,7 +1,7 @@
 /**
- * A circuit breaker for Redis commands (§11, review PR-B10).
+ * A circuit breaker for Redis commands (review PR-B10).
  *
- * **Why a breaker and not just a timeout.** The last-known-good path (§14) is
+ * **Why a breaker and not just a timeout.** The last-known-good path is
  * only useful if reaching it is *fast*. With Redis down and no breaker, every
  * request pays a connection attempt and a command timeout before falling back —
  * so a cache outage turns into seconds of latency on every flag fetch, which is

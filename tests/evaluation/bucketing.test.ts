@@ -4,7 +4,7 @@ import { murmur3Utf8 } from "../../src/sdk/evaluation/murmur3.js";
 
 const SALT = "env_salt_prod";
 
-describe("bucketFromHash — exact integer division (§9.3)", () => {
+describe("bucketFromHash — exact integer division", () => {
   // Hand-computed from floor(raw * 100000 / 2^32). Not captured from the code.
   it.each([
     [0x00000000, 0],
@@ -68,7 +68,7 @@ describe("bucket — hash input composition", () => {
   });
 });
 
-describe("bucket — the independence properties rollouts depend on (§9.3)", () => {
+describe("bucket — the independence properties rollouts depend on", () => {
   const keys = Array.from({ length: 200_000 }, (_, i) => `usr_${i}`);
   const at10 = (flagKey: string, salt: string) =>
     new Set(keys.filter((k) => bucket(k, flagKey, salt) < 10_000));

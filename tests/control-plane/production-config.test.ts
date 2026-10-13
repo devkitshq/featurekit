@@ -1,5 +1,5 @@
 /**
- * A production deployment that forgot a variable must die, not dial (§17).
+ * A production deployment that forgot a variable must die, not dial.
  *
  * `loadConfig`'s `REQUIRED_IN_PRODUCTION` check has always been right, and for
  * `DATABASE_URL` and `REDIS_URL` it was **unreachable**. It tests
@@ -52,7 +52,7 @@ function productionServer(options: Record<string, unknown> = {}): FeaturekitServ
   return server;
 }
 
-describe("production refuses the development defaults (§17)", () => {
+describe("production refuses the development defaults", () => {
   it("names every missing variable at once, not one per restart", async () => {
     // Three restarts to discover three missing variables is three outages.
     const error = await productionServer().start().catch((cause: unknown) => cause);

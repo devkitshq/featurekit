@@ -1,5 +1,5 @@
 /**
- * SDK-facing routes (§12, server tier).
+ * SDK-facing routes (server tier).
  *
  * ```
  * GET  /v1/stream/:envKey     SSE ruleset stream (server keys only)
@@ -7,7 +7,7 @@
  * POST /v1/events             Batched evaluation summaries
  * ```
  *
- * **Polling is a first-class fallback, not a degraded mode** (§10.2). Corporate
+ * **Polling is a first-class fallback, not a degraded mode**. Corporate
  * proxies eat SSE, and some runtimes have no long-lived connections.
  *
  * @see docs/control-plane/delivery.md
@@ -28,7 +28,7 @@ export interface AuthenticatedEnvironment extends KeyRecord {
   /**
    * Carried from the environment row so secure mode is a property of the
    * environment rather than of whichever call site remembered to enable it
-   * (§16). See `registerClientRoutes`.
+   *. See `registerClientRoutes`.
    */
   isProduction: boolean;
 }
@@ -43,14 +43,14 @@ export interface SdkRouteDeps {
   maxStreamConnections?: number;
   /** Accepts a batch of pre-aggregated summaries. Fire-and-forget. */
   ingestEvents?: (environmentId: string, batch: unknown) => Promise<void>;
-  /** Registers streams so a rolling deploy can drain them politely (§16). */
+  /** Registers streams so a rolling deploy can drain them politely. */
   sse?: SseRegistry;
   onStreamChange?: (open: number) => void;
   /**
    * Called with the connecting SDK's `User-Agent`.
    *
    * Version skew is the first thing worth knowing during an incident: is this
-   * happening to every SDK, or only to the fleet still on an old one (§16).
+   * happening to every SDK, or only to the fleet still on an old one.
    */
   onSdkIdentified?: (userAgent: string | undefined) => void;
   onError?: (error: unknown) => void;
@@ -156,7 +156,7 @@ export function registerSdkRoutes(router: Router, deps: SdkRouteDeps): Router {
     const cap = deps.maxStreamConnections ?? 10_000;
     if (openStreams >= cap) {
       // Shed to polling rather than accepting a connection this node cannot
-      // serve. The tier degrades on a curve instead of a cliff (§11.5).
+      // serve. The tier degrades on a curve instead of a cliff.
       throw new HttpError(503, "STREAM_CAPACITY", "stream capacity reached; fall back to polling");
     }
 
@@ -258,7 +258,7 @@ export function registerSdkRoutes(router: Router, deps: SdkRouteDeps): Router {
     // Validated before it reaches the sink. This body arrives from anyone
     // holding a public client key, and it used to be passed through as
     // `unknown` — an unbounded array of unbounded strings, straight into a
-    // buffer (§15).
+    // buffer.
     const raw = await ctx.json<unknown>(BODY_LIMITS.events);
     const parsed = summaryBatchSchema.safeParse(raw);
     if (!parsed.success) {
@@ -266,7 +266,7 @@ export function registerSdkRoutes(router: Router, deps: SdkRouteDeps): Router {
     }
     // A bucket from 1970 or 2170 lands in a partition nothing will ever drop,
     // or in none at all. Analytics is allowed to be lossy; it is not allowed to
-    // corrupt the partitioned table (§10).
+    // corrupt the partitioned table.
     if (!bucketIsAcceptable(parsed.data.bucketAt)) {
       return { status: 202, body: { dropped: "bucket_out_of_range" } };
     }
@@ -274,7 +274,7 @@ export function registerSdkRoutes(router: Router, deps: SdkRouteDeps): Router {
     try {
       await deps.ingestEvents?.(env.environmentId, parsed.data);
     } catch (error) {
-      // Analytics ingest is the one path explicitly allowed to drop data (§14).
+      // Analytics ingest is the one path explicitly allowed to drop data.
       // Failing the request would make an SDK retry a batch that is already
       // stale, on the same connection that carries nothing else important.
       deps.onError?.(error);

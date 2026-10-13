@@ -1,5 +1,5 @@
 /**
- * M1 exit criterion (§18): a published benchmark for the hashed and non-hashed
+ * M1 exit criterion: a published benchmark for the hashed and non-hashed
  * evaluation paths.
  *
  * §1 claims ~14 ns/op when no hash is involved and 535–976 ns/op when a

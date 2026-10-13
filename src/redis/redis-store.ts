@@ -1,5 +1,5 @@
 /**
- * The Redis `SnapshotStore` (§8, §10.3, §10.4).
+ * The Redis `SnapshotStore`.
  *
  * Uses a capped Redis stream for patch history and pub/sub for fan-out. Two
  * connections are unavoidable: a connection in subscriber mode cannot issue
@@ -35,7 +35,7 @@ export interface RedisSnapshotStoreOptions {
    * second during an outage, in a log people are trying to read during an
    * incident. Worse, an `error` event with no listener on an EventEmitter is a
    * throw in some paths, which would take the process down over a cache being
-   * unavailable (§11).
+   * unavailable.
    */
   onError?: (error: unknown) => void;
   /** TLS for a managed Redis. `rediss://` in the URL implies it. */
@@ -67,7 +67,7 @@ export interface RedisSnapshotStoreOptions {
  * cannot complete within `commandTimeout` fails, and after a few such failures
  * the breaker opens and subsequent calls fail in microseconds. Startup gets its
  * short grace period; an outage still degrades to the in-memory snapshot almost
- * immediately (§14).
+ * immediately.
  */
 function connectionOptions(options: RedisSnapshotStoreOptions) {
   // Cast once, here: ioredis' option type is a large intersection whose
@@ -155,7 +155,7 @@ export class RedisSnapshotStore implements SnapshotStore {
   async get(environmentId: string): Promise<{ snapshot: Snapshot; version: number } | null> {
     // Under the breaker: this is the call every SDK request makes, and once
     // Redis is clearly gone it must fail in microseconds so the caller can
-    // reach the snapshot already in its memory (§14).
+    // reach the snapshot already in its memory.
     return this.breaker.run(async () => {
       const text = await this.client.get(this.key(redisKeys.snapshot(environmentId)));
       if (text === null) return null;

@@ -1,5 +1,5 @@
 /**
- * Evaluation event summarization (§3.4, §7.9, §14).
+ * Evaluation event summarization.
  *
  * **Never one HTTP request per flag check.** At millions of evaluations per
  * second that is not a rate limit problem, it is an outage. The SDK

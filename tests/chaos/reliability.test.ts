@@ -9,7 +9,7 @@ import { SnapshotService } from "../../src/snapshot/service.js";
 import type { CompilerInput } from "../../src/snapshot/compile.js";
 
 /**
- * The chaos suite (§14).
+ * The chaos suite.
  *
  * The property being sold: **featurekit failing should be invisible to your
  * users.** §18 is explicit that shipping M4 without this suite would be
@@ -238,7 +238,7 @@ describe("storm: many SDKs, one flag toggled repeatedly", () => {
   });
 });
 
-/* ───────────────────── bucketing-stability (§9.3) ───────────────────── */
+/* ───────────────────── bucketing-stability ───────────────────── */
 
 describe("bucketing-stability", () => {
   const SALT = "env_salt_prod";
@@ -277,7 +277,7 @@ describe("bucketing-stability", () => {
   });
 });
 
-/* ──────────────────── segment-fail-closed (§22.3) ───────────────────── */
+/* ──────────────────── segment-fail-closed ───────────────────── */
 
 describe("segment-fail-closed: the r2 leak, as a chaos test", () => {
   const members = Array.from({ length: 2_000 }, (_, i) => `usr_${i}`);

@@ -1,10 +1,10 @@
 /**
- * Evaluation-context validation and resource caps (§15, §16).
+ * Evaluation-context validation and resource caps.
  *
  * **This is a memory-safety boundary, not a politeness check.** The client tier
  * accepts a context from a browser, hashes it, normalises it, evaluates every
  * client-available flag against it, and — for a streaming connection — *retains
- * it for the life of the connection* (§11.5). Every one of those steps is
+ * it for the life of the connection*. Every one of those steps is
  * proportional to the size of an object an untrusted caller chose.
  *
  * Without a cap, a single request carrying a 4 MB context with 100k attributes
@@ -58,7 +58,7 @@ function fail(reason: ContextRejection): ContextCheck {
  * Recursion is bounded by `maxDepth` before it is bounded by the stack, which
  * matters because a 10,000-deep JSON object is a stack overflow — and a stack
  * overflow is an uncatchable crash, not an exception the route can turn into a
- * 400 (§15 "deeply nested JSON").
+ * 400.
  */
 function checkValue(value: unknown, limits: ContextLimits, depth: number): ContextCheck {
   if (depth > limits.maxDepth) return fail("CONTEXT_TOO_DEEP");

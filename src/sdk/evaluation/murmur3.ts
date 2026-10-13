@@ -1,5 +1,5 @@
 /**
- * MurmurHash3 x86_32 — the frozen uniformity function for featurekit (§9.3, §9.4).
+ * MurmurHash3 x86_32 — the frozen uniformity function for featurekit.
  *
  * This is a WIRE FORMAT, not an implementation detail. The same bytes must
  * produce the same uint32 in every SDK in every language, forever: changing it

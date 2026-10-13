@@ -49,7 +49,7 @@ const attributeFlag = flag({
   ],
 });
 
-describe("the fingerprint agrees with what evaluation reads (§11.5)", () => {
+describe("the fingerprint agrees with what evaluation reads", () => {
   /**
    * The cache below is keyed on the fingerprint and shared across users. That
    * is only safe while two contexts with the same fingerprint are genuinely
@@ -122,7 +122,7 @@ describe("the fingerprint agrees with what evaluation reads (§11.5)", () => {
 });
 
 describe("fingerprintOf", () => {
-  it("EXCLUDES the context key — the entire point (§11.5)", () => {
+  it("EXCLUDES the context key — the entire point", () => {
     // Including it would give every connection its own fingerprint and
     // reinstate exactly the fan-out this collapses.
     const a = fingerprintOf({ key: "usr_1", country: "US", plan: "pro" }, ["user.country", "user.plan"]);
@@ -198,7 +198,7 @@ describe("evaluateAll", () => {
   });
 });
 
-describe("fanout collapses connections to fingerprints (§11.5)", () => {
+describe("fanout collapses connections to fingerprints", () => {
   const countries = ["US", "DE", "FR", "GB", "JP", "BR", "IN", "AU", "CA", "MX"];
   const plans = ["free", "pro", "team", "enterprise"];
 
@@ -287,7 +287,7 @@ describe("fanout collapses connections to fingerprints (§11.5)", () => {
   });
 });
 
-describe("flags that cannot share a fingerprint (§11.5)", () => {
+describe("flags that cannot share a fingerprint", () => {
   const rolloutFlag = flag({
     key: "rolled",
     perContext: true,

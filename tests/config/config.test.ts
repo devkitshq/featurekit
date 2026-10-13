@@ -9,7 +9,7 @@ const PROD = {
   SECURE_MODE_SECRET: "s".repeat(32),
 };
 
-describe("defaults are for laptops, never for prod (§17)", () => {
+describe("defaults are for laptops, never for prod", () => {
   it("starts with nothing configured in development", () => {
     const config = loadConfig({});
     expect(config.NODE_ENV).toBe("development");
@@ -35,7 +35,7 @@ describe("defaults are for laptops, never for prod (§17)", () => {
   });
 });
 
-describe("production start fails loudly (§17)", () => {
+describe("production start fails loudly", () => {
   it("accepts a fully configured production environment", () => {
     expect(() => loadConfig(PROD)).not.toThrow();
   });
@@ -71,7 +71,7 @@ describe("production start fails loudly (§17)", () => {
   });
 
   it("still starts in production without SECURE_MODE_SECRET when no client keys exist", () => {
-    // Secure mode is required only once a client key exists (§16). A
+    // Secure mode is required only once a client key exists. A
     // server-tier-only deployment should not be forced to configure it.
     const env: Record<string, string> = { ...PROD };
     delete env["SECURE_MODE_SECRET"];
@@ -93,7 +93,7 @@ describe("production start fails loudly (§17)", () => {
   });
 });
 
-describe("secure mode secret rotation (§16)", () => {
+describe("secure mode secret rotation", () => {
   it("signs with the first secret and verifies against all of them", () => {
     const config = loadConfig({ ...PROD, SECURE_MODE_SECRET: `${"a".repeat(32)},${"b".repeat(32)}` });
     const secrets = secureModeSecrets(config);

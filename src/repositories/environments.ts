@@ -1,5 +1,5 @@
 /**
- * Environment-level writes and the operational queries (§10.4, §16).
+ * Environment-level writes and the operational queries.
  *
  * The important function here is `nextSnapshotVersion`. §10.4 requires a
  * monotonic per-environment version, and `drizzle/0002_snapshot_version.sql`

@@ -4,7 +4,7 @@
  * Segment filters are `Uint8Array`. `JSON.stringify` turns one into
  * `{"0":1,"1":2,...}` and `JSON.parse` gives back a plain object — a filter
  * that answers `false` for **every** member. Silent, and only visible weeks
- * later as "the flag didn't turn on for that customer" (§9.7). So binary
+ * later as "the flag didn't turn on for that customer". So binary
  * fields are tagged on the wire and revived here.
  *
  * The base64 is hand-rolled rather than using `Buffer`: this file is compiled

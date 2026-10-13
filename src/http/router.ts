@@ -27,7 +27,7 @@ export interface RequestContext {
   /**
    * The route *pattern* (`/v1/snapshot/:envKey`), never the request path.
    * Metrics label on this: labelling on the path makes one time series per
-   * environment key, which is the §17 cardinality explosion (§17).
+   * environment key, which is the §17 cardinality explosion.
    */
   routePattern: string;
   /** Correlates the access log, the error response and any audit row written. */
@@ -36,7 +36,7 @@ export interface RequestContext {
    * The caller's trace, continued — or a new one.
    *
    * A request id correlates featurekit's own lines; a trace id correlates them
-   * with the service that made the call (§16).
+   * with the service that made the call.
    */
   trace: TraceContext;
   header(name: string): string | undefined;
@@ -160,7 +160,7 @@ export class Router {
  *
  * 5 MB is the ceiling for a segment import; every other endpoint passes a far
  * smaller limit of its own, because "the largest body any endpoint accepts" is
- * not a sensible limit for `POST /v1/client/state` (§15).
+ * not a sensible limit for `POST /v1/client/state`.
  */
 export const MAX_BODY_BYTES = 5 * 1024 * 1024;
 

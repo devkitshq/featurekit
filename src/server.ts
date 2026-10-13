@@ -10,7 +10,7 @@ export function redact(url: string): string {
 }
 
 /**
- * `FeaturekitServer` — the control plane as an object you construct (§11.1).
+ * `FeaturekitServer` — the control plane as an object you construct.
  *
  * ```ts
  * import { FeaturekitServer } from "featurekit-server";
@@ -30,7 +30,7 @@ export function redact(url: string): string {
  *   that reacts to an unreachable database by starting its own is a control
  *   plane that serves an empty flag set during a failover.
  * - **Migrations run on start.** In production this is a deploy step: every
- *   booting node running it is a lock convoy during a rolling deploy (§16).
+ *   booting node running it is a lock convoy during a rolling deploy.
  * - **Ports and URLs are chosen for you.** In production, an address nobody
  *   configured is an address nobody can find.
  */
@@ -61,7 +61,7 @@ export interface FeaturekitServerOptions {
 
   /** Required in production; generated for you in development. */
   adminToken?: string;
-  /** Signs client-tier contexts. Comma-separate to rotate (§16). */
+  /** Signs client-tier contexts. Comma-separate to rotate. */
   secureModeSecret?: string;
   /** Origins allowed to call the client tier. Never `*`. */
   corsAllowedOrigins?: readonly string[];
@@ -94,7 +94,7 @@ export interface FeaturekitServerOptions {
   devStateFile?: string | false;
 
   /**
-   * Flag definitions to apply on start (§11.3).
+   * Flag definitions to apply on start.
    *
    * `{ project, environment, flags }` — usually imported from a file in your
    * repository. New flags are created and configured; **existing ones are left
@@ -114,7 +114,7 @@ export interface FeaturekitServerOptions {
   flagsReset?: boolean;
 
   /**
-   * Serve a browser app from a directory, in development (§2).
+   * Serve a browser app from a directory, in development.
    *
    * Adds `/api/config` (the environment's client key and this server's URL) and
    * `/sdk.js` (the built `featurekit-client` bundle) so a prototype needs no
@@ -137,7 +137,7 @@ export interface FeaturekitServerOptions {
   /**
    * Whether this deployment already has a client or mobile SDK key.
    *
-   * Secure mode becomes mandatory in production once one exists (§16), and that
+   * Secure mode becomes mandatory in production once one exists, and that
    * is a database question the configuration loader cannot answer before the
    * database is open. The route layer enforces the real rule from the
    * environment row; this is the startup-time backstop for a deployment that

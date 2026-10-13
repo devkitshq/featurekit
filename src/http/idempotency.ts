@@ -1,5 +1,5 @@
 /**
- * Idempotency keys for mutating requests (§15, review PR-E1).
+ * Idempotency keys for mutating requests (review PR-E1).
  *
  * **The failure this prevents.** A CI job PATCHes a flag, the response is lost
  * to a timeout or a load-balancer hiccup, the job retries. The second request

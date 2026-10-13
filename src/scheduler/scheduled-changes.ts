@@ -1,5 +1,5 @@
 /**
- * Scheduled changes and change requests (§7.10, §18, review PR-B11).
+ * Scheduled changes and change requests (review PR-B11).
  *
  * Both tables existed from the first migration with nothing reading them, which
  * is worse than not having them: an auditor sees governance features, and an

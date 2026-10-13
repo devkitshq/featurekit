@@ -1,5 +1,5 @@
 /**
- * Memory under sustained churn (review §14, PR-C6).
+ * Memory under sustained churn (PR-C6).
  *
  * §14 asks for every path where a customer or an attacker can cause unbounded
  * growth. The answer in this system is a set of `Map`s, and a `Map` that is

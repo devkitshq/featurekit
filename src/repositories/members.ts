@@ -1,5 +1,5 @@
 /**
- * Members, dashboard sessions and personal access tokens (§7.11).
+ * Members, dashboard sessions and personal access tokens.
  *
  * Two ways to authenticate, one `Principal`. A session and a PAT resolve to the
  * same shape, so every `requireRole` and `requireEnvironmentAccess` already

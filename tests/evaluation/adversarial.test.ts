@@ -1,5 +1,5 @@
 /**
- * The evaluator against hostile input (review §3).
+ * The evaluator against hostile input.
  *
  * The evaluator is documented as never throwing, never hanging, and always
  * returning the caller's default on error. Those are the three properties an

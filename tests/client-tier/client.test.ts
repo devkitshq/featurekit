@@ -136,7 +136,7 @@ afterEach(async () => {
   await Promise.all(servers.splice(0).map((s) => s.close()));
 });
 
-describe("the client tier receives values, not rules (§11.5)", () => {
+describe("the client tier receives values, not rules", () => {
   it("evaluates for the connection's context, with no context argument", async () => {
     const cp = await controlPlane();
     const client = makeClient({ baseUrl: cp.baseUrl, context: { key: "usr_1", plan: "pro" } });
@@ -151,7 +151,7 @@ describe("the client tier receives values, not rules (§11.5)", () => {
     expect(client.get("beta-banner", true)).toBe(false);
   });
 
-  it("never sends a flag that is not clientAvailable — not even its key (§16)", async () => {
+  it("never sends a flag that is not clientAvailable — not even its key", async () => {
     // A flag left false is invisible to browsers: its key never appears in a
     // client payload, so an unreleased feature's *existence* stays private.
     const cp = await controlPlane();
@@ -175,7 +175,7 @@ describe("the client tier receives values, not rules (§11.5)", () => {
     expect(body.values["beta-banner"]?.["reason"]).toBe("RULE_MATCH");
 
     // Only the reason KIND crosses to the browser — never the rule id, the
-    // clause, or the attribute it tested (§16).
+    // clause, or the attribute it tested.
     //
     // Asserted against the values payload rather than the whole response text:
     // the connection handle is 32 random bytes, and a substring check against
@@ -200,7 +200,7 @@ describe("the client tier receives values, not rules (§11.5)", () => {
   });
 });
 
-describe("get() is one read for every type (§9.2, §14)", () => {
+describe("get() is one read for every type", () => {
   it("infers the type from the default and returns the value", async () => {
     const cp = await controlPlane();
     const client = makeClient({ baseUrl: cp.baseUrl, context: { key: "usr_1", plan: "pro" } });
@@ -252,7 +252,7 @@ describe("get() is one read for every type (§9.2, §14)", () => {
   });
 });
 
-describe("identify (§11.5)", () => {
+describe("identify", () => {
   it("re-evaluates for the new context", async () => {
     const cp = await controlPlane();
     const client = makeClient({ baseUrl: cp.baseUrl, context: { key: "usr_1", plan: "free" } });
@@ -288,7 +288,7 @@ describe("identify (§11.5)", () => {
   });
 });
 
-describe("concurrent identify applies in CALL order, not response order (§22.7)", () => {
+describe("concurrent identify applies in CALL order, not response order", () => {
   it("drops a late response that was superseded", async () => {
     // fk.identify({key:"user_A"});  // request 1 -- slow
     // fk.identify({key:"user_B"});  // request 2 -- fast, applied
@@ -340,7 +340,7 @@ describe("concurrent identify applies in CALL order, not response order (§22.7)
   });
 });
 
-describe("secure mode (§16)", () => {
+describe("secure mode", () => {
   it("accepts a validly signed context", async () => {
     const cp = await controlPlane({ secureModeSecrets: [SECRET], requireSignature: true });
     const expiresAt = Math.floor(Date.now() / 1000) + 3_600;
@@ -426,7 +426,7 @@ describe("secure mode (§16)", () => {
   });
 });
 
-describe("client-tier failure modes (§14)", () => {
+describe("client-tier failure modes", () => {
   it("serves caller defaults when the control plane is unreachable", async () => {
     const client = makeClient({ baseUrl: "http://127.0.0.1:1", context: { key: "usr_1" } });
     await client.ready({ timeoutMs: 400 });

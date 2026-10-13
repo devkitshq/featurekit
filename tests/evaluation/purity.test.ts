@@ -21,7 +21,7 @@ const files = readdirSync(DIR).filter((f) => f.endsWith(".ts"));
 const IMPORT_RE = /^\s*(?:import|export)\b[^;]*?\bfrom\s+["']([^"']+)["']/gm;
 const BARE_IMPORT_RE = /^\s*import\s+["']([^"']+)["']/gm;
 
-describe("the evaluation core is dependency-free (§3, §5)", () => {
+describe("the evaluation core is dependency-free", () => {
   it("finds the source files it is supposed to be guarding", () => {
     expect(files.length).toBeGreaterThanOrEqual(8);
   });

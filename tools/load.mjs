@@ -1,5 +1,5 @@
 /**
- * System-level load measurement (review §13, PR-C2).
+ * System-level load measurement (PR-C2).
  *
  * `tools/bench.mjs` measures the evaluator in isolation, which is the number
  * §1 argues about. This measures the parts a capacity plan actually needs and

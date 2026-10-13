@@ -1,5 +1,5 @@
 /**
- * Structured logging (§15, §17).
+ * Structured logging.
  *
  * Two rules, both of which exist because the review's §17 asks whether the
  * telemetry itself can lie or become the next outage:
@@ -74,7 +74,7 @@ export function createLogger(options: LoggerOptions = {}): Logger {
  *
  * The caller's value is length-capped and stripped of anything that is not
  * url-safe: it lands in log lines and response headers, and an unbounded,
- * unfiltered header is log injection (§15).
+ * unfiltered header is log injection.
  */
 export function requestIdFrom(header: string | undefined): string {
   if (header === undefined) return randomUUID();

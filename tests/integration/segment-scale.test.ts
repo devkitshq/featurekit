@@ -161,7 +161,7 @@ describe.skipIf(reason !== null)("segment loading at scale", () => {
   it("fails loudly past the ceiling instead of truncating", async () => {
     // The important half. A truncated read would compile a filter that answers
     // "not a member" for real members, and a negated segment clause would then
-    // grant the gated feature to exactly the wrong people (§22.3).
+    // grant the gated feature to exactly the wrong people.
     await expect(
       loadCompilerInput(db, environmentId, { memberPageSize: 5_000, maxSegmentMembers: 10_000 }),
     ).rejects.toThrow(SegmentTooLargeError);

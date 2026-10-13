@@ -1,5 +1,5 @@
 /**
- * `FeaturekitSDK` — the server-tier SDK (§11.2, §14).
+ * `FeaturekitSDK` — the server-tier SDK.
  *
  * The three properties this class exists to guarantee:
  *
@@ -52,7 +52,7 @@ export interface FeaturekitSdkOptions {
   bootstrap?: Snapshot;
   /** Survive a restart that happens during a control-plane outage. */
   persist?: { kind: "file"; path: string } | SnapshotPersistence;
-  /** Where large-segment membership is confirmed (§9.7). */
+  /** Where large-segment membership is confirmed. */
   segmentCache?: SegmentCacheProvider;
   mode?: "streaming" | "polling" | "offline";
   pollIntervalMs?: number;
@@ -254,7 +254,7 @@ export class FeaturekitSDK {
    *
    * Type safety comes from the flag's declared `kind` rather than from this
    * default: a snapshot serving a string for a boolean flag yields
-   * `ERROR / WRONG_TYPE` and your default, whatever you passed (§9.2).
+   * `ERROR / WRONG_TYPE` and your default, whatever you passed.
    */
   get<T>(flagKey: string, context: EvaluationContext, defaultValue: T): T {
     return this.detail<T>(flagKey, context, defaultValue).value;
@@ -477,7 +477,7 @@ export class FeaturekitSDK {
     const snapshot = this.snapshot;
     if (snapshot === null) return;
     const existing = snapshot.flags[flag.key];
-    // Per-flag version guard (§10.2): discard any patch at or below what we hold.
+    // Per-flag version guard: discard any patch at or below what we hold.
     if (existing !== undefined && flag.version <= existing.version) return;
 
     this.snapshot = {
@@ -516,7 +516,7 @@ export class FeaturekitSDK {
       });
     } catch (error) {
       // Fire and forget. A failed flush drops a batch rather than retrying
-      // into a buffer that grows without bound (§14).
+      // into a buffer that grows without bound.
       this.options.onError?.(error);
     }
   }

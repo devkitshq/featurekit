@@ -1,5 +1,5 @@
 /**
- * Tenancy, flag creation, keys and segments (§7.1–§7.6, §12).
+ * Tenancy, flag creation, keys and segments (§7.1–§7.6).
  *
  * The write side of everything that is not a targeting change. Two shapes worth
  * pointing at:
@@ -114,7 +114,7 @@ export async function deleteProject(
  * A per-environment bucketing salt, generated once and never rotated casually.
  *
  * Rotating it re-randomises every percentage rollout in the environment — which
- * is occasionally what you want and usually catastrophic (§7.1). It is
+ * is occasionally what you want and usually catastrophic. It is
  * generated here so no deployment can accidentally share one across
  * environments, which would make staging and production bucket identically.
  */
@@ -340,7 +340,7 @@ export async function archiveFlag(db: Database, projectId: string, flagKey: stri
  *
  * The plaintext is returned **once**. A server key is stored hashed and is
  * unrecoverable afterwards, which is the point: a database leak yields nothing
- * usable (§7.2). Client and mobile keys are stored public because they ship in
+ * usable. Client and mobile keys are stored public because they ship in
  * a bundle and the dashboard has to display them.
  */
 export async function createSdkKey(
@@ -391,7 +391,7 @@ export async function listSdkKeys(
   }));
 }
 
-/** Revoked, never deleted: the audit log references the key (§7.2). */
+/** Revoked, never deleted: the audit log references the key. */
 export async function revokeSdkKey(
   db: Database,
   environmentId: string,
@@ -460,7 +460,7 @@ export interface SegmentMemberInput {
  * Idempotent by construction: `ON CONFLICT (segment_id, context_kind,
  * context_key) DO UPDATE` means retrying a page that half-committed is safe,
  * which is what makes a 10M-member import resumable rather than all-or-nothing
- * (§9, Scenario F). The version bump is what tells the compiler to re-encode
+ * (Scenario F). The version bump is what tells the compiler to re-encode
  * the filter.
  */
 export async function applySegmentMembers(

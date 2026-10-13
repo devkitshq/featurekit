@@ -52,7 +52,7 @@ describe("an unknown segment key", () => {
   });
 });
 
-describe("cuckoo segments - negatives are exact, positives need confirmation (§9.7)", () => {
+describe("cuckoo segments - negatives are exact, positives need confirmation", () => {
   const members = Array.from({ length: 5_000 }, (_, i) => `usr_${i}`);
 
   it("answers not-member from the filter alone, with no confirmation set", () => {
@@ -90,7 +90,7 @@ describe("cuckoo segments - negatives are exact, positives need confirmation (§
   });
 });
 
-describe("a provider that throws is unresolved, never an exception (§14)", () => {
+describe("a provider that throws is unresolved, never an exception", () => {
   it("catches provider errors and fails closed", () => {
     const index = new SegmentIndex({ enterprise: cuckoo(["usr_1"]) });
     index.setCache({
@@ -152,7 +152,7 @@ describe("LruSegmentCache - the bounded confirmation cache for remote providers"
   });
 });
 
-describe("segment membership deltas ride the patch stream (§9.7)", () => {
+describe("segment membership deltas ride the patch stream", () => {
   it("applies an add to an inline segment", () => {
     const index = new SegmentIndex({ beta: inline(["usr_1"]) });
     expect(index.membership("beta", "usr_2")).toBe("not-member");
@@ -173,7 +173,7 @@ describe("segment membership deltas ride the patch stream (§9.7)", () => {
     expect(index.membership("enterprise", "usr_8")).toBe("member");
   });
 
-  it("ignores a delta at or below the version it already holds (§10.2)", () => {
+  it("ignores a delta at or below the version it already holds", () => {
     // The version guard makes duplicate broadcasts and out-of-order delivery
     // non-events rather than corruption.
     const index = new SegmentIndex({ beta: inline(["usr_1"]) });

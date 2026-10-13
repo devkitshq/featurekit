@@ -1,5 +1,5 @@
 /**
- * Resolving a presented SDK key to an environment (§7.2, §16).
+ * Resolving a presented SDK key to an environment.
  *
  * This is the function every SDK request runs before anything else, so it has
  * two jobs that pull against each other: be fast enough to sit in front of a
@@ -32,7 +32,7 @@ export interface ResolvedKey {
   environmentId: string;
   environmentKey: string;
   projectId: string;
-  /** Drives secure-mode enforcement: production rejects unsigned contexts (§16). */
+  /** Drives secure-mode enforcement: production rejects unsigned contexts. */
   isProduction: boolean;
   kind: SdkKeyKind;
   expiresAt: Date | null;
@@ -112,7 +112,7 @@ export class SdkKeyRepository {
   private async query(presentedKey: string): Promise<ResolvedKey | null> {
     // The prefix routes the lookup and nothing else. What a key *is* comes from
     // the `kind` column beside it, because a caller can write any prefix it
-    // likes (§7.2).
+    // likes.
     const claimed = claimedKind(presentedKey);
     const predicate =
       claimed === "server" || claimed === null

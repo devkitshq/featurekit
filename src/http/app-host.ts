@@ -1,5 +1,5 @@
 /**
- * A static host for a browser app, in development (§2 "zero-config dev").
+ * A static host for a browser app, in development.
  *
  * Trying the browser SDK otherwise means standing up a second process before
  * you can see anything: something to serve two files, something to hand the
@@ -12,7 +12,7 @@
  * - `/api/config` — the **client** key for this environment, and the control
  *   plane's URL. In your real app this endpoint is yours, and it is also where
  *   you would mint the secure-mode signature for the user you just
- *   authenticated (§16).
+ *   authenticated.
  * - `/sdk.js` — the built `featurekit-client` bundle, so `index.html` can
  *   `import` it with no build step.
  *

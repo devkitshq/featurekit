@@ -1,5 +1,5 @@
 /**
- * A rehearsed restore (§16, review PR-D3).
+ * A rehearsed restore (review PR-D3).
  *
  * `docs/ops/deployment.md` states an RPO of 5 minutes and an RTO of an hour,
  * and then says: *an unrehearsed restore is a hypothesis*. This is the

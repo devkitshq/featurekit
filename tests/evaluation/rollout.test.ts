@@ -9,7 +9,7 @@ const norm = (c: EvaluationContext) => normalizeContext(c)!;
 const fiftyFifty: Rollout = { variations: [{ variationIndex: 0, weight: 50_000 }, { variationIndex: 1, weight: 50_000 }] };
 const tenPercent: Rollout = { variations: [{ variationIndex: 1, weight: 10_000 }, { variationIndex: 0, weight: 90_000 }] };
 
-describe("assignBucket — boundaries are exact integers (§9.3)", () => {
+describe("assignBucket — boundaries are exact integers", () => {
   it("assigns on `b < cursor`, so each boundary belongs to the later variation", () => {
     expect(assignBucket(tenPercent, 0)).toBe(1);
     expect(assignBucket(tenPercent, 9_999)).toBe(1);

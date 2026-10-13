@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ROARING_ORDINAL_RE, RoaringBitmap, ordinalOf } from "../../src/sdk/evaluation/roaring.js";
 
-describe("ordinalOf - roaring eligibility (§7.6, §9.7)", () => {
+describe("ordinalOf - roaring eligibility", () => {
   it("accepts a non-negative integer key of up to 9 digits", () => {
     expect(ordinalOf("0")).toBe(0);
     expect(ordinalOf("42")).toBe(42);

@@ -1,5 +1,5 @@
 /**
- * The composition root (§2, §16).
+ * The composition root.
  *
  * Until this file existed, every piece of the control plane was assembled only
  * inside tests — which meant the production review's §16 (can a small team
@@ -71,7 +71,7 @@ export interface App {
 const CLIENT_ROUTES = new Set(["/v1/client/state", "/v1/client/stream"]);
 
 /**
- * The processes a deployment can be split into (§6).
+ * The processes a deployment can be split into.
  *
  * One process running `["all"]` is the right shape until a few thousand
  * connected SDKs; past that the halves scale differently — streams are held
@@ -178,7 +178,7 @@ export function createApp(config: FeaturekitConfig, options: CreateAppOptions = 
     },
     onSnapshot: (event) => {
       // The environment id is bounded before it becomes a label — a deployment
-      // with 10,000 environments must not create 10,000 series (§17).
+      // with 10,000 environments must not create 10,000 series.
       const label = metrics.env(event.environmentId);
       metrics.snapshotVersion.set({ environment: label }, event.version);
       metrics.snapshotAgeSeconds.set({ environment: label }, 0);
@@ -200,7 +200,7 @@ export function createApp(config: FeaturekitConfig, options: CreateAppOptions = 
     const resolved = await sdkKeys.resolve(presented);
     if (resolved === null) return null;
     // The route still runs `checkKey`; this only reshapes the row. Expiry and
-    // revocation are decided in one place, not two (§7.2).
+    // revocation are decided in one place, not two.
     return {
       id: resolved.id,
       environmentId: resolved.environmentId,
@@ -265,7 +265,7 @@ export function createApp(config: FeaturekitConfig, options: CreateAppOptions = 
     onSdkIdentified: (userAgent) => metrics.recordSdkVersion(userAgent),
     ingestEvents: async (environmentId, batch) => {
       // Synchronous buffer append. Nothing on this path awaits a database, which
-      // is what makes "analytics cannot slow evaluation" structural (§14, §22).
+      // is what makes "analytics cannot slow evaluation" structural.
       events.accept(environmentId, batch as never);
       metrics.eventsIngested.inc();
     },
@@ -280,7 +280,7 @@ export function createApp(config: FeaturekitConfig, options: CreateAppOptions = 
     secureModeMaxTtlSeconds: config.SECURE_MODE_MAX_TTL_SECONDS,
     unsignedContextEnvironmentIds: new Set(commaList(config.UNSIGNED_CONTEXT_ENVIRONMENT_IDS)),
     // Shared so a browser whose POST and stream land on different nodes is
-    // taken over rather than refused (§11.5). Without this the client tier
+    // taken over rather than refused. Without this the client tier
     // requires sticky routing.
     connectionStore: new RedisClientConnectionStore(store.connection, {
       onError: throttled(
@@ -413,7 +413,7 @@ export function createApp(config: FeaturekitConfig, options: CreateAppOptions = 
         return { state: "ok" };
       } catch {
         // Degraded, never failed: a node serving last-known-good snapshots
-        // should stay in the load balancer (§8, §14).
+        // should stay in the load balancer.
         return { state: "degraded", detail: "unreachable" };
       }
     },
@@ -467,7 +467,7 @@ export function createApp(config: FeaturekitConfig, options: CreateAppOptions = 
       // compiled every environment answers its first SDK connection from memory
       // instead of making that SDK wait for a compile — and it means the
       // last-known-good path has something to fall back to from the first
-      // second, not from the first successful request (§14).
+      // second, not from the first successful request.
       void (async () => {
         try {
           for (const environment of await listEnvironments(db)) {

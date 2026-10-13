@@ -1,5 +1,5 @@
 /**
- * Segment membership resolution (§9.7).
+ * Segment membership resolution.
  *
  * The contract that makes `boolean()` synchronous while still supporting
  * segments too large to inline:
@@ -25,7 +25,7 @@ import type { CompiledSegment } from "./types.js";
 
 /**
  * Membership is three-valued. Collapsing this back into a boolean is exactly
- * the bug a well-meaning refactor reintroduces (§22.3).
+ * the bug a well-meaning refactor reintroduces.
  */
 export type MembershipResult = "member" | "not-member" | "unresolved";
 

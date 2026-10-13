@@ -1,5 +1,5 @@
 /**
- * `featurekit-server/migrate` — the migration step, as a function you can call (§9, §16).
+ * `featurekit-server/migrate` — the migration step, as a function you can call.
  *
  * **Migrations are a deploy step, not something a booting node does.** Every
  * node running them on startup is a lock convoy at best: N nodes take the same
@@ -86,7 +86,7 @@ function urlFrom(options: MigrateOptions | undefined): string {
  *
  * The partition step is part of a successful migration rather than a separate
  * concern: a deploy that leaves the analytics table without partitions has not
- * finished, it has just not failed yet (§7.9).
+ * finished, it has just not failed yet.
  *
  * Forward-only, and additive by policy — old code runs against the new schema
  * for the length of a rollout, which is what makes `migrate → deploy new →

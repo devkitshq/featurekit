@@ -1,5 +1,5 @@
 /**
- * Flags as code, applied on start (§11.3).
+ * Flags as code, applied on start.
  *
  * A file in your repository describes the project, the environment and the
  * flags; this reconciles the database against it. It is what makes a fresh

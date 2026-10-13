@@ -1,5 +1,5 @@
 /**
- * Where a client-tier connection lives (§8, §11.5).
+ * Where a client-tier connection lives.
  *
  * **The bug this exists to fix.** The client tier is two requests: a browser
  * POSTs `/v1/client/state` with its context and gets back a connection handle,

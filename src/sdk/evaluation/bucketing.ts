@@ -1,5 +1,5 @@
 /**
- * Percentage rollout bucketing (§9.3).
+ * Percentage rollout bucketing.
  *
  * The property that makes rollouts trustworthy: the same context always lands
  * in the same bucket — across processes, restarts, deploys, and SDK languages.
@@ -43,7 +43,7 @@ export function bucketFromHash(raw: number): number {
  * - **`salt` from the environment** — the 10% in staging is not the 10% in
  *   production.
  * - **`seed` override** — an experiment can freeze its own seed and survive
- *   later edits to the flag's rollout (§20).
+ *   later edits to the flag's rollout.
  */
 export function bucket(contextValue: string, flagKey: string, salt: string, seed?: number): number {
   // `seed !== undefined`, never a truthiness check: seed 0 is a valid frozen

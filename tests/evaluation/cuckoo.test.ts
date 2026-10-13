@@ -11,7 +11,7 @@ import {
 const members = (n: number, prefix = "usr_") =>
   Array.from({ length: n }, (_, i) => `${prefix}${i}`);
 
-describe("bucketCountFor - sizing (§9.7)", () => {
+describe("bucketCountFor - sizing", () => {
   it("is nextPow2(ceil(n / (b * loadFactor)))", () => {
     // 1000 / (4 * 0.8) = 312.5 -> 313 -> nextPow2 = 512
     expect(bucketCountFor(1000, 4, 0.8)).toBe(512);
@@ -149,7 +149,7 @@ describe("CuckooFilter - fingerprints are never zero", () => {
   });
 });
 
-describe("CuckooFilter - wire format is frozen (§9.7)", () => {
+describe("CuckooFilter - wire format is frozen", () => {
   it("writes the pinned header", () => {
     const f = CuckooFilter.create(1000, { fingerprintBits: 16, seed: 0xdeadbeef });
     const bytes = f.encode();
@@ -221,7 +221,7 @@ describe("CuckooFilter - wire format is frozen (§9.7)", () => {
   });
 });
 
-describe("buildCuckooFilter - construction policy (§9.7)", () => {
+describe("buildCuckooFilter - construction policy", () => {
   it("reaches the 0.8 target load factor without rebuilding", () => {
     const result = buildCuckooFilter(members(100_000));
     expect(result.rebuilds).toBe(0);

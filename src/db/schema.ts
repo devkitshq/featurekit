@@ -1,5 +1,5 @@
 /**
- * The Postgres schema (§7).
+ * The Postgres schema.
  *
  * The schema *is* the design, so this is written out concretely rather than
  * derived. Two shapes carry most of the weight:
@@ -43,7 +43,7 @@ import type { Rollout } from "../sdk/index.js";
 const createdAt = () => timestamp("created_at", { withTimezone: true }).defaultNow().notNull();
 const updatedAt = () => timestamp("updated_at", { withTimezone: true }).defaultNow().notNull();
 
-/** HLL sketches are opaque bytes to the application (§7.9). */
+/** HLL sketches are opaque bytes to the application. */
 const bytea = customType<{ data: Uint8Array; driverData: Buffer }>({
   dataType: () => "bytea",
 });
@@ -74,15 +74,15 @@ export const environments = pgTable(
      * usually catastrophic. Rotation is an explicit, audited action, never a
      * side effect.
      *
-     * Never leaves the server: the client tier does not bucket (§11.5).
+     * Never leaves the server: the client tier does not bucket.
      */
     bucketSalt: varchar("bucket_salt").notNull(),
     /**
      * Monotonic snapshot version for this environment, bumped in the same
-     * transaction as any config change (§10.4).
+     * transaction as any config change.
      *
      * It lives in Postgres rather than a Redis counter precisely because Redis
-     * is allowed to be lost (§8). A version that reset on a Redis restart would
+     * is allowed to be lost. A version that reset on a Redis restart would
      * go *backwards*, and the SDK's version guard would then reject every
      * subsequent patch as stale — an environment frozen on its last good
      * snapshot with nothing in the logs to say why.
@@ -114,7 +114,7 @@ export const sdkKeys = pgTable("sdk_keys", {
    * construction (they ship in a JS bundle or an app binary) and are stored in
    * the clear so the dashboard can display them. A public client key is not a
    * vulnerability, because it buys evaluated values for a context the holder
-   * can prove, not the ruleset (§11.5, §16).
+   * can prove, not the ruleset.
    */
   keyHash: varchar("key_hash").unique(),
   keyPublic: varchar("key_public").unique(),
@@ -153,7 +153,7 @@ export const flags = pgTable(
      * Whether this flag is evaluated for the client tier at all. A flag left
      * false is invisible to browsers: its key never appears in a client
      * payload, so an unreleased feature's *existence* stays private, not just
-     * its value (§16).
+     * its value.
      */
     clientAvailable: boolean("client_available").notNull().default(false),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
@@ -343,7 +343,7 @@ export const segmentMembers = pgTable(
      * is integral, NULL otherwise. It is a generated column precisely so nobody
      * can invent an ordinal that the SDK has no way to reproduce.
      *
-     * This is the roaring-bitmap eligibility test (§9.7). An ordinal from a
+     * This is the roaring-bitmap eligibility test. An ordinal from a
      * sequence would be denser, but the SDK holds a string key and would need a
      * 500k-entry dictionary to translate it — which costs more heap than the
      * Set the bitmap was meant to replace.
@@ -507,7 +507,7 @@ export const auditLog = pgTable(
     diff: jsonb("diff").notNull(),
     comment: text("comment"),
     /**
-     * Hash chain over the project's audit history (§7.10).
+     * Hash chain over the project's audit history.
      *
      * Each row commits to the previous one, so editing or deleting any row
      * breaks every hash after it. Tamper *evidence*, not tamper prevention: an

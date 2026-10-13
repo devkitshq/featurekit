@@ -1,5 +1,5 @@
 /**
- * The management API (§12, §8, §18).
+ * The management API.
  *
  * ```
  * GET    /v1/admin/projects
@@ -30,7 +30,7 @@
  *
  * **The kill switch has its own route** so that turning something off during an
  * incident needs neither a read-modify-write nor a version the operator does
- * not have in front of them (§18).
+ * not have in front of them.
  */
 
 import { HttpError, type RequestContext, type Router } from "../http/router.js";
@@ -154,7 +154,7 @@ export interface AdminRouteDeps {
   tokens: AccessTokenRepository;
   /** Invalidates cached SDK-key lookups the moment a key is revoked. */
   onKeyRevoked?: () => void;
-  /** Replays a retried mutation instead of applying it twice (§15). */
+  /** Replays a retried mutation instead of applying it twice. */
   idempotency?: IdempotencyCache;
   /**
    * Compile a proposed configuration without committing it.
@@ -711,7 +711,7 @@ export function registerAdminRoutes(router: Router, deps: AdminRouteDeps): Route
    * Version-checked, transactional, audited, and only then propagated. The
    * propagation is debounced: a dashboard session is several PATCHes for one
    * logical change, and broadcasting each of them makes every connected SDK
-   * apply five snapshots for one edit (§10.4).
+   * apply five snapshots for one edit.
    */
   router.patch(
     "/v1/admin/projects/:project/environments/:env/flags/:flag",
@@ -729,7 +729,7 @@ export function registerAdminRoutes(router: Router, deps: AdminRouteDeps): Route
    *
    * No expected version, and propagation is immediate rather than debounced:
    * "off" cannot lose anyone else's edit, and an operator reducing blast radius
-   * during an incident must not wait behind a coalescing timer (§18, §23-A).
+   * during an incident must not wait behind a coalescing timer (§23-A).
    */
   router.post(
     "/v1/admin/projects/:project/environments/:env/flags/:flag/off",
@@ -922,7 +922,7 @@ export function registerAdminRoutes(router: Router, deps: AdminRouteDeps): Route
       const environment = await requireEnvironment(ctx, deps, principal);
       await revokeSdkKey(deps.db, environment.id, ctx.params["keyId"] ?? "");
       // Revocation is only as fast as the lookup cache lets it be, so the cache
-      // is dropped here rather than waited out (§16 "revocation behaviour").
+      // is dropped here rather than waited out.
       deps.onKeyRevoked?.();
       return { revoked: true };
     }),
@@ -934,7 +934,7 @@ export function registerAdminRoutes(router: Router, deps: AdminRouteDeps): Route
    * Compiles the proposed configuration, evaluates the caller's contexts
    * against both snapshots, and reports who moves — including the churn figure
    * that distinguishes "5% more users" from "the same 5%, different users",
-   * which is the failure no chart makes visible after the fact (§18).
+   * which is the failure no chart makes visible after the fact.
    *
    * Nothing is written. Deliberately a POST anyway: the body carries thousands
    * of contexts, and those do not belong in a URL or an access log.
@@ -963,7 +963,7 @@ export function registerAdminRoutes(router: Router, deps: AdminRouteDeps): Route
     }),
   );
 
-  /* ── scheduled changes (§7.10, §18) ───────────────────────────────── */
+  /* ── scheduled changes ───────────────────────────────── */
 
   /**
    * Schedule a change for later.
@@ -1159,7 +1159,7 @@ export function registerAdminRoutes(router: Router, deps: AdminRouteDeps): Route
    *
    * Paged rather than whole-file, so a 10-million-member import is 200 bounded
    * transactions instead of one that holds a lock for minutes and cannot be
-   * resumed if it fails (§9, Scenario F). Each page recompiles once, which is
+   * resumed if it fails (Scenario F). Each page recompiles once, which is
    * debounced away for pages arriving faster than the debounce window.
    */
   router.post(

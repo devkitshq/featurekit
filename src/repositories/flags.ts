@@ -1,5 +1,5 @@
 /**
- * The flag write path (§7.3–§7.7, §12, §18).
+ * The flag write path (§7.3–§7.7).
  *
  * Three properties this file exists to guarantee, each of which is a named P0
  * in the production review:
@@ -8,7 +8,7 @@
  *    is the only way into a flag's configuration, and it joins
  *    project → environment → flag → flag_environment in one statement. A caller
  *    holding another tenant's flag uuid gets `null`, and the route turns that
- *    into a 404 — never a 403, which would confirm the object exists (§8).
+ *    into a 404 — never a 403, which would confirm the object exists.
  * 2. **A write is one transaction, and it is version-checked.** The row is
  *    locked `FOR UPDATE`, the caller's `expectedVersion` is compared under that
  *    lock, and the configuration, the version bump and the audit row commit
@@ -502,7 +502,7 @@ export async function writeFlagConfig(
  * the weights as a cumulative ladder: weights summing to 90,000 leave 10% of
  * traffic falling off the end of the rollout and landing on the caller's
  * default, which shows up as a mysterious 10% error rate rather than as a
- * validation failure at the point somebody made the mistake (§4).
+ * validation failure at the point somebody made the mistake.
  */
 function normalizeRollout(rollout: Rollout, target: ResolvedTarget): Rollout {
   let sum = 0;
@@ -781,7 +781,7 @@ export async function verifyAuditChain(
  *
  * Scoped by project id from a resolved path, never by a caller-supplied id, and
  * indexed by `audit_proj_time_idx` so this stays a range scan rather than a
- * sequential read of every tenant's history (§9).
+ * sequential read of every tenant's history.
  */
 export async function listAudit(
   db: Database,

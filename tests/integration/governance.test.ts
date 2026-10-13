@@ -1,5 +1,5 @@
 /**
- * Scheduled changes and change requests, against real Postgres (§18, PR-B11).
+ * Scheduled changes and change requests, against real Postgres (PR-B11).
  *
  * Both tables shipped in the first migration with nothing reading them. That is
  * worse than not having them: an auditor sees governance features and an

@@ -1,5 +1,5 @@
 /**
- * Change propagation (§10.4) and the control plane's own last-known-good (§14).
+ * Change propagation and the control plane's own last-known-good.
  *
  * ```
  * PATCH /v1/flags/:key/environments/:env
@@ -15,7 +15,7 @@
  * switch takes 30 seconds is not a kill switch.
  *
  * **Two properties were added after the production review, and both are about
- * Redis being allowed to disappear (§8, §11):**
+ * Redis being allowed to disappear:**
  *
  * 1. **This class keeps its own last-known-good snapshot per environment.**
  *    Previously every read went to Redis, so a Redis outage turned
@@ -43,7 +43,7 @@ export type SnapshotSource = "store" | "compiled" | "memory" | "postgres";
 export interface SnapshotResult {
   snapshot: Snapshot;
   version: number;
-  /** Where this came from. Anything but `store`/`compiled` is degraded (§14). */
+  /** Where this came from. Anything but `store`/`compiled` is degraded. */
   source?: SnapshotSource;
 }
 
@@ -292,7 +292,7 @@ export class SnapshotService {
    * the thundering herd the lock exists to prevent.
    *
    * A compile that throws leaves the previous snapshot in place. Stale beats
-   * wrong, and both beat empty (§14).
+   * wrong, and both beat empty.
    */
   async recompile(
     environmentId: string,
