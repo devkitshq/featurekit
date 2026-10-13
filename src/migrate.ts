@@ -135,8 +135,7 @@ export async function migrationStatus(options: MigrateOptions = {}): Promise<Mig
     }
     let partitionRunwayDays: number | null = null;
     try {
-      let runway: unknown;
-      runway = await db.execute(sql`select featurekit_partition_runway_days() as days`);
+      const runway = await db.execute(sql`select featurekit_partition_runway_days() as days`);
       const days = (runway as unknown as Array<{ days?: unknown }>)[0]?.days;
       partitionRunwayDays = typeof days === "number" ? days : null;
     } catch {

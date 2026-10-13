@@ -292,8 +292,7 @@ export class FeaturekitServer {
     const config = loadConfig(env, {
       clientKeysExist:
         this.options.clientKeysExist ??
-        (process.env["FEATUREKIT_CLIENT_KEYS_EXIST"] === "1" ||
-          process.env["FEATUREKIT_CLIENT_KEYS_EXIST"] === "1"),
+        process.env["FEATUREKIT_CLIENT_KEYS_EXIST"] === "1",
     });
     this.#config = config;
 
@@ -349,8 +348,8 @@ export class FeaturekitServer {
     config: FeaturekitConfig,
     log: (message: string) => void,
   ): Promise<void> {
-    const email = config.FEATUREKIT_ADMIN_EMAIL ?? config.FEATUREKIT_ADMIN_EMAIL;
-    const password = config.FEATUREKIT_ADMIN_PASSWORD ?? config.FEATUREKIT_ADMIN_PASSWORD;
+    const email = config.FEATUREKIT_ADMIN_EMAIL;
+    const password = config.FEATUREKIT_ADMIN_PASSWORD;
     if (email === undefined || password === undefined) return;
 
     try {
@@ -402,8 +401,7 @@ export class FeaturekitServer {
 
     const reset =
       this.options.flagsReset ??
-      (process.env["FEATUREKIT_FLAGS_RESET"] === "1" ||
-        process.env["FEATUREKIT_FLAGS_RESET"] === "1");
+      process.env["FEATUREKIT_FLAGS_RESET"] === "1";
     const changes = await applyFlagFile(db, file, { reset });
     // Only what changed, so a restart that reconciles to nothing says nothing.
     const notable = changes.filter((change) => change.action !== "unchanged");
@@ -502,7 +500,7 @@ export class FeaturekitServer {
     if (isProduction) return;
     const url = this.#address?.url ?? "";
     if (config.DASHBOARD !== "off") {
-      const account = config.FEATUREKIT_ADMIN_EMAIL ?? config.FEATUREKIT_ADMIN_EMAIL;
+      const account = config.FEATUREKIT_ADMIN_EMAIL;
       log(
         `dashboard ${url}${config.DASHBOARD_PATH}` +
           (account === undefined ? "" : ` — sign in as ${account}`),

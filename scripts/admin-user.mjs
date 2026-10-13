@@ -49,7 +49,7 @@ async function databaseUrl() {
 
 /** Read a line with the terminal's echo turned off. */
 async function readPassword(prompt) {
-  const fromEnv = process.env["FEATUREKIT_PASSWORD"] ?? process.env["FEATUREKIT_PASSWORD"];
+  const fromEnv = process.env["FEATUREKIT_PASSWORD"];
   if (fromEnv !== undefined) return fromEnv;
   if (!process.stdin.isTTY) {
     throw new Error("no TTY: set FEATUREKIT_PASSWORD to run this non-interactively");

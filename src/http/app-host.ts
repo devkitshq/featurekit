@@ -81,16 +81,7 @@ const CONTENT_TYPES: Readonly<Record<string, string>> = {
  */
 function resolveBrowserSdk(): string | null {
   try {
-    const req = createRequire(import.meta.url);
-    try {
-      return req.resolve("featurekit-client");
-    } catch {
-      try {
-        return req.resolve("featurekit-client");
-      } catch {
-        return req.resolve("featurekit-client");
-      }
-    }
+    return createRequire(import.meta.url).resolve("featurekit-client");
   } catch {
     return null;
   }

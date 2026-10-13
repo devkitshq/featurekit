@@ -29,10 +29,7 @@ let probed: string | null | undefined;
 export async function containerUnavailableReason(): Promise<string | null> {
   if (probed !== undefined) return probed;
 
-  if (
-    process.env["FEATUREKIT_SKIP_CONTAINERS"] === "1" ||
-    process.env["FEATUREKIT_SKIP_CONTAINERS"] === "1"
-  ) {
+  if (process.env["FEATUREKIT_SKIP_CONTAINERS"] === "1") {
     probed = "FEATUREKIT_SKIP_CONTAINERS=1";
     return probed;
   }
@@ -66,9 +63,7 @@ let announced = false;
 export function announceSkip(reason: string): void {
   if (announced) return;
   announced = true;
-  const required =
-    process.env["FEATUREKIT_REQUIRE_CONTAINERS"] === "1" ||
-    process.env["FEATUREKIT_REQUIRE_CONTAINERS"] === "1";
+  const required = process.env["FEATUREKIT_REQUIRE_CONTAINERS"] === "1";
   const message =
     `\n  featurekit: integration tests SKIPPED — ${reason}.\n` +
     `  Start a Docker daemon to run them, or set FEATUREKIT_REQUIRE_CONTAINERS=1 to fail instead.\n`;

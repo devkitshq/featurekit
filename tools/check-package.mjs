@@ -28,7 +28,7 @@ import { dirname, join } from "node:path";
 const PACKAGES = [".", "packages/client"];
 
 /** Zero runtime dependencies, asserted rather than intended. */
-const ZERO_DEPENDENCY = new Set(["featurekit-client", "featurekit-client", "featurekit-client"]);
+const ZERO_DEPENDENCY = new Set(["featurekit-client"]);
 
 const problems = [];
 
@@ -105,7 +105,7 @@ for (const directory of PACKAGES) {
  */
 const RUNTIME_DEPENDENCIES = Object.keys(
   JSON.parse(readFileSync("package.json", "utf8")).dependencies ?? {},
-).filter((name) => name !== "featurekit" && name !== "featurekit" && name !== "@featurekit/server" && name !== "featurekit-client");
+).filter((name) => name !== "featurekit-server" && name !== "featurekit-client");
 
 function sourcesUnder(directory) {
   const out = [];

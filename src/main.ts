@@ -32,7 +32,7 @@ const SERVICES: readonly FeaturekitService[] = [
 ];
 
 function servicesFromEnv(): readonly FeaturekitService[] | undefined {
-  const raw = process.env["FEATUREKIT_SERVICES"] ?? process.env["FEATUREKIT_SERVICES"];
+  const raw = process.env["FEATUREKIT_SERVICES"];
   if (raw === undefined) return undefined;
   const requested = raw
     .split(",")
@@ -56,9 +56,7 @@ async function main(): Promise<void> {
     ...(services !== undefined ? { services } : {}),
     // Migrations are a deploy step here, not something a booting node does:
     // every node running them is a lock convoy during a rolling deploy.
-    autoMigrate:
-      process.env["FEATUREKIT_AUTO_MIGRATE"] === "1" ||
-      process.env["FEATUREKIT_AUTO_MIGRATE"] === "1",
+    autoMigrate: process.env["FEATUREKIT_AUTO_MIGRATE"] === "1",
     devServices: false,
   });
 
