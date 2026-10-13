@@ -32,11 +32,13 @@ function registerCount(precision: number): number {
 /**
  * 64-bit-ish hash from two 32-bit murmur passes.
  *
- * The SDK's murmur3 is 32-bit and lives in a package this file must not import
- * (the control plane may not reach into the evaluation core's internals), so
- * this is a small independent implementation. Collisions at 32 bits would bias
- * the estimate at a few million distinct values, which is why two passes with
+ * The SDK's murmur3 is 32-bit, and collisions at 32 bits would bias the
+ * estimate at a few million distinct values, which is why two passes with
  * different seeds are combined.
+ *
+ * Frozen along with `HLL_PRECISION`: sketches are persisted and merged, so a
+ * different hash would place the same context in different registers and
+ * inflate every count that spans the change.
  */
 function hash64(value: string): { bucket: number; leading: number; precision: number } {
   let h1 = 0x9747b28c;
