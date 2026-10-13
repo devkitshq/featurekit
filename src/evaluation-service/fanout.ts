@@ -72,7 +72,7 @@ function toClientValue(detail: EvaluationDetail<unknown>): ClientValue {
 /**
  * Re-exported so existing callers keep one import, defined in
  * `../contracts/context-hash.js` so a customer's backend can import the same
- * function from `featurekit/secure-mode` without pulling the evaluator in.
+ * function from `featurekit-server/secure-mode` without pulling the evaluator in.
  */
 export { contextHash } from "../contracts/context-hash.js";
 

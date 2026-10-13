@@ -122,7 +122,7 @@ hanging: it was superseded, not failed. And the stream is re-subscribed only on
 the winning response, so a late reply cannot resurrect a closed connection's
 context.
 
-`tests/client-tier/browser.test.ts` drives this with an artificially delayed
+`tests/client-tier/client.test.ts` drives this with an artificially delayed
 response for A and a fast one for B, and asserts B wins.
 
 ## Catch-up on stream open

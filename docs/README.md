@@ -82,8 +82,8 @@ src/                    the `featurekit` package
   sdk/evaluation/       the pure core. imports nothing.
   sdk/client/           FeaturekitSDK: transport, version guards, persistence
   sdk/events/           the summarizer
-  secure-mode.ts        featurekit/secure-mode -- signing, node:crypto only
-  migrate.ts            featurekit/migrate -- the deploy step, as a function
+  secure-mode.ts        featurekit-server/secure-mode -- signing, node:crypto only
+  migrate.ts            featurekit-server/migrate -- the deploy step, as a function
   db/ repositories/     schema, migrations, row loading
   snapshot/             the compiler (pure) and the propagation service
   redis/                SnapshotStore port + memory and Redis implementations

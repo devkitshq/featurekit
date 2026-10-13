@@ -129,7 +129,7 @@ const flags = new FeaturekitClient({
   clientKey: "fk_clt_production_...",
   context: { key: "user-123", email: "alice@acme.com" },
   signature: {
-    hash: "a3f89e2...", // Generated server-side with @featurekit/server/secure-mode
+    hash: "a3f89e2...", // Generated server-side with featurekit-server/secure-mode
     issuedAt: 1718000000,
   },
 });

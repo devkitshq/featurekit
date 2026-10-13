@@ -246,7 +246,7 @@ canonicalisation.
 The first cut stubbed that check out, which silently disabled half the guard.
 It is now enforced with what the client does know: the context key each in-flight
 request was issued for, plus a comparison against the hash last accepted for that
-key. Three conditions, all of which must pass — `tests/client-tier/browser.test.ts`
+key. Three conditions, all of which must pass — `tests/client-tier/client.test.ts`
 drives the A-slow/B-fast race and asserts B wins.
 
 ## 17. `CompiledFlag` gained `perContext` and `clientAvailable`
@@ -309,7 +309,7 @@ somebody else's release schedule, with every framework we have not packaged
 told to wait. [Framework adapters](client-tier/adapters.md) publishes the
 twenty lines for React, Vue and Svelte instead, to be copied and owned.
 
-**`featurekit/secure-mode` is a second entry point on the server package.**
+**`featurekit-server/secure-mode` is a second entry point on the server package.**
 Secure mode is mandatory in production and the signature must be minted by the
 customer's own backend, but neither `signContext` nor `contextHash` was
 exported — so every integrator reimplemented an HMAC over an undocumented
@@ -335,24 +335,15 @@ concurrent requests will serve one user's flags to another. See
 
 ## 20. Still outstanding
 
-Summary of remaining items:
+Everything this section used to list has shipped — the management API, PAT
+auth, the audit log and revert, rate limiting, `/health` `/live` `/ready`
+`/metrics` with the partition-runway check, the Redis `SegmentCacheProvider`,
+and the container-gated chaos scenarios (`tests/integration/chaos-infra.test.ts`)
+— except one:
 
-- **Management REST (§12), PAT auth, the audit log, and one-click revert.** The
-  schema is in place (`audit_log`, `change_requests`, `scheduled_changes`); the
-  write paths and routes are not.
-- **Rate limiting per SDK key** (§16) — the Redis key is mapped, the middleware
-  is not written.
-- **`/health` `/live` `/ready` `/metrics`**, including the partition-runway
-  readiness check. `featurekit_partition_runway_days()` exists in SQL; nothing
-  calls it yet.
-- **`SegmentCacheProvider` Redis implementation.** The interface, the LRU, and
-  the fail-closed semantics are done and tested; the Redis-backed provider is
-  not.
 - **Segment delta patches end to end.** The SDK applies them (`applyDelta`,
-  version-guarded); the server does not yet emit them, because that needs the
-  management write path.
-- **The container-gated chaos scenarios** — `degraded.test.ts` (kill Redis, then
-  Postgres, then both) and `rollup-contention.test.ts` — need a live daemon.
+  version-guarded); the server does not emit them yet, so a membership change
+  re-sends the whole segment in the next snapshot.
 
 ---
 

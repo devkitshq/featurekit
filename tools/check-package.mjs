@@ -141,7 +141,7 @@ for (const [path, source] of sourcesUnder(join("src", "sdk"))) {
 }
 
 /**
- * `featurekit/secure-mode` must not drag the control plane in.
+ * `featurekit-server/secure-mode` must not drag the control plane in.
  *
  * Its entire reason to exist as a separate entry point is that a customer's
  * backend can mint a signed context without loading Drizzle, a Postgres driver,
@@ -190,10 +190,10 @@ function closureOf(entry) {
  */
 const ENTRY_BUDGETS = [
   // Signing is an HMAC over a string. It needs nothing.
-  { entry: join("src", "secure-mode.ts"), name: "featurekit/secure-mode", allow: [] },
+  { entry: join("src", "secure-mode.ts"), name: "featurekit-server/secure-mode", allow: [] },
   // Migrating is talking to Postgres, so it may. Not Redis, not the logger,
   // not the metrics registry.
-  { entry: join("src", "migrate.ts"), name: "featurekit/migrate", allow: ["drizzle-orm", "postgres"] },
+  { entry: join("src", "migrate.ts"), name: "featurekit-server/migrate", allow: ["drizzle-orm", "postgres"] },
 ];
 
 for (const { entry, name, allow } of ENTRY_BUDGETS) {

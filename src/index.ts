@@ -49,7 +49,7 @@ export type {
 
 /**
  * Migrations, for a process that already imports the control plane. A deploy
- * job should import `featurekit/migrate` instead — same functions, without the
+ * job should import `featurekit-server/migrate` instead — same functions, without the
  * route layer, Redis and the metrics registry (§16).
  */
 export { migrate, migrationStatus, MIGRATION_LOCK } from "./migrate.js";
@@ -59,7 +59,7 @@ export type { MigrateOptions, MigrationStatus } from "./migrate.js";
  * Secure mode, for a process that already imports the control plane.
  *
  * A backend whose only job is signing contexts should import
- * `featurekit/secure-mode` instead — same functions, without loading Drizzle,
+ * `featurekit-server/secure-mode` instead — same functions, without loading Drizzle,
  * Postgres, Redis and the rest at import time (§16).
  */
 export { signContext, verifyContext } from "./auth/secure-mode.js";

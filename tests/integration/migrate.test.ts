@@ -1,5 +1,5 @@
 /**
- * `featurekit/migrate` against a real Postgres.
+ * `featurekit-server/migrate` against a real Postgres.
  *
  * This entry point exists because the documented shape — migrate as a deploy
  * step, then roll nodes — was unfollowable for anyone who installed featurekit
@@ -42,7 +42,7 @@ describe("migrate() prerequisites", () => {
 });
 
 /** Needs no container, so it runs everywhere — including a laptop with no Docker. */
-describe("featurekit/migrate configuration", () => {
+describe("featurekit-server/migrate configuration", () => {
   it("refuses to guess a database when none is configured", async () => {
     // Defaulting to localhost here would mean a deploy job with a missing
     // variable quietly migrating the wrong database, which is worse than a
@@ -58,7 +58,7 @@ describe("featurekit/migrate configuration", () => {
   });
 });
 
-describe.skipIf(reason !== null)("featurekit/migrate", () => {
+describe.skipIf(reason !== null)("featurekit-server/migrate", () => {
   let databaseUrl: string;
   let stop: () => Promise<void>;
   let db: Database;

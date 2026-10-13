@@ -8,12 +8,12 @@ if (flags.get("new-checkout", false)) {
 }
 ```
 
-Two packages. `@featurekit/server` is the server side — the control plane, and an
+Two packages. `featurekit-server` is the server side — the control plane, and an
 evaluator that holds the ruleset in memory. `featurekit-client` is one client
 for everything else, with no framework bindings and no per-runtime build.
 
 ```bash
-npm i @featurekit/server  # runs the control plane; evaluates server-side
+npm i featurekit-server  # runs the control plane; evaluates server-side
 npm i featurekit-client  # browsers, React Native, Node, Deno, Bun, edge
 ```
 
@@ -52,12 +52,12 @@ service you rent.
 ```bash
 mkdir acme-flags && cd acme-flags
 npm init -y && npm pkg set type=module
-npm i @featurekit/server
+npm i featurekit-server
 ```
 
 ```js
 // server.js
-import { FeaturekitServer } from "@featurekit/server";
+import { FeaturekitServer } from "featurekit-server";
 
 const server = new FeaturekitServer({
   services: ["all"],
@@ -129,9 +129,8 @@ On restart, new flags are created and definitions kept current. **Existing
 flags keep whatever the dashboard says** — a toggle somebody flipped at 3am is
 not reverted by the next deploy. `flagsReset: true` overrides that, deliberately.
 
-[`examples/server`](examples/server) is this file with five flags in it,
-covering booleans, numbers, string variants, percentage rollouts and a
-server-only flag.
+[`examples/basic-example/server`](examples/basic-example/server) is a working
+version of this setup, with a website and an Expo app reading the same flags.
 
 ### Going to production
 
@@ -155,7 +154,7 @@ const server = new FeaturekitServer({
   // values. Native apps send no Origin and are unaffected.
   corsAllowedOrigins: ["https://app.acme.com"],
 
-  // Leave this off for a fleet and run `featurekit/migrate` as a deploy step
+  // Leave this off for a fleet and run `featurekit-server/migrate` as a deploy step
   // instead — see below. It defaults to off in production for that reason.
   autoMigrate: false,
 });
@@ -192,7 +191,7 @@ queue behind it, during a deploy, while traffic is shifting.
 
 ```js
 // migrate.js — a deploy job, run once
-import { migrate } from "@featurekit/server/migrate";
+import { migrate } from "featurekit-server/migrate";
 await migrate();
 ```
 
@@ -203,7 +202,7 @@ node migrate.js && kubectl rollout restart deploy/acme-flags
 Or without a file at all:
 
 ```bash
-node -e 'import("@featurekit/server/migrate").then(m => m.migrate())'
+node -e 'import("featurekit-server/migrate").then(m => m.migrate())'
 ```
 
 `migrate()` reads `DATABASE_URL`, or takes `{ databaseUrl }`. It refuses to
@@ -217,7 +216,7 @@ part of the same step, since a deploy that leaves the analytics table without
 partitions has not finished, it has just not failed yet.
 
 ```js
-import { migrationStatus } from "@featurekit/server/migrate";
+import { migrationStatus } from "featurekit-server/migrate";
 
 const { applied, partitionRunwayDays } = await migrationStatus();
 ```
@@ -260,7 +259,7 @@ new FeaturekitServer({ services: ["rollup", "scheduler"] }); // keep it small
 ```
 
 Or set `FEATUREKIT_SERVICES=api,stream` and run the packaged entrypoint,
-`node node_modules/@featurekit/server/dist/main.js`, if you would rather configure by
+`node node_modules/featurekit-server/dist/main.js`, if you would rather configure by
 environment than by file.
 
 ### Your first key
@@ -286,7 +285,7 @@ new FeaturekitServer({
 ## Using it: server side
 
 ```ts
-import { FeaturekitSDK } from "@featurekit/server";
+import { FeaturekitSDK } from "featurekit-server";
 
 const flags = new FeaturekitSDK({
   sdkKey: process.env.FEATUREKIT_SDK_KEY!,
@@ -395,7 +394,7 @@ identity it is handed. Your backend mints the signature where the session is
 already trusted:
 
 ```ts
-import { signContext, contextHash } from "@featurekit/server/secure-mode";
+import { signContext, contextHash } from "featurekit-server/secure-mode";
 
 app.get("/api/featurekit-signature", requireSession, (req, res) => {
   const context = { key: req.user.id, plan: req.user.plan };
@@ -413,7 +412,7 @@ it lapses.
 A separate entry point from `featurekit` because of what it does not load: the
 main entry is the control plane, so importing it pulls Drizzle, a Postgres
 driver and ioredis into a service whose only job is signing a string —
-`featurekit/secure-mode` imports in 15ms where `featurekit` takes 3.5s.
+`featurekit-server/secure-mode` imports in 15ms where `featurekit-server` takes 3.5s.
 
 **Pass the `attributesHash`.** A signature over the key alone authenticates
 *who* the context claims to be and nothing about what it claims to be true — a

@@ -165,10 +165,10 @@ the public client key could evaluate as any named account and read the flags
 targeted at it.
 
 Your own backend mints the signature, where the session is already trusted.
-`featurekit/secure-mode` exports both halves so nobody has to reimplement them:
+`featurekit-server/secure-mode` exports both halves so nobody has to reimplement them:
 
 ```ts
-import { signContext, contextHash } from "featurekit/secure-mode";
+import { signContext, contextHash } from "featurekit-server/secure-mode";
 
 app.get("/api/featurekit-signature", requireSession, (req, res) => {
   const context = { key: req.user.id, plan: req.user.plan };

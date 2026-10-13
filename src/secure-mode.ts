@@ -1,9 +1,9 @@
 /**
- * `featurekit/secure-mode` — everything a customer's backend needs to mint a
+ * `featurekit-server/secure-mode` — everything a customer's backend needs to mint a
  * signed context, and nothing else (§16).
  *
  * ```ts
- * import { signContext, contextHash } from "featurekit/secure-mode";
+ * import { signContext, contextHash } from "featurekit-server/secure-mode";
  *
  * app.get("/api/featurekit-signature", requireSession, (req, res) => {
  *   const context = { key: req.user.id, plan: req.user.plan };

@@ -43,11 +43,11 @@ npm run migrate:check      # report applied count and partition runway
 
 Those two are repository scripts. As an installed dependency, the same thing is
 a function — `scripts/` is not in the published package, and for a while that
-made the advice on this page unfollowable for anyone who had `npm i featurekit`
+made the advice on this page unfollowable for anyone who had `npm i featurekit-server`
 rather than a checkout:
 
 ```js
-import { migrate, migrationStatus } from "featurekit/migrate";
+import { migrate, migrationStatus } from "featurekit-server/migrate";
 
 await migrate();                                   // apply
 const { applied, partitionRunwayDays } = await migrationStatus();

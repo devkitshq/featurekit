@@ -5,13 +5,13 @@
  *   node scripts/migrate.mjs --check    report status, change nothing
  *
  * A thin wrapper, deliberately. The implementation is `src/migrate.ts`, shipped
- * as `featurekit/migrate`, and it is what `FeaturekitServer`'s `autoMigrate`
+ * as `featurekit-server/migrate`, and it is what `FeaturekitServer`'s `autoMigrate`
  * calls too — so the deploy step and the boot-time step take the same advisory
  * lock and apply the same SQL. Three callers, one definition.
  *
  * If you installed featurekit rather than checked it out, skip this file:
  *
- *   import { migrate } from "featurekit/migrate";
+ *   import { migrate } from "featurekit-server/migrate";
  *   await migrate();
  */
 

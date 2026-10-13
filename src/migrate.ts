@@ -1,5 +1,5 @@
 /**
- * `featurekit/migrate` — the migration step, as a function you can call (§9, §16).
+ * `featurekit-server/migrate` — the migration step, as a function you can call (§9, §16).
  *
  * **Migrations are a deploy step, not something a booting node does.** Every
  * node running them on startup is a lock convoy at best: N nodes take the same
@@ -15,12 +15,12 @@
  *
  * ```ts
  * // migrate.js, run as a deploy job before the new nodes start
- * import { migrate } from "featurekit/migrate";
+ * import { migrate } from "featurekit-server/migrate";
  * await migrate();
  * ```
  *
  * ```bash
- * node -e 'import("featurekit/migrate").then(m => m.migrate())'
+ * node -e 'import("featurekit-server/migrate").then(m => m.migrate())'
  * ```
  *
  * **A separate entry point because of what it does not load.** `featurekit`'s
