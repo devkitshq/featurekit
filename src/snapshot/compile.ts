@@ -352,7 +352,7 @@ export function compileSnapshot(input: CompilerInput, options: CompileOptions): 
  * This is what lets the client tier collapse 50,000 connections down to the few
  * hundred distinct attribute combinations that actually exist. The
  * *cache* is M5 work and small; emitting the set is the part that cannot be
- * retrofitted into a shipped evaluator, which is why §22.1 puts it here.
+ * retrofitted into a shipped evaluator, which is why it is here.
  */
 function referencedAttributes(
   rules: readonly CompiledRule[],

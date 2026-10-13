@@ -10,7 +10,7 @@
  * every time, for every browser, on any deployment with more than one node.
  * The single-node case worked perfectly, which is exactly why this survived.
  *
- * `fk:cctx:{connectionId}` was reserved for this in the §8 key map from the
+ * `fk:cctx:{connectionId}` was reserved for this in the Redis key map from the
  * start ("Client-tier connection → context. Rebuild: client re-identifies").
  * This is the code that finally uses it.
  *
@@ -62,7 +62,7 @@ export function newConnectionId(): string {
  * Correct for a single-node deployment, and the fixture the Redis
  * implementation is held against. Entries expire, because a browser that closes
  * without a clean disconnect must not pin its context in memory forever — that
- * is the §14 unbounded-Map failure in miniature.
+ * is the unbounded-Map failure in miniature.
  */
 export class MemoryClientConnectionStore implements ClientConnectionStore {
   private readonly entries = new Map<string, { record: StoredConnection; expiresAt: number }>();

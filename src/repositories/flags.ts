@@ -1,5 +1,5 @@
 /**
- * The flag write path (§7.3–§7.7).
+ * The flag write path.
  *
  * Three properties this file exists to guarantee, each of which is a named P0
  * in the production review:
@@ -12,7 +12,7 @@
  * 2. **A write is one transaction, and it is version-checked.** The row is
  *    locked `FOR UPDATE`, the caller's `expectedVersion` is compared under that
  *    lock, and the configuration, the version bump and the audit row commit
- *    together. Two engineers saving the same flag is the §18 scenario: the
+ *    together. Two engineers saving the same flag is the concurrent-edit scenario: the
  *    second one now gets a 409 carrying the current state instead of silently
  *    erasing the first one's work.
  * 3. **The audit row holds the full before and after.** Not a field list —

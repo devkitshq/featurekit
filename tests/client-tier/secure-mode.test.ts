@@ -162,7 +162,7 @@ describe("secure mode enforcement", () => {
   });
 
   it("rejects a signature for a different identity", async () => {
-    // The impersonation attempt §7 asks about: a valid signature the caller
+    // The impersonation attempt: a valid signature the caller
     // captured, presented with somebody else's key.
     const base = await harness();
     const expiresAt = Math.floor(Date.now() / 1000) + 600;

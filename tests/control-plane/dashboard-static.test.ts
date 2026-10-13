@@ -1,5 +1,5 @@
 /**
- * Serving the dashboard bundle (dashboard/PLAN.md §3).
+ * Serving the dashboard bundle.
  *
  * No database and no containers: this is a file server, and its interesting
  * behaviours are all about paths and headers.

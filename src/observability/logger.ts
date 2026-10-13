@@ -1,8 +1,8 @@
 /**
  * Structured logging.
  *
- * Two rules, both of which exist because the review's §17 asks whether the
- * telemetry itself can lie or become the next outage:
+ * Two rules, both of which exist so that the telemetry itself cannot lie or
+ * become the next outage:
  *
  * 1. **Nothing secret is ever logged.** SDK keys, access tokens, secure-mode
  *    signatures and `Authorization` headers are redacted by pino itself rather

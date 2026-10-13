@@ -1,5 +1,5 @@
 /**
- * Tenancy, flag creation, keys and segments (§7.1–§7.6).
+ * Tenancy, flag creation, keys and segments.
  *
  * The write side of everything that is not a targeting change. Two shapes worth
  * pointing at:
@@ -8,7 +8,7 @@
  *   same transaction**, one per environment, all disabled. A flag that exists
  *   in the project but has no row in production is a flag whose first
  *   production toggle is an INSERT — and an INSERT has no `expectedVersion` to
- *   check, so the §18 concurrent-edit protection would not apply to the single
+ *   check, so the concurrent-edit protection would not apply to the single
  *   most dangerous edit anyone makes.
  * - **Segment member import is chunked and idempotent.** `ON CONFLICT DO
  *   UPDATE` on the composite primary key means a retried page is a no-op rather

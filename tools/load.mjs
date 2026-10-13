@@ -2,7 +2,7 @@
  * System-level load measurement (PR-C2).
  *
  * `tools/bench.mjs` measures the evaluator in isolation, which is the number
- * §1 argues about. This measures the parts a capacity plan actually needs and
+ * the per-evaluation budget is about. This measures the parts a capacity plan actually needs and
  * that a micro-benchmark cannot see: HTTP round trips, SSE fan-out across many
  * connections, snapshot compilation as flag counts grow, and the analytics
  * drain. Latency is reported as a distribution, because a p50 tells you nothing
@@ -249,7 +249,7 @@ for (const flagCount of quick ? [100, 1_000] : [100, 1_000, 10_000]) {
   await cp.snapshots.close();
 }
 
-/* 5. Fingerprint fan-out: the §11.5 claim, measured. */
+/* 5. Fingerprint fan-out, measured. */
 {
   const rows = input(200);
   const snapshot = compileSnapshot(rows, { version: 1 });

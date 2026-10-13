@@ -92,7 +92,7 @@ describe("GET /ready", () => {
   });
 
   it("fails below two days of partition runway", async () => {
-    // The §7.9 failure nobody sees coming: partitions stop being created,
+    // The failure nobody sees coming: partitions stop being created,
     // inserts keep working until the last premade one ends, and then ingest
     // throws at midnight. Two days is the warning.
     const { base } = await serve({ runway: async () => 1 });
@@ -142,7 +142,7 @@ describe("GET /metrics", () => {
 
 describe("metric cardinality", () => {
   it("collapses environment labels past the ceiling instead of growing forever", async () => {
-    // §17: a deployment with 10,000 environments must not create 10,000 series.
+    // A deployment with 10,000 environments must not create 10,000 series.
     const metrics = new Metrics({ defaultMetrics: false, labelCeiling: 3 });
     const labels = ["a", "b", "c", "d", "e"].map((key) => metrics.env(key));
     expect(labels).toEqual(["a", "b", "c", "other", "other"]);

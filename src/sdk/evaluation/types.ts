@@ -175,7 +175,7 @@ export interface CompiledFlag {
    * its attributes — a percentage rollout, an individual target, or a segment
    * clause. Such a flag cannot share a fan-out fingerprint and is specialised
    * per connection. Emitted by the compiler alongside
-   * `referencedAttributes`; the retrofit this avoids is the one §22.1 warns of.
+   * `referencedAttributes`; it would be a painful retrofit later.
    */
   perContext?: boolean;
   /**
@@ -191,15 +191,14 @@ export interface CompiledSegmentBase {
   version: number;
   /**
    * Pinned-out members. **Excluded wins over included**, in every encoding —
-   * which is why it lives on the base rather than only on the inline variant
-   * as §10.1 sketches it. An exclusion list that only worked for small
+   * which is why it lives on the base rather than only on the inline
+   * variant. An exclusion list that only worked for small
    * segments would fail exactly where it matters.
    */
   excluded?: readonly string[];
   /**
-   * Rule-based membership (§7.6 `segment_rules`). ORed with the membership
+   * Rule-based membership (`segment_rules`). ORed with the membership
    * structure: a context is a member if it is listed OR any rule matches.
-   * Absent from the §10.1 sketch of this type, but the schema has the table.
    */
   rules?: readonly CompiledSegmentRule[];
 }

@@ -1,7 +1,7 @@
 /**
  * Environment-level writes and the operational queries.
  *
- * The important function here is `nextSnapshotVersion`. §10.4 requires a
+ * The important function here is `nextSnapshotVersion`. Patches need a
  * monotonic per-environment version, and `drizzle/0002_snapshot_version.sql`
  * added the column for it — this is the code that finally uses it.
  *
@@ -10,7 +10,7 @@
  * version, and two different snapshots then exist claiming to be version 41.
  * Every SDK's version guard accepts whichever arrives first and rejects the
  * other *permanently*, because the second is no longer greater. That is a flag
- * change that silently never lands — the §5 "lost update", in the one place it
+ * change that silently never lands — a "lost update", in the one place it
  * is hardest to notice.
  */
 

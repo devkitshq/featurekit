@@ -1,5 +1,5 @@
 /**
- * Read models for the dashboard (dashboard/PLAN.md §3).
+ * Read models for the dashboard.
  *
  * The management API was written for scripts, which fetch one flag and know
  * what they wanted. A table of two hundred flags is a different question, and

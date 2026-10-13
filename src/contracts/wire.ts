@@ -83,8 +83,8 @@ export const evaluationSummarySchema = z.object({
 /**
  * `bucketAt` is optional, and its absence means "stamp it on arrival".
  *
- * Server arrival time is also what a badly skewed client clock gets: §17 asks
- * whether telemetry can lie, and a fleet with a clock an hour fast would
+ * Server arrival time is also what a badly skewed client clock gets: telemetry
+ * must not be able to lie, and a fleet with a clock an hour fast would
  * otherwise write rows into a future partition and make every dashboard wrong.
  * The window check below is what enforces that.
  */

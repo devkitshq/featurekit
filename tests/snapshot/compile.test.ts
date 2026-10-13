@@ -454,7 +454,7 @@ describe("compileSnapshot - segment encodings", () => {
  * tier receives *evaluated values*, which the evaluation service in M5
  * produces per-context from this same server-side snapshot. Compiling a second
  * artifact would duplicate the work and give the ruleset a second path out of
- * the building — and §16 is explicit that the tier split is the security
+ * the building — and the tier split is the security
  * boundary, "not a filter applied at serialisation time, which is a filter
  * someone eventually forgets on a new endpoint".
  *

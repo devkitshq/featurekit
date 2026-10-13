@@ -1,7 +1,7 @@
 /**
  * A small router over `node:http`.
  *
- * §2 lists the `featurekit` package's runtime dependencies as drizzle,
+ * The server package's runtime dependencies are drizzle,
  * postgres, ioredis, pino, prom-client and zod. No HTTP framework — which is a
  * deliberate signal, not an omission. The control plane serves a handful of
  * routes plus two long-lived SSE endpoints, and SSE is the one thing framework
@@ -27,7 +27,7 @@ export interface RequestContext {
   /**
    * The route *pattern* (`/v1/snapshot/:envKey`), never the request path.
    * Metrics label on this: labelling on the path makes one time series per
-   * environment key, which is the §17 cardinality explosion.
+   * environment key, which is a cardinality explosion.
    */
   routePattern: string;
   /** Correlates the access log, the error response and any audit row written. */

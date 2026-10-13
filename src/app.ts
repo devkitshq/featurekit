@@ -2,9 +2,8 @@
  * The composition root.
  *
  * Until this file existed, every piece of the control plane was assembled only
- * inside tests — which meant the production review's §16 (can a small team
- * operate this at 3am), §13 (capacity) and all of §23 (adversarial scenarios)
- * had nothing to run against. This is the one place that turns configuration
+ * inside tests — which meant operability (can a small team run this at 3am),
+ * capacity, and the adversarial scenarios had nothing to run against. This is the one place that turns configuration
  * into a running system, and the one place that knows how to stop it again.
  *
  * The shape is deliberate: `createApp` builds and returns everything, and

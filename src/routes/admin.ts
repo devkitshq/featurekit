@@ -22,7 +22,7 @@
  *
  * **Everything is addressed by key, never by uuid.** A route taking
  * `/flags/:flagId` invites exactly one bug — trusting an id from a URL — and
- * that bug is the review's §8 IDOR. Keys are resolved through a join that
+ * that bug is an IDOR. Keys are resolved through a join that
  * includes the project, and a resolution that finds nothing is a 404 whether
  * the object does not exist or belongs to somebody else. Those two cases must
  * be indistinguishable from outside, or the API is an existence oracle for
@@ -729,7 +729,7 @@ export function registerAdminRoutes(router: Router, deps: AdminRouteDeps): Route
    *
    * No expected version, and propagation is immediate rather than debounced:
    * "off" cannot lose anyone else's edit, and an operator reducing blast radius
-   * during an incident must not wait behind a coalescing timer (§23-A).
+   * during an incident must not wait behind a coalescing timer.
    */
   router.post(
     "/v1/admin/projects/:project/environments/:env/flags/:flag/off",

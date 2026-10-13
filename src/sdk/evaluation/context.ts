@@ -9,7 +9,7 @@
  *
  * **This file is on the hot path and is written for it.** Normalisation used
  * to allocate a `Map` and copy every attribute into a fresh object, which
- * measured at ~290 ns — twenty times the entire evaluation budget in §1.
+ * measured at ~290 ns — twenty times the entire evaluation budget.
  * Neither allocation is necessary; see `SingleKindContext` below.
  *
  * @see docs/evaluation/context.md

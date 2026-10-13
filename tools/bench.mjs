@@ -2,9 +2,8 @@
  * M1 exit criterion: a published benchmark for the hashed and non-hashed
  * evaluation paths.
  *
- * §1 claims ~14 ns/op when no hash is involved and 535–976 ns/op when a
- * percentage rollout is, and §9.4 is explicit that the hash dominates whenever
- * one is. This measures both and prints the table that goes into
+ * The original estimate was ~14 ns/op when no hash is involved and 535–976
+ * ns/op when a percentage rollout is, with the hash dominating whenever one is. This measures both and prints the table that goes into
  * `docs/evaluation/benchmarks.md`.
  *
  * Runs against `dist/sdk`, so it measures the code that actually

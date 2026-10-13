@@ -1,7 +1,7 @@
 /**
  * Memory under sustained churn (PR-C6).
  *
- * §14 asks for every path where a customer or an attacker can cause unbounded
+ * This covers every path where a customer or an attacker can cause unbounded
  * growth. The answer in this system is a set of `Map`s, and a `Map` that is
  * bounded in principle but not in a test is a `Map` that will be unbounded
  * after the next refactor.

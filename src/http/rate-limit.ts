@@ -1,7 +1,7 @@
 /**
  * Rate limiting.
  *
- * The question this answers is §22's: *can one tenant create resource
+ * The question this answers: *can one tenant create resource
  * exhaustion for all tenants?* Without a limiter the answer is yes, trivially —
  * `POST /v1/client/state` evaluates every client-available flag against a
  * caller-supplied context, and the key needed to call it ships in a JS bundle.
@@ -10,7 +10,7 @@
  *
  * 1. **The limiter runs before authentication.** A limiter that only counts
  *    authenticated requests cannot slow down key-guessing, which is the attack
- *    §7 asks about ("brute-force identities"). Identity is therefore derived
+ *    that matters here ("brute-force identities"). Identity is therefore derived
  *    from the presented credential's *hash* plus the peer address — never the
  *    credential itself, which must not be a key in Redis or a label in a log.
  * 2. **Redis loss degrades to a local limit, never to unlimited.** This is the

@@ -117,7 +117,7 @@ describe("secure mode secret rotation", () => {
   });
 });
 
-describe("the knobs §17 specifies", () => {
+describe("the documented knobs", () => {
   it("carries the documented defaults", () => {
     const c = loadConfig({});
     expect(c.SNAPSHOT_DEBOUNCE_MS).toBe(200);

@@ -75,7 +75,7 @@ export class Metrics {
   readonly snapshotAgeSeconds: Gauge<"environment">;
   readonly snapshotCompileDuration: Histogram<never>;
   readonly snapshotCompileFailures: Counter<"reason">;
-  /** Serving a snapshot Redis could not supply. The §22 "silently stale" alarm. */
+  /** Serving a snapshot Redis could not supply. The "silently stale" alarm. */
   readonly snapshotDegradedServes: Counter<"source">;
 
   /* ── Delivery ─────────────────────────────────────────────────────── */
@@ -105,7 +105,7 @@ export class Metrics {
    * only way to find out is to ask every team.
    *
    * Labelled by SDK name and version, both bounded — a malicious or broken
-   * client could otherwise mint a series per request, which is the §17
+   * client could otherwise mint a series per request, which is a
    * cardinality explosion with extra steps.
    */
   readonly sdkConnections: Counter<"sdk" | "version">;

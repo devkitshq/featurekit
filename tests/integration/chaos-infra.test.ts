@@ -344,7 +344,7 @@ describe.skipIf(reason !== null)("analytics when the partition is missing", () =
   }, 120_000);
 
   it("routes to the dead-letter queue when no partition covers the row", async () => {
-    // §7.9 forbids a DEFAULT partition, so an insert outside every partition
+    // There is deliberately no DEFAULT partition, so an insert outside every partition
     // range fails — correctly and loudly. What must NOT happen is the drain
     // stalling, because a stalled drain becomes an unbounded buffer, and an
     // unbounded buffer in the analytics path is how analytics takes down

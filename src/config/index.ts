@@ -118,7 +118,7 @@ export const configSchema = z
 
     /** Revocation bound for the SDK-key lookup cache. */
     SDK_KEY_CACHE_TTL_MS: z.coerce.number().int().min(0).max(300_000).default(30_000),
-    /** How long a drain gets before sockets are closed (§16 rolling deploys). */
+    /** How long a drain gets before sockets are closed (rolling deploys). */
     SHUTDOWN_GRACE_MS: z.coerce.number().int().min(0).max(120_000).default(10_000),
     /** Below this many days of partition runway, readiness fails. */
     PARTITION_RUNWAY_MIN_DAYS: z.coerce.number().int().min(0).default(2),

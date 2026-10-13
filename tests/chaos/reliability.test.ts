@@ -12,7 +12,7 @@ import type { CompilerInput } from "../../src/snapshot/compile.js";
  * The chaos suite.
  *
  * The property being sold: **featurekit failing should be invisible to your
- * users.** §18 is explicit that shipping M4 without this suite would be
+ * users.** Shipping the SDK without this suite would be
  * shipping the marketing copy without the thing it describes — so these assert
  * the reliability claim rather than restating it.
  *

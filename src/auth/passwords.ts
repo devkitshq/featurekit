@@ -1,5 +1,5 @@
 /**
- * Password hashing for dashboard logins (dashboard/PLAN.md §2).
+ * Password hashing for dashboard logins.
  *
  * scrypt from `node:crypto`, because it is memory-hard, it is in the standard
  * library, and adding argon2 would put a native build step in the dependency

@@ -10,7 +10,7 @@
  * where a bad index is a 400 rather than a dangling reference.
  *
  * `expectedVersion` is required on every mutation. That is optimistic
- * concurrency, and it is the §18 scenario: two engineers save the same flag,
+ * concurrency, for the concurrent-edit scenario: two engineers save the same flag,
  * one editing targeting and one editing rollout. Without it the second write
  * silently discards the first — the review's "lost configuration" P0.
  */
@@ -256,7 +256,7 @@ export const revertSchema = z.object({
   comment: z.string().max(1_000).optional(),
 });
 
-/* ── dashboard accounts (dashboard/PLAN.md §2) ───────────────────────── */
+/* ── dashboard accounts ────────────────────────────────────────────── */
 
 const emailSchema = z.string().email().max(320);
 /**

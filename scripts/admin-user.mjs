@@ -1,5 +1,5 @@
 /**
- * Dashboard accounts, from a terminal (dashboard/PLAN.md §2.3).
+ * Dashboard accounts, from a terminal.
  *
  *   node scripts/admin-user.mjs list
  *   node scripts/admin-user.mjs create <email> [--role owner|admin|writer|reader]

@@ -160,7 +160,7 @@ describe.skipIf(reason !== null)("the SDK resolving through it", () => {
   });
 
   it("fails a membership check closed until the provider has warmed", async () => {
-    // The §22.3 property, end to end through a real provider: an unconfirmed
+    // The fail-closed property, end to end through a real provider: an unconfirmed
     // positive is `unresolved`, never `member` and never `not-member`.
     const provider = new RedisSegmentCache(client);
     provider.register(["big"]);

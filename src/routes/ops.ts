@@ -16,7 +16,7 @@
  * readiness answers "should the load balancer send me work".
  *
  * Readiness deliberately fails on **partition runway below two days**. That is
- * the §7.9 failure nobody sees coming: partitions stop being created, inserts
+ * the failure nobody sees coming: partitions stop being created, inserts
  * keep succeeding until the last premade partition ends, and then the analytics
  * ingest path starts throwing at midnight. Two days of warning is the whole
  * point of `p_premake => 7`.
@@ -119,7 +119,7 @@ export function registerOpsRoutes(router: Router, deps: OpsDeps): Router {
   router.get("/live", (ctx: RequestContext) => {
     void ctx;
     // 503 while draining, so the load balancer stops sending new work before
-    // the process stops accepting it (§16 rolling deploys).
+    // the process stops accepting it (rolling deploys).
     if (deps.isShuttingDown?.() === true) {
       return { status: 503, body: { status: "shutting_down" } };
     }

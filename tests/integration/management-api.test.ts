@@ -1,7 +1,7 @@
 /**
  * The management API against real Postgres and real Redis.
  *
- * These are the tests the production review's §8 and §18 actually ask for, and
+ * These are the tenant-isolation and concurrent-edit tests, and
  * they cannot be written against mocks: tenant isolation is a property of the
  * SQL, optimistic concurrency is a property of `FOR UPDATE` under a real
  * transaction, and "the audit row and the config commit together" is only true
@@ -216,7 +216,7 @@ describe.skipIf(reason !== null)("management API", () => {
   /* ── optimistic concurrency ────────────────────────────────── */
 
   it("refuses the second of two concurrent edits instead of losing one", async () => {
-    // The §18 scenario, exactly: one engineer changes targeting, the other
+    // The concurrent-edit scenario, exactly: one engineer changes targeting, the other
     // changes the rollout, both save.
     const path = await seedTenant("tenant-race");
     const current = (await (await call(path)).json()) as { version: number };
@@ -369,7 +369,7 @@ describe.skipIf(reason !== null)("management API", () => {
     expect(response.status).toBe(404);
   });
 
-  /* ── kill switch (§23-A) ────────────────────────────────────── */
+  /* ── kill switch ───────────────────────────────────────────── */
 
   it("turns a flag off without an expected version", async () => {
     const path = await seedTenant("tenant-kill");

@@ -1,5 +1,5 @@
 /**
- * Serving the dashboard (dashboard/PLAN.md §3).
+ * Serving the dashboard.
  *
  * The control plane serves its own UI at `/admin`. Not a second deployment, not
  * a second thing to run: if featurekit is up, the way to turn a flag off is up.

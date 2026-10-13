@@ -16,7 +16,7 @@
  * that carries kill switches.
  *
  * Positives are probabilistic (eps ~= 0.012% at f=16) and are confirmed against
- * a resolved membership set (§9.7 step 2). Negatives are exact and final.
+ * a resolved membership set. Negatives are exact and final.
  *
  * @see docs/evaluation/segments.md
  */
@@ -252,7 +252,7 @@ export class CuckooFilter {
     return this.insertRaw(this.indexOf(key), this.fingerprintOf(key));
   }
 
-  /** Exact for negatives. Positives are confirmed upstream (§9.7 step 2). */
+  /** Exact for negatives. Positives are confirmed upstream. */
   contains(key: string): boolean {
     const fp = this.fingerprintOf(key);
     const i = this.indexOf(key);

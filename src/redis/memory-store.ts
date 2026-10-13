@@ -118,7 +118,7 @@ export class MemorySnapshotStore implements SnapshotStore {
 }
 
 /**
- * The §10.3 resume table, shared by every implementation so the four outcomes
+ * The resume table, shared by every implementation so the four outcomes
  * cannot be spelled differently in two places.
  *
  * | `Last-Event-ID` vs history | Action |

@@ -1,5 +1,5 @@
 {
-  "$comment": "Expected values are derived from the §9.1 precedence table by hand. Rollout expectations follow from the boundary buckets pinned in bucketing.json.",
+  "$comment": "Expected values are derived from the precedence order by hand. Rollout expectations follow from the boundary buckets pinned in bucketing.json.",
   "cases": [
     {
       "name": "flag absent from the snapshot serves the caller default",

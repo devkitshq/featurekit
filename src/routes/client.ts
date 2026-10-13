@@ -193,7 +193,7 @@ export function registerClientRoutes(router: Router, deps: ClientRouteDeps): Rou
   /**
    * Re-evaluate and push to every connection in an environment.
    *
-   * This is the path §11.5 is about: without the fingerprint collapse, one
+   * This is the hot path for fan-out: without the fingerprint collapse, one
    * toggle against 50,000 connections is 50,000 evaluations and 50,000 SSE
    * writes, triggered by the most routine action in the product.
    */

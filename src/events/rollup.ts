@@ -14,7 +14,7 @@
  *   this "single writer per shard" rather than "single writer".
  *
  * **A missing partition is treated as a first-class outcome, not an exception.**
- * §7.9 forbids a DEFAULT partition, so an insert whose `bucket_at` has no
+ * There is deliberately no DEFAULT partition, so an insert whose `bucket_at` has no
  * partition fails loudly — correctly. The worker catches exactly that, sends
  * the batch to the DLQ and keeps going, because a stalled drain becomes an
  * unbounded buffer, and an unbounded buffer in the analytics path is how

@@ -237,7 +237,7 @@ export class SnapshotService {
     const existing = this.lastKnownGood.get(environmentId);
     // Never move backwards. A store that answers with an older version — after a
     // Postgres restore, or a replica serving a stale read — must not overwrite a
-    // newer snapshot this node already proved (§5 version rollback, Scenario D).
+    // newer snapshot this node already proved (version rollback).
     if (existing !== undefined && existing.version > version) return;
     this.lastKnownGood.set(environmentId, { snapshot, version, at: Date.now() });
   }

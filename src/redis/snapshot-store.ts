@@ -9,7 +9,7 @@
  * recompiling at once.
  *
  * **Nothing here is authoritative.** Postgres is truth; every method's failure
- * mode is "recompile from Postgres", which is why §8 can mark the patch stream
+ * mode is "recompile from Postgres", which is why the patch stream can be marked
  * lossy without hedging.
  *
  * @see docs/control-plane/change-propagation.md
@@ -43,7 +43,7 @@ export interface SnapshotStore {
   /**
    * Patches strictly after `version`, or `null` when replay is impossible.
    *
-   * `null` is not an error — it means "send a full `put`", which §10.3 lists as
+   * `null` is not an error — it means "send a full `put`", which the resume table lists as
    * the correct outcome for three distinct situations: the SDK was disconnected
    * across more than `depth` changes, history is empty because Redis restarted,
    * or the SDK claims a version ahead of history (a rolled-back database).
@@ -61,7 +61,7 @@ export interface SnapshotStore {
    * patch history describing a snapshot the store did not hold. Worse, a
    * subscriber woken by the broadcast could read the *previous* snapshot under
    * the new version and cache it, which is a stale configuration that looks
-   * fresh — the §5 "internally consistent but semantically stale" failure.
+   * fresh — the "internally consistent but semantically stale" failure.
    *
    * Implementations must apply all of it or none of it.
    */

@@ -166,7 +166,7 @@ export class HyperLogLog {
  * Fabricating a sketch from the number — hashing N synthetic ids — was the
  * tempting alternative and is worse than useless: it produces a sketch that
  * merges cleanly and is confidently wrong, which is precisely the "telemetry
- * that lies" §17 asks about. It also costs N hashes on the ingest path.
+ * that lies" failure. It also costs N hashes on the ingest path.
  *
  * The real fix is an SDK that ships its own sketch, which is why the wire
  * format accepts one already.

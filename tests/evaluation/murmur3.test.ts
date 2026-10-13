@@ -6,7 +6,7 @@ const utf8 = (s: string) => new TextEncoder().encode(s);
 /**
  * Reference MurmurHash3_x86_32 vectors. These are published values for the
  * canonical Austin Appleby implementation — NOT captured from this codebase.
- * §9.5 rule 1: the corpus must not certify the implementation against itself.
+ * The corpus must not certify the implementation against itself.
  */
 describe("murmur3 x86_32 — published reference vectors", () => {
   const vectors: [input: string, seed: number, expected: number][] = [

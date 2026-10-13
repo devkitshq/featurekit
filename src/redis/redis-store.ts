@@ -186,8 +186,8 @@ export class RedisSnapshotStore implements SnapshotStore {
    * streams. It is wrong here, and a container-backed contract test is what
    * caught it: with `~`, a stream configured for 5 entries keeps rather more,
    * so `patchesSince` could replay from a version the memory store considers
-   * long gone. The two implementations then disagree about the one thing §10.3
-   * defines precisely — when a reconnect degrades to a full `put` — and they
+   * long gone. The two implementations then disagree about the one thing the
+   * resume table defines precisely — when a reconnect degrades to a full `put` — and they
    * disagree only under load, on one of them, in production.
    *
    * The cost argument does not apply at this size: the stream is capped at a

@@ -73,8 +73,8 @@ describe("CuckooFilter - membership", () => {
 
   it("holds a false-positive rate near the pinned 0.012% at f=16", () => {
     // eps ~= 2b/2^f = 8/65536 = 0.0122%. Asserted with headroom, since this is
-    // a targeting-accuracy budget rather than a correctness bug (§9.7 step 2
-    // confirms every positive).
+    // a targeting-accuracy budget rather than a correctness bug (the segment
+    // cache confirms every positive).
     const f = buildCuckooFilter(members(50_000)).filter;
     const probes = members(200_000, "nonmember_");
     const fp = probes.filter((k) => f.contains(k)).length;

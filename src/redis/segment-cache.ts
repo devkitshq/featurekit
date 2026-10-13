@@ -3,7 +3,7 @@
  *
  * **The problem this solves.** A ten-million-member segment cannot live in the
  * heap of every SDK process — `Set<string>` at that size is well over a gigabyte
- * — and it cannot be inlined into a snapshot every SDK downloads. §9.7's answer
+ * — and it cannot be inlined into a snapshot every SDK downloads. The answer
  * is a two-part split: a small deletable filter ships in the snapshot and gives
  * an exact *negative* with no I/O, and the positives it lets through are
  * confirmed against a resolved membership set. This is that set, kept in Redis

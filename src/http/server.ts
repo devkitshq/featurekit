@@ -1,12 +1,12 @@
 /**
- * The HTTP listener: routing, middleware, error mapping, the SSE primitives
- * §10.2 needs, and the drain sequence §16 needs.
+ * The HTTP listener: routing, middleware, error mapping, the SSE primitives,
+ * and the drain sequence a rolling deploy needs.
  *
  * **Shutdown is the part that is easy to get wrong and expensive to get wrong.**
  * `closeAllConnections()` on its own severs every live SSE stream the instant a
  * deploy starts. With thousands of connected SDKs on a rolling deploy that is a
  * synchronised reconnect storm pointed at the nodes that are still up — the
- * §6 thundering herd, self-inflicted, on every release. So the sequence is:
+ * thundering herd, self-inflicted, on every release. So the sequence is:
  * fail readiness, stop accepting, tell every stream to reconnect *with a
  * jittered delay*, let in-flight requests finish, and only then close sockets.
  */

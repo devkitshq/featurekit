@@ -8,7 +8,7 @@
  * 1. **Fail fast and loudly on bad configuration**, before binding a port.
  * 2. **Shut down gracefully on SIGTERM**, which is what an orchestrator sends
  *    first. Without a handler, Node exits immediately and every SSE connection
- *    is severed mid-deploy — the §6 reconnect storm, on every release.
+ *    is severed mid-deploy — a reconnect storm, on every release.
  * 3. **Never shut down twice.** A second SIGTERM during a drain must not start a
  *    second drain; it should be the operator's escape hatch to exit now.
  * 4. **Die on an unhandled rejection rather than continuing in an unknown

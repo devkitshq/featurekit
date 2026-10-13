@@ -58,7 +58,7 @@ export function hashKey(key: string): string {
  * How a key is stored, given its kind.
  *
  * Returns exactly one of `keyHash` / `keyPublic`, matching the two nullable
- * columns in §7.2. Storing a server key in the clear, or hashing a client key
+ * columns on `sdk_keys`. Storing a server key in the clear, or hashing a client key
  * the dashboard then cannot display, are both one typo away without this.
  */
 export function storageFor(

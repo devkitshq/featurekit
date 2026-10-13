@@ -24,7 +24,7 @@ import type {
  */
 
 describe("bucketing corpus", () => {
-  it("carries non-ASCII keys and boundary-adjacent buckets by construction (§9.5 rule 2)", () => {
+  it("carries non-ASCII keys and boundary-adjacent buckets by construction", () => {
     const values = bucketingCorpus.cases.map((c) => c.value);
     expect(values.some((v) => /[^\0-]/.test(v))).toBe(true);
     const buckets = bucketingCorpus.cases.map((c) => c.expected);
@@ -68,7 +68,7 @@ describe("bucketing corpus", () => {
 /**
  * The corpus spells an unconfirmable segment as `kind: "unresolvable"`. The
  * runner realises it as a cuckoo filter that admits the case's context key
- * with no confirmation set loaded — the exact cold-start condition of §9.7.
+ * with no confirmation set loaded — the exact cold-start condition.
  */
 function buildSegments(
   segments: Record<string, unknown>,
@@ -132,7 +132,7 @@ describe("evaluation corpus", () => {
     }
   });
 
-  it("covers both polarities of the unresolved-segment case (§18 exit criteria)", () => {
+  it("covers both polarities of the unresolved-segment case", () => {
     // Walks the parsed structure rather than matching serialized text: the
     // corpus is pretty-printed on disk but compact once re-stringified, so a
     // string match here silently passes by never matching anything.

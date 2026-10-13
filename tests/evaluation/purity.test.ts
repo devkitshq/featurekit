@@ -13,7 +13,7 @@ import { describe, expect, it } from "vitest";
  * boundary used to make `../../db/schema.js` inexpressible, and a directory
  * boundary does not.
  *
- * §5: "Enforced by a lint rule, not good intentions." This is that rule.
+ * Enforced by a test, not good intentions.
  */
 const DIR = join(process.cwd(), "src/sdk/evaluation");
 const files = readdirSync(DIR).filter((f) => f.endsWith(".ts"));

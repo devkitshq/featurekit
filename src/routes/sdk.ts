@@ -184,7 +184,7 @@ export function registerSdkRoutes(router: Router, deps: SdkRouteDeps): Router {
       sent = snapshot.version;
     };
 
-    // Resume, per the §10.3 table. `null` from `patchesSince` covers all three
+    // Resume, per the resume table. `null` from `patchesSince` covers all three
     // situations that require a full `put`, and the response is identical for
     // each, so they are not distinguished here.
     const lastEventId = Number(ctx.header("last-event-id"));

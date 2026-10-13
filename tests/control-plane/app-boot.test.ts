@@ -3,7 +3,7 @@
  *
  * Before `src/app.ts` existed, every part of this system was only ever
  * assembled inside a test file — which meant "can it start" had no answer, and
- * §16, §13 and all of §23 had nothing to run against.
+ * operability, capacity and the adversarial scenarios had nothing to run against.
  *
  * These tests deliberately point the app at a **dead Postgres and a dead
  * Redis**, because that is the interesting case: a control plane that only
@@ -76,7 +76,7 @@ describe("the app boots with nothing behind it", () => {
   });
 
   it("labels metrics with the route pattern, never the request path", async () => {
-    // §17: labelling on the path is one series per environment key.
+    // Labelling on the path is one series per environment key.
     const { base } = await start();
     await fetch(`${base}/v1/snapshot/production-eu-1`, {
       headers: { authorization: "Bearer fk_srv_nope" },

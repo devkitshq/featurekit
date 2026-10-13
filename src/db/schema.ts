@@ -12,8 +12,8 @@
  *   variation; with an array you get bare integer indices with no referential
  *   integrity, and reordering silently rewrites every rule in the project.
  *
- * Experiments, metrics and metric events are **not** here — see §20 for why
- * they were removed and what v1 preserves so they can land later.
+ * Experiments, metrics and metric events are **not** here; v1 preserves what
+ * they need so they can land later.
  *
  * @see docs/storage/schema.md
  */
@@ -93,7 +93,7 @@ export const environments = pgTable(
   },
   (t) => [
     unique("environments_project_key_uq").on(t.projectId, t.key),
-    /** Target for the composite FK in §7.6, so a segment's env and project agree. */
+    /** Target for the composite FK on segments, so a segment's env and project agree. */
     unique("env_project_id_id_uq").on(t.projectId, t.id),
   ],
 );
@@ -212,7 +212,7 @@ export const flagEnvironments = pgTable(
      * FK to `members(id)` is added in the migration rather than here: `members`
      * is declared further down this file, and a forward `references()` callback
      * is resolved eagerly enough by drizzle to hit the temporal dead zone.
-     * Declaring it in SQL keeps the §7 reading order intact.
+     * Declaring it in SQL keeps this file's reading order intact.
      */
     updatedBy: uuid("updated_by"),
   },
@@ -311,8 +311,8 @@ export const segments = pgTable(
     name: varchar("name").notNull(),
     description: text("description"),
     /**
-     * Large imported lists are not inlined into the snapshot. See §9.7 for how
-     * the SDK resolves them without a network call on the evaluation path.
+     * Large imported lists are not inlined into the snapshot. See
+     * docs/evaluation/segments.md for how the SDK resolves them without a network call on the evaluation path.
      */
     external: boolean("external").notNull().default(false),
     memberCount: integer("member_count"),
@@ -348,7 +348,7 @@ export const segmentMembers = pgTable(
      * 500k-entry dictionary to translate it — which costs more heap than the
      * Set the bitmap was meant to replace.
      *
-     * **The pattern excludes leading zeros**, unlike §7.6's `^[0-9]{1,9}$`.
+     * **The pattern excludes leading zeros**, unlike a naive `^[0-9]{1,9}$`.
      * `"07"` and `"7"` are distinct context keys but the same integer, so a
      * bitmap would answer identically for both and membership would depend on
      * how an id happened to be formatted. This agrees with `ordinalOf` in the
@@ -576,7 +576,7 @@ export const members = pgTable("members", {
 });
 
 /**
- * Dashboard sessions (dashboard/PLAN.md §2).
+ * Dashboard sessions.
  *
  * Rows rather than signed cookies, because "log this person out now" has to be
  * answerable — a stateless token is valid until it expires whatever anyone

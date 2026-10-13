@@ -174,7 +174,7 @@ describe("mergeRows", () => {
 
 describe("isMissingPartition", () => {
   it("recognises the error a stopped partition maintenance produces", () => {
-    // §7.9 forbids a DEFAULT partition, so this is a real, expected outcome with
+    // There is deliberately no DEFAULT partition, so this is a real, expected outcome with
     // its own runbook — not a transient error to retry forever.
     expect(
       isMissingPartition(

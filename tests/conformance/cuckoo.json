@@ -1,5 +1,5 @@
 {
-  "$comment": "Header fields are specified by hand from §9.7. The table bytes are encoder output: a porting SDK must read THESE bytes and find THESE members. Parameters are frozen: (2,4) partial-key cuckoo, 16-bit fingerprints, power-of-two buckets, i2 = i1 XOR h(fingerprint).",
+  "$comment": "Header fields are specified by hand from the wire format. The table bytes are encoder output: a porting SDK must read THESE bytes and find THESE members. Parameters are frozen: (2,4) partial-key cuckoo, 16-bit fingerprints, power-of-two buckets, i2 = i1 XOR h(fingerprint).",
   "header": {
     "magic": "FKCF",
     "formatVersion": 1,

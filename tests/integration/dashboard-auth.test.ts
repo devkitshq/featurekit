@@ -1,5 +1,5 @@
 /**
- * Dashboard sessions, against real Postgres (dashboard/PLAN.md §2).
+ * Dashboard sessions, against real Postgres.
  *
  * The properties worth a real database and a real socket, because each of them
  * is a way this could be wrong while every unit test passes:
