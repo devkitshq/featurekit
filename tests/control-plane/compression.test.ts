@@ -112,26 +112,26 @@ describe("compression", () => {
 describe("compressBody", () => {
   const payload = JSON.stringify(large);
 
-  it("round-trips through gzip", () => {
-    expect(gunzipSync(compressBody(payload, "gzip")).toString("utf8")).toBe(payload);
+  it("round-trips through gzip", async () => {
+    expect(gunzipSync(await compressBody(payload, "gzip")).toString("utf8")).toBe(payload);
   });
 
-  it("round-trips through brotli", () => {
-    expect(brotliDecompressSync(compressBody(payload, "br")).toString("utf8")).toBe(payload);
+  it("round-trips through brotli", async () => {
+    expect(brotliDecompressSync(await compressBody(payload, "br")).toString("utf8")).toBe(payload);
   });
 
-  it("actually shrinks a compiled-snapshot-shaped payload", () => {
+  it("actually shrinks a compiled-snapshot-shaped payload", async () => {
     const raw = Buffer.byteLength(payload);
-    const gzip = compressBody(payload, "gzip").byteLength;
-    const brotli = compressBody(payload, "br").byteLength;
+    const gzip = (await compressBody(payload, "gzip")).byteLength;
+    const brotli = (await compressBody(payload, "br")).byteLength;
     // Measured at 10,000 flags: 2.43 MB to 57 KB (gzip) and 20 KB (brotli).
     expect(gzip).toBeLessThan(raw * 0.1);
     expect(brotli).toBeLessThan(gzip);
   });
 
-  it("stays fast enough for a request path", () => {
+  it("stays fast enough for a request path", async () => {
     const started = performance.now();
-    compressBody(payload, "br");
+    await compressBody(payload, "br");
     // Quality 4, not 11: most of the ratio for a fraction of the CPU.
     expect(performance.now() - started).toBeLessThan(200);
   });

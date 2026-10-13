@@ -12,7 +12,8 @@
  */
 
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
-import { gzipSync, brotliCompressSync, constants as zlibConstants } from "node:zlib";
+import { promisify } from "node:util";
+import { gzip, brotliCompress, constants as zlibConstants } from "node:zlib";
 import { HttpError, readJson, Router, type HttpResponse, type RequestContext } from "./router.js";
 import { requestIdFrom } from "../observability/logger.js";
 import { traceContextFrom, type TraceContext } from "../observability/trace.js";
@@ -111,7 +112,7 @@ export class HttpServer {
       const matched = this.options.router.match(method, url.pathname);
       if (matched === null) {
         status = 404;
-        return send(res, {
+        return await send(res, {
           status,
           body: { error: "NOT_FOUND", path: url.pathname },
           headers: { "x-request-id": requestId },
@@ -119,7 +120,7 @@ export class HttpServer {
       }
       if (matched === "method-mismatch") {
         status = 405;
-        return send(res, {
+        return await send(res, {
           status,
           body: { error: "METHOD_NOT_ALLOWED", method },
           headers: { "x-request-id": requestId },
@@ -133,7 +134,7 @@ export class HttpServer {
         const short = await middleware(ctx);
         if (short !== undefined) {
           status = short.status;
-          return send(res, {
+          return await send(res, {
             ...short,
             headers: { ...short.headers, "x-request-id": requestId },
           });
@@ -148,7 +149,7 @@ export class HttpServer {
         return;
       }
       status = result.status;
-      send(res, {
+      await send(res, {
         ...result,
         headers: { ...result.headers, "x-request-id": requestId },
         acceptEncoding: Array.isArray(req.headers["accept-encoding"])
@@ -171,7 +172,7 @@ export class HttpServer {
       }
       if (error instanceof HttpError) {
         status = error.status;
-        send(res, {
+        await send(res, {
           status,
           body: {
             error: error.code,
@@ -186,7 +187,7 @@ export class HttpServer {
       // travels in the header instead — the caller quotes it, the operator greps
       // it — so the body stays a stable, minimal contract (§15).
       status = 500;
-      send(res, {
+      await send(res, {
         status,
         body: { error: "INTERNAL_ERROR" },
         headers: { "x-request-id": requestId },
@@ -282,22 +283,30 @@ function negotiateEncoding(accept: string | undefined): "br" | "gzip" | null {
   return null;
 }
 
+const gzipAsync = promisify(gzip);
+const brotliAsync = promisify(brotliCompress);
+
+/**
+ * Async on purpose: zlib's async forms run on the libuv threadpool. A
+ * multi-megabyte snapshot compressed synchronously stalls every open stream on
+ * the node for the duration.
+ */
 export function compressBody(
   payload: string,
   encoding: "br" | "gzip",
-): Buffer {
+): Promise<Buffer> {
   const input = Buffer.from(payload, "utf8");
   return encoding === "br"
-    ? brotliCompressSync(input, {
+    ? brotliAsync(input, {
         params: {
           [zlibConstants.BROTLI_PARAM_QUALITY]: 4,
           [zlibConstants.BROTLI_PARAM_SIZE_HINT]: input.byteLength,
         },
       })
-    : gzipSync(input, { level: 6 });
+    : gzipAsync(input, { level: 6 });
 }
 
-export function send(
+export async function send(
   res: ServerResponse,
   response: {
     status: number;
@@ -306,7 +315,7 @@ export function send(
     /** `Accept-Encoding` from the request, when the body is worth compressing. */
     acceptEncoding?: string | undefined;
   },
-): void {
+): Promise<void> {
   const headers: Record<string, string> = { ...response.headers };
   let payload: string | undefined;
   if (response.body !== undefined) {
@@ -326,7 +335,7 @@ export function send(
     // at all when nothing changed.
     const encoding = negotiateEncoding(response.acceptEncoding);
     if (encoding !== null && Buffer.byteLength(payload) >= COMPRESS_THRESHOLD_BYTES) {
-      const compressed = compressBody(payload, encoding);
+      const compressed = await compressBody(payload, encoding);
       headers["content-encoding"] = encoding;
       // Caches must not serve a compressed body to a client that cannot read it.
       headers["vary"] = headers["vary"] === undefined ? "Accept-Encoding" : `${headers["vary"]}, Accept-Encoding`;
