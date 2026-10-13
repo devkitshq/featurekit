@@ -126,10 +126,7 @@ describe("the knobs §17 specifies", () => {
     expect(c.MAX_CLIENT_CONNECTIONS).toBe(50_000);
     expect(c.STREAM_HEARTBEAT_MS).toBe(30_000);
     expect(c.SEGMENT_INLINE_MAX).toBe(50_000);
-    expect(c.SEGMENT_FILTER).toBe("auto");
     expect(c.SEGMENT_CUCKOO_FINGERPRINT_BITS).toBe(16);
-    expect(c.SEGMENT_CUCKOO_LOAD_FACTOR).toBe(0.8);
-    expect(c.SEGMENT_CUCKOO_PATCH_CEILING).toBe(0.85);
     expect(c.SEGMENT_CACHE_LRU_MAX).toBe(100_000);
     expect(c.CLIENT_EVAL_CACHE_MAX).toBe(50_000);
     expect(c.CLIENT_FANOUT_BATCH).toBe(500);
@@ -142,13 +139,6 @@ describe("the knobs §17 specifies", () => {
   it("only accepts a 12- or 16-bit cuckoo fingerprint, because the format is frozen", () => {
     expect(loadConfig({ SEGMENT_CUCKOO_FINGERPRINT_BITS: "12" }).SEGMENT_CUCKOO_FINGERPRINT_BITS).toBe(12);
     expect(() => loadConfig({ SEGMENT_CUCKOO_FINGERPRINT_BITS: "8" })).toThrow();
-  });
-
-  it("keeps the patch ceiling above the load factor it guards", () => {
-    // A ceiling below the sizing target would refuse every patch immediately.
-    expect(() =>
-      loadConfig({ SEGMENT_CUCKOO_LOAD_FACTOR: "0.85", SEGMENT_CUCKOO_PATCH_CEILING: "0.8" }),
-    ).toThrow(/ceiling/i);
   });
 
   it("requires at least two days of partition premake, matching the runway alert", () => {

@@ -55,9 +55,7 @@ export interface SnapshotServiceOptions {
   debounceMs?: number;
   patchHistoryDepth?: number;
   segmentInlineMax?: number;
-  segmentFilter?: "auto" | "roaring" | "cuckoo";
   cuckooFingerprintBits?: 12 | 16;
-  cuckooLoadFactor?: number;
   /**
    * Floor between Postgres-backed compiles for one environment while Redis is
    * unavailable. Without it, every request during a Redis outage compiles and
@@ -279,14 +277,8 @@ export class SnapshotService {
       ...(this.options.segmentInlineMax !== undefined
         ? { segmentInlineMax: this.options.segmentInlineMax }
         : {}),
-      ...(this.options.segmentFilter !== undefined
-        ? { segmentFilter: this.options.segmentFilter }
-        : {}),
       ...(this.options.cuckooFingerprintBits !== undefined
         ? { cuckooFingerprintBits: this.options.cuckooFingerprintBits }
-        : {}),
-      ...(this.options.cuckooLoadFactor !== undefined
-        ? { cuckooLoadFactor: this.options.cuckooLoadFactor }
         : {}),
     });
     return { snapshot, version, compileMs: Date.now() - startedAt };

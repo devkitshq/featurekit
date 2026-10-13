@@ -31,7 +31,7 @@ evaluator's job is to survive a *stale* snapshot, not a wrong one.
 | `PREREQUISITE_CYCLE` | Any cycle, including a self-reference |
 | `UNKNOWN_VARIATION` | A variation id that does not belong to the flag referencing it |
 | `MISSING_FALLTHROUGH` | Unreachable from a healthy database — `fallthrough_xor` prevents it |
-| `ROARING_NON_INTEGRAL` | `SEGMENT_FILTER=roaring` with a non-integral member key |
+| `ROARING_NON_INTEGRAL` | `segmentFilter: "roaring"` with a non-integral member key |
 
 That last one **fails the compile loudly** rather than silently falling back to
 cuckoo: a wrong answer is not an acceptable response to a misconfiguration.

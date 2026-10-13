@@ -143,8 +143,6 @@ export const configSchema = z
     /** Rows per round trip while reading segment members. */
     SEGMENT_MEMBER_PAGE_SIZE: z.coerce.number().int().min(1_000).max(100_000).default(25_000),
     SEGMENT_REFRESH_MS: z.coerce.number().int().min(1000).default(60_000),
-    /** `"auto"` prefers roaring when the context key is integral (§9.7). */
-    SEGMENT_FILTER: z.enum(["auto", "roaring", "cuckoo"]).default("auto"),
     /** 16 is byte-aligned (eps ~ 0.012%); 12 trades accuracy for ~25% space. */
     SEGMENT_CUCKOO_FINGERPRINT_BITS: z.coerce
       .number()
@@ -152,9 +150,6 @@ export const configSchema = z
         message: "must be 12 or 16 — the cuckoo wire format is frozen (§9.7)",
       })
       .default(16),
-    SEGMENT_CUCKOO_LOAD_FACTOR: z.coerce.number().min(0.5).max(0.9).default(0.8),
-    /** Above this, an incremental patch is refused and a full re-encode emitted. */
-    SEGMENT_CUCKOO_PATCH_CEILING: z.coerce.number().min(0.5).max(0.95).default(0.85),
     /** SDK-side: confirmed-membership LRU when a remote provider is used. */
     SEGMENT_CACHE_LRU_MAX: z.coerce.number().int().min(1_000).default(100_000),
 
@@ -192,15 +187,7 @@ export const configSchema = z
 
     DB_MAX_CONNECTIONS: z.coerce.number().int().min(1).default(10),
     WORKER_CONCURRENCY: z.coerce.number().int().min(1).default(10),
-  })
-  .refine(
-    (c) => c.SEGMENT_CUCKOO_PATCH_CEILING > c.SEGMENT_CUCKOO_LOAD_FACTOR,
-    {
-      message:
-        "SEGMENT_CUCKOO_PATCH_CEILING must exceed SEGMENT_CUCKOO_LOAD_FACTOR, or every segment patch is refused the moment the filter is built",
-      path: ["SEGMENT_CUCKOO_PATCH_CEILING"],
-    },
-  );
+  });
 
 export type FeaturekitConfig = z.infer<typeof configSchema>;
 

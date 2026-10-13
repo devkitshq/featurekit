@@ -154,10 +154,12 @@ export interface CompileOptions {
   version: number;
   /** Above this member count a segment gets a membership filter (§17). */
   segmentInlineMax?: number;
-  /** `"auto"` prefers roaring when every member key is integral. */
+  /**
+   * `"auto"` prefers roaring when every member key is integral. The other two
+   * force an encoding, for tests.
+   */
   segmentFilter?: "auto" | "roaring" | "cuckoo";
   cuckooFingerprintBits?: 12 | 16;
-  cuckooLoadFactor?: number;
 }
 
 export type CompileErrorCode =
@@ -484,7 +486,7 @@ function compileSegments(
       const offender = included.find((key) => ordinalOf(key) === null);
       throw new CompileError(
         "ROARING_NON_INTEGRAL",
-        `segment ${segment.key}: SEGMENT_FILTER=roaring but member key ${JSON.stringify(offender)} is non-integral`,
+        `segment ${segment.key}: segmentFilter is roaring but member key ${JSON.stringify(offender)} is non-integral`,
       );
     }
 
@@ -506,12 +508,12 @@ function compileSegments(
       continue;
     }
 
-    const built = buildCuckooFilter(included, {
-      ...(options.cuckooFingerprintBits !== undefined
+    const built = buildCuckooFilter(
+      included,
+      options.cuckooFingerprintBits !== undefined
         ? { fingerprintBits: options.cuckooFingerprintBits }
-        : {}),
-      ...(options.cuckooLoadFactor !== undefined ? { loadFactor: options.cuckooLoadFactor } : {}),
-    });
+        : {},
+    );
     out[segment.key] = {
       ...base,
       kind: "cuckoo",

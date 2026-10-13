@@ -29,12 +29,7 @@ Signing uses the first; verification tries all. Rotation is two ordinary
 deploys: add the new secret second, deploy; promote it to first, deploy. Drop the
 old one on a third.
 
-## Cross-field validation
-
-`SEGMENT_CUCKOO_PATCH_CEILING` must exceed `SEGMENT_CUCKOO_LOAD_FACTOR`. A
-ceiling below the sizing target would refuse every segment patch the moment the
-filter was built — a configuration that is individually valid on both fields and
-useless together.
+## Validation
 
 `SEGMENT_CUCKOO_FINGERPRINT_BITS` accepts only 12 or 16, because the cuckoo wire
 format is frozen (§9.7). Any other value would produce filters no other SDK can
