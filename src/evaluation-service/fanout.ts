@@ -215,7 +215,7 @@ export class ClientFanout {
       for (const connection of connections) {
         const fingerprint = fingerprintOf(connection.context, referenced);
         seenFingerprints.add(fingerprint);
-        const cacheKey = `${snapshot.version} ${flagKey} ${fingerprint}`;
+        const cacheKey = `${snapshot.version}\0${flagKey}\0${fingerprint}`;
 
         let value = this.cache.get(cacheKey);
         if (value === undefined) {

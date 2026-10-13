@@ -652,7 +652,7 @@ export function auditEntryHash(input: {
     input.entityKey ?? "",
     canonicalJson(input.diff ?? null),
     input.comment ?? "",
-  ].join(" ");
+  ].join("\0");
   return createHash("sha256").update(canonical, "utf8").digest("hex");
 }
 
