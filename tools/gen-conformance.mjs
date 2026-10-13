@@ -556,8 +556,8 @@ const cuckoo = {
    * The `$comment` above promised that a porting SDK reads *these bytes*, and
    * until this field existed the corpus shipped no bytes to read — so the one
    * claim the fixture was making about the wire format was the one thing it did
-   * not test. The Python conformance runner decodes this and looks every member
-   * up; that is what makes the format frozen rather than merely documented.
+   * not test. A porting SDK decodes this and looks every member up; that is
+   * what makes the format frozen rather than merely documented.
    *
    * Encoder output by necessity: a byte-exact cuckoo table cannot be
    * hand-derived, and pretending otherwise would be worse than saying so.

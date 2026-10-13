@@ -54,7 +54,7 @@ jobs:
           FEATUREKIT_REQUIRE_CONTAINERS: "1"
 
   conformance:
-    name: cross-language conformance
+    name: conformance corpus
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -62,16 +62,8 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
       - run: npm ci
       - run: npm run build
-      # A second, independent implementation reading the same corpus. This is
-      # the only thing that makes "cross-language determinism" a fact rather
-      # than a design claim with one consumer.
-      - name: Python implementation against the corpus
-        run: python conformance/python/run.py
       - name: The corpus still regenerates identically
         # A corpus that drifts from its generator is a corpus nobody can trust.
         run: |

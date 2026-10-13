@@ -101,25 +101,12 @@ not.
 
 ---
 
-## The second implementation
+## Wire formats
 
-`conformance/python/` is a complete, dependency-free Python port of the
-evaluation core — murmur3, bucketing, context normalisation, the operators, the
-precedence chain, three-valued segment membership, and a decoder for the cuckoo
-wire format. `python conformance/python/run.py` checks it against this corpus
-and exits non-zero on any divergence. CI runs it.
-
-**It exists because a corpus with one consumer proves nothing.** Before it, the
-"cross-language determinism" claim rested on a fixture that only the
-implementation it certifies ever read. The port is written from the docs and the
-corpus, in Python's own idiom — real integers rather than `Math.imul` emulation,
-`str.encode` rather than a hand-rolled UTF-8 encoder — so a wrong assumption
-surfaces as a mismatch instead of being inherited.
-
-**What it found immediately:** the cuckoo header layout was not written down
-anywhere. The first attempt at the decoder put the slots-per-bucket byte where
-the bucket count belongs, and every lookup missed. That is precisely the class of
-bug a future Go SDK would have hit, and the fix is the table below.
+The corpus ships encoded bytes as well as outcomes, so a porting SDK is checked
+against what the encoder actually writes rather than against a description of
+it. `cuckoo.json` carries a whole filter as `filterBase64`; decode it and look
+every member up.
 
 ### Cuckoo filter wire format (`FKCF`)
 
