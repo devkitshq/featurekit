@@ -40,6 +40,7 @@ import { sql } from "drizzle-orm";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createDatabase, runMigrations } from "./db/client.js";
+import { DEFAULT_SCHEMA } from "./db/schema-name.js";
 
 /** `dist/migrate.js` → the package root, where `drizzle/` lives. */
 const PACKAGE_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -58,6 +59,8 @@ const DEFAULT_PARTITION_PREMAKE_DAYS = 7;
 export interface MigrateOptions {
   /** Defaults to `DATABASE_URL`. */
   databaseUrl?: string;
+  /** Defaults to `DATABASE_SCHEMA`, then `public`. Created if it does not exist. */
+  schema?: string;
   /** Where the SQL lives. Defaults to the package's own `drizzle/`. */
   migrationsFolder?: string;
   /** How far ahead to create analytics partitions. */
@@ -80,6 +83,10 @@ function urlFrom(options: MigrateOptions | undefined): string {
   return url;
 }
 
+function schemaFrom(options: MigrateOptions | undefined): string {
+  return options?.schema ?? process.env["DATABASE_SCHEMA"] ?? DEFAULT_SCHEMA;
+}
+
 /**
  * Apply every outstanding migration, then make sure the analytics table has
  * partitions to write into.
@@ -94,16 +101,17 @@ function urlFrom(options: MigrateOptions | undefined): string {
  */
 export async function migrate(options: MigrateOptions = {}): Promise<void> {
   const log = options.log ?? ((): void => undefined);
-  const { db, close } = createDatabase({ url: urlFrom(options), maxConnections: 1 });
+  const schema = schemaFrom(options);
+  const { db, close } = createDatabase({ url: urlFrom(options), schema, maxConnections: 1 });
   try {
     // Advisory locks live for the session, so this is released when the
     // connection closes — including if the process is killed mid-migration.
     await db.execute(sql`select pg_advisory_lock(${MIGRATION_LOCK}::bigint)`);
     try {
-      await runMigrations(db, options.migrationsFolder ?? join(PACKAGE_ROOT, "drizzle"));
+      await runMigrations(db, options.migrationsFolder ?? join(PACKAGE_ROOT, "drizzle"), schema);
       const premake = options.partitionPremakeDays ?? DEFAULT_PARTITION_PREMAKE_DAYS;
       await db.execute(sql`select featurekit_ensure_partitions(${premake})`);
-      log("migrations applied");
+      log(`migrations applied to schema ${schema}`);
     } finally {
       await db.execute(sql`select pg_advisory_unlock(${MIGRATION_LOCK}::bigint)`);
     }
@@ -120,12 +128,13 @@ export async function migrate(options: MigrateOptions = {}): Promise<void> {
  * with no partition to land in — arrives without a deploy to blame.
  */
 export async function migrationStatus(options: MigrateOptions = {}): Promise<MigrationStatus> {
-  const { db, close } = createDatabase({ url: urlFrom(options), maxConnections: 1 });
+  const schema = schemaFrom(options);
+  const { db, close } = createDatabase({ url: urlFrom(options), schema, maxConnections: 1 });
   try {
     let appliedCount = 0;
     try {
       const applied = await db.execute(
-        sql`select count(*)::int as count from drizzle.__drizzle_migrations`,
+        sql`select count(*)::int as count from ${sql.identifier(schema)}.__drizzle_migrations`,
       );
       const count = (applied as unknown as Array<{ count?: unknown }>)[0]?.count;
       appliedCount = typeof count === "number" ? count : 0;

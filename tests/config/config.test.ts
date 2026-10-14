@@ -145,3 +145,19 @@ describe("the documented knobs", () => {
     expect(() => loadConfig({ ROLLUP_PARTITION_PREMAKE_DAYS: "1" })).toThrow();
   });
 });
+
+describe("database schema", () => {
+  it("defaults to public", () => {
+    expect(loadConfig({}).DATABASE_SCHEMA).toBe("public");
+  });
+
+  it("accepts a plain lowercase identifier", () => {
+    expect(loadConfig({ DATABASE_SCHEMA: "featurekit_prod" }).DATABASE_SCHEMA).toBe("featurekit_prod");
+  });
+
+  it("rejects names that would need quoting, and system schemas", () => {
+    for (const name of ["Flags", "flags-a", "1flags", "pg_flags", "", "a".repeat(64)]) {
+      expect(() => loadConfig({ DATABASE_SCHEMA: name }), name).toThrow(/DATABASE_SCHEMA/);
+    }
+  });
+});

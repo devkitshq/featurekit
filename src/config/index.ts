@@ -13,6 +13,7 @@
  */
 
 import { z } from "zod";
+import { DEFAULT_SCHEMA, isValidSchemaName } from "../db/schema-name.js";
 
 const logLevels = ["fatal", "error", "warn", "info", "debug", "trace", "silent"] as const;
 
@@ -30,6 +31,16 @@ export const configSchema = z
     DATABASE_URL: z
       .url()
       .default("postgres://featurekit:featurekit@localhost:5432/featurekit"),
+    /**
+     * The Postgres schema featurekit owns: its tables, types, functions and
+     * migration history. Created by the migrations if missing.
+     */
+    DATABASE_SCHEMA: z
+      .string()
+      .refine(isValidSchemaName, {
+        message: "must be a lowercase identifier (letters, digits, underscores), not starting with pg_",
+      })
+      .default(DEFAULT_SCHEMA),
     REDIS_URL: z.url().default("redis://localhost:6379"),
     /** TLS to a managed Redis. A `rediss://` URL implies it; this forces it. */
     REDIS_TLS: z.coerce.boolean().default(false),

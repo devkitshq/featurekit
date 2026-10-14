@@ -55,6 +55,11 @@ export interface FeaturekitServerOptions {
   port?: number;
   host?: string;
   databaseUrl?: string;
+  /**
+   * Postgres schema for everything featurekit stores. Defaults to
+   * `DATABASE_SCHEMA`, then `public`; migrations create it if missing.
+   */
+  databaseSchema?: string;
   redisUrl?: string;
   nodeEnv?: "development" | "test" | "production";
   logLevel?: "fatal" | "error" | "warn" | "info" | "debug" | "trace" | "silent";
@@ -275,6 +280,9 @@ export class FeaturekitServer {
       // it was silently not applying.
       ...(isProduction && !databaseExplicit ? {} : { DATABASE_URL: databaseUrl }),
       ...(isProduction && !redisExplicit ? {} : { REDIS_URL: redisUrl }),
+      ...(this.options.databaseSchema !== undefined
+        ? { DATABASE_SCHEMA: this.options.databaseSchema }
+        : {}),
       ...(this.options.port !== undefined ? { PORT: String(this.options.port) } : {}),
       ...(this.options.host !== undefined ? { HOST: this.options.host } : {}),
       ...(this.options.logLevel !== undefined ? { LOG_LEVEL: this.options.logLevel } : {}),
@@ -299,7 +307,7 @@ export class FeaturekitServer {
     /* migrations */
 
     if (this.options.autoMigrate ?? !isProduction) {
-      await this.#migrate(config.DATABASE_URL, log);
+      await this.#migrate(config.DATABASE_URL, config.DATABASE_SCHEMA, log);
     }
 
     /* the system itself */
@@ -308,6 +316,10 @@ export class FeaturekitServer {
       ...(this.options.services !== undefined ? { services: this.options.services } : {}),
     });
     this.#app = app;
+
+    // Before seeding, so a wrong or unmigrated schema is reported as that rather
+    // than as a missing table.
+    await app.verifyDatabase();
 
     // Before the socket opens, so a deployment cannot be reachable in the
     // window where it has a dashboard and no way to log into it.
@@ -318,7 +330,11 @@ export class FeaturekitServer {
     this.#address = { ...bound, url: `http://${host}:${bound.port}` };
 
     if (!isProduction && this.options.devStateFile !== false) {
-      await this.#writeDevState({ databaseUrl: databaseUrl ?? config.DATABASE_URL, redisUrl: redisUrl ?? config.REDIS_URL }).catch(() => {
+      await this.#writeDevState({
+        databaseUrl: databaseUrl ?? config.DATABASE_URL,
+        databaseSchema: config.DATABASE_SCHEMA,
+        redisUrl: redisUrl ?? config.REDIS_URL,
+      }).catch(() => {
         // A demo that cannot write a scratch file should still serve flags.
         log("could not write the dev state file; scripts will need explicit URLs");
       });
@@ -515,7 +531,11 @@ export class FeaturekitServer {
    * Only the addresses — no token, no key. A file under the working directory
    * that contained a credential would be a file somebody commits.
    */
-  async #writeDevState(addresses: { databaseUrl: string; redisUrl: string }): Promise<void> {
+  async #writeDevState(addresses: {
+    databaseUrl: string;
+    databaseSchema: string;
+    redisUrl: string;
+  }): Promise<void> {
     const path =
       typeof this.options.devStateFile === "string"
         ? this.options.devStateFile
@@ -527,6 +547,7 @@ export class FeaturekitServer {
         {
           url: this.#address?.url,
           databaseUrl: addresses.databaseUrl,
+          databaseSchema: addresses.databaseSchema,
           redisUrl: addresses.redisUrl,
           services: this.options.services ?? ["all"],
           startedAt: new Date().toISOString(),
@@ -547,10 +568,14 @@ export class FeaturekitServer {
    * because an advisory lock lives for the session and the pool's connections
    * outlive this step.
    */
-  async #migrate(databaseUrl: string, log: (message: string) => void): Promise<void> {
+  async #migrate(
+    databaseUrl: string,
+    schema: string,
+    log: (message: string) => void,
+  ): Promise<void> {
     // The same function a deploy job calls, so `autoMigrate` and a separate
     // step cannot drift apart — and so both take the same advisory lock.
-    await migrate({ databaseUrl, log });
+    await migrate({ databaseUrl, schema, log });
   }
 
   /**

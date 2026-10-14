@@ -29,22 +29,28 @@ import { PasswordError, MIN_PASSWORD_LENGTH } from "../dist/auth/passwords.js";
 
 const ROLES = ["owner", "admin", "writer", "reader"];
 
-async function databaseUrl() {
-  if (process.env["DATABASE_URL"] !== undefined) return process.env["DATABASE_URL"];
+async function devState() {
   try {
     // A development server records the Postgres it resolved, which may be on a
     // port it chose. Without this the CLI would talk to a different database
     // than the server and report that the account it just made does not exist.
-    const state = JSON.parse(
-      await readFile(join(process.cwd(), ".featurekit", "dev.json"), "utf8").catch(() =>
-        readFile(join(process.cwd(), ".featurekit", "dev.json"), "utf8"),
-      ),
-    );
-    if (typeof state.databaseUrl === "string") return state.databaseUrl;
+    return JSON.parse(await readFile(join(process.cwd(), ".featurekit", "dev.json"), "utf8"));
   } catch {
-    /* no dev state; fall through to the default */
+    return {};
   }
-  return "postgres://featurekit:featurekit@127.0.0.1:5432/featurekit";
+}
+
+async function database() {
+  const state = await devState();
+  const url =
+    process.env["DATABASE_URL"] ??
+    (typeof state.databaseUrl === "string"
+      ? state.databaseUrl
+      : "postgres://featurekit:featurekit@127.0.0.1:5432/featurekit");
+  const schema =
+    process.env["DATABASE_SCHEMA"] ??
+    (typeof state.databaseSchema === "string" ? state.databaseSchema : undefined);
+  return { url, ...(schema !== undefined ? { schema } : {}) };
 }
 
 /** Read a line with the terminal's echo turned off. */
@@ -80,7 +86,7 @@ const role = (() => {
   return at === -1 ? "writer" : process.argv[at + 1];
 })();
 
-const { db, close } = createDatabase({ url: await databaseUrl(), maxConnections: 2 });
+const { db, close } = createDatabase({ ...(await database()), maxConnections: 2 });
 
 try {
   switch (command) {

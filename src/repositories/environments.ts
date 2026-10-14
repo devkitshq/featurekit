@@ -82,11 +82,6 @@ export async function listEnvironments(db: Database): Promise<EnvironmentRecord[
 
 /* ─────────────────────────── operational queries ─────────────────────── */
 
-/** Cheapest possible round trip. Readiness, not a health opinion. */
-export async function pingDatabase(db: Database): Promise<void> {
-  await db.execute(sql`select 1`);
-}
-
 /**
  * Days of pre-created `evaluation_summaries` partitions remaining.
  *

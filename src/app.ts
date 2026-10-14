@@ -18,7 +18,7 @@
  * can act on.
  */
 
-import { createDatabase, type Database } from "./db/client.js";
+import { createDatabase, inspectSchema, verifySchema, type Database } from "./db/client.js";
 import { commaList, secureModeSecrets, type FeaturekitConfig } from "./config/index.js";
 import { createLogger, type Logger } from "./observability/logger.js";
 import { Metrics } from "./observability/metrics.js";
@@ -38,7 +38,6 @@ import {
   listEnvironments,
   nextSnapshotVersion,
   partitionRunwayDays,
-  pingDatabase,
 } from "./repositories/environments.js";
 import { SdkKeyRepository } from "./repositories/sdk-keys.js";
 import { AccessTokenRepository } from "./repositories/access-tokens.js";
@@ -62,6 +61,12 @@ export interface App {
   snapshots: SnapshotService;
   metrics: Metrics;
   logger: Logger;
+  /**
+   * Fails unless connections are in the configured schema and it is migrated.
+   * `listen()` deliberately does not: a node with no database still boots and
+   * reports not-ready, which `/ready` does for a wrong schema too.
+   */
+  verifyDatabase(): Promise<void>;
   listen(): Promise<{ host: string; port: number }>;
   close(): Promise<void>;
 }
@@ -138,6 +143,7 @@ export function createApp(config: FeaturekitConfig, options: CreateAppOptions = 
 
   const { db, close: closeDatabase } = createDatabase({
     url: config.DATABASE_URL,
+    schema: config.DATABASE_SCHEMA,
     maxConnections: config.DB_MAX_CONNECTIONS,
   });
 
@@ -398,8 +404,11 @@ export function createApp(config: FeaturekitConfig, options: CreateAppOptions = 
   registerOpsRoutes(router, {
     metrics,
     checkDatabase: async () => {
-      await pingDatabase(db);
-      return { state: "ok" };
+      // One round trip that is also the reachability check.
+      const schema = await inspectSchema(db, config.DATABASE_SCHEMA);
+      return schema.state === "ok"
+        ? { state: "ok" }
+        : { state: "failed", detail: `schema ${schema.state}` };
     },
     checkRedis: async () => {
       // The breaker's own view first: when it is open, commands are failing
@@ -455,6 +464,10 @@ export function createApp(config: FeaturekitConfig, options: CreateAppOptions = 
     snapshots,
     metrics,
     logger,
+
+    async verifyDatabase() {
+      await verifySchema(db, config.DATABASE_SCHEMA);
+    },
 
     async listen() {
       if (services.has("rollup")) rollup.start();
