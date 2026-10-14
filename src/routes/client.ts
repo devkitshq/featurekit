@@ -215,7 +215,7 @@ export function registerClientRoutes(router: Router, deps: ClientRouteDeps): Rou
             .map((f) => f.key)
         : [flagKey];
 
-    const computed = fanout.fanout(snapshot, changed, live);
+    const computed = fanout.fanout(environmentId, snapshot, changed, live);
 
     for (const connection of live) {
       const values = computed.get(connection.id);
@@ -262,7 +262,7 @@ export function registerClientRoutes(router: Router, deps: ClientRouteDeps): Rou
     verifySignature(body, body.context, env);
 
     const { snapshot, version } = await deps.snapshots.get(env.environmentId);
-    const values = fanout.evaluateAll(snapshot, body.context);
+    const values = fanout.evaluateAll(env.environmentId, snapshot, body.context);
     const hash = contextHash(body.context);
 
     const cap = deps.maxClientConnections ?? 50_000;
@@ -337,7 +337,7 @@ export function registerClientRoutes(router: Router, deps: ClientRouteDeps): Rou
           // Recomputed rather than transported: `lastValues` exists to suppress
           // no-op pushes, and evaluating it here is cheaper than shipping every
           // flag value through the shared store on every identify.
-          lastValues: fanout.evaluateAll(snapshot, stored.context),
+          lastValues: fanout.evaluateAll(env.environmentId, snapshot, stored.context),
         };
         connections.set(connectionId, registered);
       }

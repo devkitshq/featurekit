@@ -41,7 +41,7 @@ import {
   normalizeContext,
   type EvaluationContext,
   type EvaluationDetail,
-  type SegmentIndex,
+  SegmentIndex,
   type Snapshot,
 } from "../sdk/index.js";
 
@@ -134,15 +134,18 @@ export interface FanoutStats {
 
 export interface FanoutOptions {
   cacheMax?: number;
-  segments?: SegmentIndex;
 }
 
 /**
  * Evaluates a set of flags for many connections, collapsing shared work.
  *
- * The cache is keyed `(version, flagKey, fingerprint)`. A version bump changes
- * every key, so a new snapshot invalidates the cache by construction rather
- * than by an explicit sweep that someone eventually forgets to call.
+ * The cache is keyed `(environmentId, version, flagKey, fingerprint)`. A
+ * version bump changes every key, so a new snapshot invalidates the cache by
+ * construction rather than by an explicit sweep that someone eventually forgets
+ * to call. The environment is in the key because one instance serves every
+ * environment and versions restart at 1 in each: without it, staging's value
+ * for `new-checkout` at version 5 was served to production's browsers when
+ * production reached its own version 5.
  */
 export class ClientFanout {
   private cache = new Map<string, ClientValue>();
@@ -153,25 +156,45 @@ export class ClientFanout {
     cacheHits: 0,
   };
 
+  /**
+   * Decoded segments, per environment, for the snapshot version last seen.
+   *
+   * Without an index every segment clause is unresolved and fails closed, so
+   * segment targeting would never match on the client tier. Decoding is the
+   * expensive part — a large segment's filter is megabytes — so it happens once
+   * per environment per version, not per request.
+   */
+  private readonly segmentIndexes = new Map<string, { version: number; index: SegmentIndex }>();
+
   constructor(private readonly options: FanoutOptions = {}) {}
 
   /** Every flag the client tier may see, evaluated for one context. */
-  evaluateAll(snapshot: Snapshot, context: EvaluationContext): ClientValues {
+  evaluateAll(environmentId: string, snapshot: Snapshot, context: EvaluationContext): ClientValues {
     const values: ClientValues = {};
+    const segments = this.segmentsFor(environmentId, snapshot);
     for (const flag of Object.values(snapshot.flags)) {
       if (flag.clientAvailable !== true) continue;
-      values[flag.key] = this.evaluateOne(snapshot, flag.key, context);
+      values[flag.key] = this.evaluateOne(snapshot, flag.key, context, segments);
     }
     return values;
   }
 
-  private evaluateOne(snapshot: Snapshot, flagKey: string, context: EvaluationContext): ClientValue {
+  private segmentsFor(environmentId: string, snapshot: Snapshot): SegmentIndex {
+    const held = this.segmentIndexes.get(environmentId);
+    if (held !== undefined && held.version === snapshot.version) return held.index;
+    const index = new SegmentIndex(snapshot.segments);
+    this.segmentIndexes.set(environmentId, { version: snapshot.version, index });
+    return index;
+  }
+
+  private evaluateOne(
+    snapshot: Snapshot,
+    flagKey: string,
+    context: EvaluationContext,
+    segments: SegmentIndex,
+  ): ClientValue {
     this.stats.evaluations++;
-    return toClientValue(
-      evaluate(flagKey, context, snapshot, null, {
-        ...(this.options.segments !== undefined ? { segments: this.options.segments } : {}),
-      }),
-    );
+    return toClientValue(evaluate(flagKey, context, snapshot, null, { segments }));
   }
 
   /**
@@ -182,12 +205,14 @@ export class ClientFanout {
    * it last sent, because only it knows that.
    */
   fanout(
+    environmentId: string,
     snapshot: Snapshot,
     changedFlagKeys: readonly string[],
     connections: readonly ClientConnection[],
   ): Map<string, ClientValues> {
     const out = new Map<string, ClientValues>();
     for (const connection of connections) out.set(connection.id, {});
+    const segments = this.segmentsFor(environmentId, snapshot);
 
     const seenFingerprints = new Set<string>();
 
@@ -203,9 +228,7 @@ export class ClientFanout {
         for (const connection of connections) {
           this.stats.perContextEvaluations++;
           out.get(connection.id)![flagKey] = toClientValue(
-            evaluate(flagKey, connection.context, snapshot, null, {
-              ...(this.options.segments !== undefined ? { segments: this.options.segments } : {}),
-            }),
+            evaluate(flagKey, connection.context, snapshot, null, { segments }),
           );
         }
         continue;
@@ -215,11 +238,11 @@ export class ClientFanout {
       for (const connection of connections) {
         const fingerprint = fingerprintOf(connection.context, referenced);
         seenFingerprints.add(fingerprint);
-        const cacheKey = `${snapshot.version}\0${flagKey}\0${fingerprint}`;
+        const cacheKey = `${environmentId}\0${snapshot.version}\0${flagKey}\0${fingerprint}`;
 
         let value = this.cache.get(cacheKey);
         if (value === undefined) {
-          value = this.evaluateOne(snapshot, flagKey, connection.context);
+          value = this.evaluateOne(snapshot, flagKey, connection.context, segments);
           this.remember(cacheKey, value);
         } else {
           this.stats.cacheHits++;

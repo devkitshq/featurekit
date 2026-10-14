@@ -225,7 +225,7 @@ describe("the client fan-out cache", () => {
     const delta = await heapDelta(() => {
       for (let version = 1; version <= 60; version++) {
         const snap = snapshot(version);
-        fanout.fanout(snap, Object.keys(snap.flags), connections);
+        fanout.fanout("env-1", snap, Object.keys(snap.flags), connections);
       }
     });
     // Sixty snapshots' worth of cached values would be hundreds of megabytes.
