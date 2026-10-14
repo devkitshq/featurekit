@@ -16,7 +16,7 @@
  * single-node case regardless.
  */
 
-import type { Redis } from "ioredis";
+import type { GuardedRedis } from "./redis-store.js";
 import { redisKeys } from "./keys.js";
 import type { ClientConnectionStore, StoredConnection } from "../client-tier/connection-store.js";
 
@@ -32,7 +32,7 @@ export class RedisClientConnectionStore implements ClientConnectionStore {
   private readonly maxBytes: number;
 
   constructor(
-    private readonly client: Redis,
+    private readonly redis: GuardedRedis,
     private readonly options: RedisClientConnectionStoreOptions = {},
   ) {
     this.prefix = options.keyPrefix === undefined ? "" : `${options.keyPrefix}:`;
@@ -49,7 +49,7 @@ export class RedisClientConnectionStore implements ClientConnectionStore {
       // The client tier already caps context size; this is the backstop
       // for a cap that gets loosened later without anyone thinking about Redis.
       if (Buffer.byteLength(payload) > this.maxBytes) return;
-      await this.client.set(this.key(id), payload, "EX", ttlSeconds);
+      await this.redis((client) => client.set(this.key(id), payload, "EX", ttlSeconds));
     } catch (error) {
       this.options.onError?.(error);
     }
@@ -57,7 +57,7 @@ export class RedisClientConnectionStore implements ClientConnectionStore {
 
   async load(id: string): Promise<StoredConnection | null> {
     try {
-      const raw = await this.client.get(this.key(id));
+      const raw = await this.redis((client) => client.get(this.key(id)));
       if (raw === null) return null;
       const parsed = JSON.parse(raw) as StoredConnection;
       // A record that does not look like one is treated as absent: the browser
@@ -72,7 +72,7 @@ export class RedisClientConnectionStore implements ClientConnectionStore {
 
   async touch(id: string, ttlSeconds: number): Promise<void> {
     try {
-      await this.client.expire(this.key(id), ttlSeconds);
+      await this.redis((client) => client.expire(this.key(id), ttlSeconds));
     } catch (error) {
       this.options.onError?.(error);
     }
@@ -80,7 +80,7 @@ export class RedisClientConnectionStore implements ClientConnectionStore {
 
   async delete(id: string): Promise<void> {
     try {
-      await this.client.del(this.key(id));
+      await this.redis((client) => client.del(this.key(id)));
     } catch (error) {
       this.options.onError?.(error);
     }

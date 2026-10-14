@@ -20,6 +20,9 @@ import {
   type StreamPatch,
 } from "./snapshot-store.js";
 
+/** Runs `work` against Redis under a circuit breaker; fails fast while it is open. */
+export type GuardedRedis = <T>(work: (client: Redis) => Promise<T>) => Promise<T>;
+
 export interface RedisSnapshotStoreOptions {
   url: string;
   /** Namespaces every key. Lets tests share one Redis without colliding. */
@@ -131,16 +134,21 @@ export class RedisSnapshotStore implements SnapshotStore {
   }
 
   /**
-   * The command connection, for callers that need Redis for something other
-   * than snapshots — the rate limiter's counters, and the readiness ping.
+   * Run commands on the command connection, under the circuit breaker.
    *
-   * Exposed rather than opening a third connection: a node already holds one
-   * command connection and one subscriber, and connection count per node times
-   * node count is a number Redis notices.
+   * For callers that need Redis for something other than snapshots — the rate
+   * limiter's counters and the client tier's connection records. Shared rather
+   * than opening a third connection: a node already holds one command
+   * connection and one subscriber, and connection count per node times node
+   * count is a number Redis notices.
+   *
+   * There is deliberately no way to reach the raw connection. Both of those
+   * callers sit on every client-tier request, and before they went through the
+   * breaker a Redis outage cost each request a full command timeout per call —
+   * seconds, long enough for every browser's `ready()` to give up and serve
+   * defaults.
    */
-  get connection(): Redis {
-    return this.client;
-  }
+  readonly guarded: GuardedRedis = (work) => this.breaker.run(() => work(this.client));
 
   /** Round-trips the command connection. Readiness only — never a hot path. */
   async ping(): Promise<void> {

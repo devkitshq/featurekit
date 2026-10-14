@@ -287,7 +287,7 @@ export function createApp(config: FeaturekitConfig, options: CreateAppOptions = 
     // Shared so a browser whose POST and stream land on different nodes is
     // taken over rather than refused. Without this the client tier
     // requires sticky routing.
-    connectionStore: new RedisClientConnectionStore(store.connection, {
+    connectionStore: new RedisClientConnectionStore(store.guarded, {
       onError: throttled(
         (error) => logger.warn({ err: error }, "client connection store error"),
         10_000,
@@ -371,7 +371,7 @@ export function createApp(config: FeaturekitConfig, options: CreateAppOptions = 
       rateLimitMiddleware({
         overrides: parseRateLimitOverrides(config.RATE_LIMIT_OVERRIDES, logger),
         limiter: new RateLimiter({
-          backend: new RedisRateLimitBackend(store.connection),
+          backend: new RedisRateLimitBackend(store.guarded),
           degradedFactor: config.RATE_LIMIT_DEGRADED_FACTOR,
           onDegraded: () =>
             logger.warn("rate limiter degraded to local counters; Redis unreachable"),

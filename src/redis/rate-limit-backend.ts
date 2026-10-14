@@ -12,12 +12,12 @@
  * must not cause.
  */
 
-import type { Redis } from "ioredis";
 import type { RateLimitBackend } from "../http/rate-limit.js";
+import type { GuardedRedis } from "./redis-store.js";
 
 export class RedisRateLimitBackend implements RateLimitBackend {
   constructor(
-    private readonly client: Redis,
+    private readonly redis: GuardedRedis,
     private readonly prefix = "",
   ) {}
 
@@ -26,7 +26,9 @@ export class RedisRateLimitBackend implements RateLimitBackend {
   }
 
   async incr(key: string, ttlMs: number): Promise<number> {
-    const results = await this.client.multi().incr(this.key(key)).pexpire(this.key(key), ttlMs).exec();
+    const results = await this.redis((client) =>
+      client.multi().incr(this.key(key)).pexpire(this.key(key), ttlMs).exec(),
+    );
     const first = results?.[0];
     if (first === undefined || first[0] !== null) {
       throw first?.[0] ?? new Error("featurekit: rate limit INCR failed");
@@ -35,7 +37,7 @@ export class RedisRateLimitBackend implements RateLimitBackend {
   }
 
   async peek(key: string): Promise<number> {
-    const value = await this.client.get(this.key(key));
+    const value = await this.redis((client) => client.get(this.key(key)));
     return value === null ? 0 : Number(value);
   }
 }
