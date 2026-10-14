@@ -180,6 +180,70 @@ describe("SnapshotService.recompile", () => {
   });
 });
 
+describe("a change made while another compile holds the lock", () => {
+  /**
+   * The compile already running may have read the configuration before this
+   * change committed. If the change's own compile simply skipped, nothing would
+   * ever compile it: a kill switch pressed during a slow segment import stayed
+   * unpropagated until an unrelated edit came along.
+   */
+  function holdLock(store: MemorySnapshotStore) {
+    let release: () => void = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const done = store.withCompileLock(ENV, () => held);
+    return { release, done };
+  }
+
+  it("is compiled once the lock is free, on the kill-switch path", async () => {
+    const { service, store, loadInput } = makeService();
+    await service.get(ENV);
+    const lock = holdLock(store);
+    // The configuration changes while the other compile is running.
+    loadInput.mockImplementation(async () => baseInput(["f", "kill-switched"]));
+
+    const pending = service.notifyChangeImmediate(ENV, "kill-switched");
+    await new Promise((r) => setTimeout(r, 60));
+    lock.release();
+    await lock.done;
+
+    const result = await pending;
+    expect(result?.snapshot.flags["kill-switched"]).toBeDefined();
+    expect((await store.get(ENV))?.snapshot.flags["kill-switched"]).toBeDefined();
+    await service.close();
+  });
+
+  it("is compiled once the lock is free, on the debounced path", async () => {
+    const { service, store, loadInput } = makeService();
+    await service.get(ENV);
+    const lock = holdLock(store);
+    loadInput.mockImplementation(async () => baseInput(["f", "edited"]));
+
+    service.notifyChange(ENV, "edited");
+    await new Promise((r) => setTimeout(r, 80)); // past the 20ms debounce, lock still held
+    lock.release();
+    await lock.done;
+
+    await vi.waitFor(async () => {
+      expect((await store.get(ENV))?.snapshot.flags["edited"]).toBeDefined();
+    });
+    await service.close();
+  });
+
+  it("reports a change it could not propagate rather than dropping it silently", async () => {
+    const errors: unknown[] = [];
+    const { service, store } = makeService({ lockWaitMs: 50, onError: (e) => errors.push(e) });
+    const lock = holdLock(store);
+
+    expect(await service.notifyChangeImmediate(ENV)).toBeUndefined();
+    expect(String(errors[0])).toMatch(/not propagated/);
+    lock.release();
+    await lock.done;
+    await service.close();
+  });
+});
+
 describe("SnapshotService debounce", () => {
   it("coalesces a burst of changes into one compile", async () => {
     // Editing five rules in a dashboard session is five PATCHes. Recompiling

@@ -60,6 +60,12 @@ export interface SnapshotServiceOptions {
    * the only healthy component in the system.
    */
   degradedCompileIntervalMs?: number;
+  /**
+   * How long a change waits for a compile lock another compile holds, before
+   * giving up and reporting it. Longer than the store's lock lease, so a holder
+   * that died cannot make a change wait forever.
+   */
+  lockWaitMs?: number;
   onError?: (error: unknown, context: { environmentId: string }) => void;
   /** Observability hook: version, source and compile duration per environment. */
   onSnapshot?: (event: {
@@ -331,6 +337,36 @@ export class SnapshotService {
   }
 
   /**
+   * Recompile for a change that has already committed, waiting out any compile
+   * that holds the lock.
+   *
+   * Skipping when the lock is held is right for a cold read, where the holder
+   * is producing the same snapshot. It is wrong here: the holder may have read
+   * the configuration before this change committed, and then nothing would ever
+   * compile the change — a kill switch that never reaches anyone, until some
+   * unrelated edit happens to recompile. So the change waits its turn. The worst
+   * case is one redundant compile, which costs a version and nothing else.
+   */
+  private async recompileWhenFree(
+    environmentId: string,
+    options: RecompileOptions = {},
+  ): Promise<SnapshotResult | undefined> {
+    const deadline = Date.now() + (this.options.lockWaitMs ?? 35_000);
+    for (let delay = 20; ; delay = Math.min(delay * 2, 500)) {
+      const result = await this.recompile(environmentId, options);
+      if (result !== undefined || this.closed) return result;
+      if (Date.now() >= deadline) {
+        this.options.onError?.(
+          new Error("featurekit: compile lock still held; a change was not propagated"),
+          { environmentId },
+        );
+        return undefined;
+      }
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+
+  /**
    * Note that something changed and recompile shortly.
    *
    * Debounced per environment. Editing five rules in a dashboard session is
@@ -358,7 +394,7 @@ export class SnapshotService {
       // leave the others stale on every connected SDK.
       const keys = [...(entry?.flagKeys ?? [])];
       const only = keys.length === 1 ? keys[0] : undefined;
-      void this.recompile(environmentId, only !== undefined ? { flagKey: only } : {}).catch(
+      void this.recompileWhenFree(environmentId, only !== undefined ? { flagKey: only } : {}).catch(
         (error: unknown) => this.options.onError?.(error, { environmentId }),
       );
     }, this.options.debounceMs ?? 200);
@@ -384,10 +420,10 @@ export class SnapshotService {
       // A coalesced burst plus this change is more than one flag, so the
       // targeted patch is no longer sufficient.
       if (pending.flagKeys.size > 0 && !(pending.flagKeys.size === 1 && pending.flagKeys.has(flagKey ?? ""))) {
-        return this.recompile(environmentId);
+        return this.recompileWhenFree(environmentId);
       }
     }
-    return this.recompile(environmentId, flagKey !== undefined ? { flagKey } : {});
+    return this.recompileWhenFree(environmentId, flagKey !== undefined ? { flagKey } : {});
   }
 
   /** Cancel pending work. A shutting-down node must not compile on its way out. */
