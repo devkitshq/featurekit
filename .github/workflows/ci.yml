@@ -70,6 +70,42 @@ jobs:
           node tools/gen-conformance.mjs
           git diff --exit-code tests/conformance/
 
+  smoke:
+    # Every other suite imports src/. This packs both packages, installs the
+    # tarballs into an empty project and drives them as a user would: the
+    # README quickstart, the management API, both SDKs, a change pushed live.
+    name: packed install smoke test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: featurekit
+          POSTGRES_PASSWORD: featurekit
+          POSTGRES_DB: featurekit
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U featurekit"
+          --health-interval 2s --health-timeout 5s --health-retries 30
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 2s --health-timeout 5s --health-retries 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: node tools/smoke.mjs
+        env:
+          DATABASE_URL: postgres://featurekit:featurekit@localhost:5432/featurekit
+          REDIS_URL: redis://localhost:6379
+
   supply-chain:
     name: package contents + audit
     runs-on: ubuntu-latest
