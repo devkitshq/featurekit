@@ -19,7 +19,7 @@
 import { createRequire } from "node:module";
 import { Router } from "../dist/http/router.js";
 import { HttpServer } from "../dist/http/server.js";
-import { MemorySnapshotStore } from "../dist/redis/memory-store.js";
+import { MemorySnapshotStore } from "../dist/snapshot/memory-store.js";
 import { SnapshotService } from "../dist/snapshot/service.js";
 import { registerSdkRoutes } from "../dist/routes/sdk.js";
 import { registerClientRoutes } from "../dist/routes/client.js";

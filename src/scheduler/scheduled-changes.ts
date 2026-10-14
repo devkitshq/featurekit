@@ -11,8 +11,7 @@
  *    two nodes must never apply the same change twice — a scheduled "ramp to
  *    50%" applied twice is not idempotent if it is expressed as a patch. Skip-
  *    locked is how Postgres hands each row to exactly one worker without a
- *    distributed lock, a leader election, or a Redis dependency on a path that
- *    must work when Redis is down.
+ *    distributed lock or a leader election.
  * 2. **A missed window fails rather than fires late.** If the fleet was down
  *    from 08:55 to 15:00, a change scheduled for 09:00 must not turn a feature
  *    on in the middle of the afternoon for an audience nobody is watching. Past

@@ -1,5 +1,5 @@
-# Local development only. Production runs Postgres and Redis somewhere that has
-# backups and an on-call rotation.
+# Local development only. Production runs Postgres somewhere that has backups
+# and an on-call rotation. Postgres is the only dependency.
 #
 # `pg_partman` and `pg_cron` are not in the stock postgres image, so the
 # partition migration takes its documented fallback path here and
@@ -22,15 +22,6 @@ services:
       retries: 20
     volumes:
       - featurekit-pg:/var/lib/postgresql/data
-
-  redis:
-    image: redis:7-alpine
-    ports: ["6379:6379"]
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 2s
-      timeout: 3s
-      retries: 20
 
 volumes:
   featurekit-pg:

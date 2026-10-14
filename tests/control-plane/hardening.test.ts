@@ -6,10 +6,10 @@
  * 1. **CORS never reaches the server tier.** Those routes serve the full
  *    ruleset; a browser that can read them cross-origin is the leak the two-tier
  *    split exists to prevent.
- * 2. **Losing Redis tightens the rate limit, it does not remove it.** Failing
- *    open on a cache outage is how a blip becomes an incident.
- * 3. **No credential ever appears in a rate-limit key**, because those keys are
- *    visible in `MONITOR` output and slow logs.
+ * 2. **The rate limit has no dependency to lose.** Counters are per node and
+ *    in memory, so there is no outage during which it fails open.
+ * 3. **No credential ever appears in a rate-limit key**, because those keys
+ *    end up in heap snapshots and debug output.
  */
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -20,7 +20,6 @@ import {
   RateLimiter,
   rateLimitIdentity,
   rateLimitMiddleware,
-  type RateLimitBackend,
 } from "../../src/http/rate-limit.js";
 
 const servers: HttpServer[] = [];
@@ -95,49 +94,18 @@ describe("CORS", () => {
   });
 });
 
-class MapBackend implements RateLimitBackend {
-  readonly counters = new Map<string, number>();
-  failing = false;
-
-  async incr(key: string): Promise<number> {
-    if (this.failing) throw new Error("redis down");
-    const next = (this.counters.get(key) ?? 0) + 1;
-    this.counters.set(key, next);
-    return next;
-  }
-  async peek(key: string): Promise<number> {
-    if (this.failing) throw new Error("redis down");
-    return this.counters.get(key) ?? 0;
-  }
-}
-
 describe("RateLimiter", () => {
   it("allows up to the limit and refuses past it", async () => {
-    const limiter = new RateLimiter({ backend: new MapBackend(), now: () => 60_000 });
+    const limiter = new RateLimiter({ now: () => 60_000 });
     const rule = { limit: 3, windowMs: 60_000 };
     const outcomes = [];
     for (let i = 0; i < 4; i++) outcomes.push((await limiter.consume("id", rule)).allowed);
     expect(outcomes).toEqual([true, true, true, false]);
   });
 
-  it("tightens rather than disappears when the backend fails", async () => {
-    // The fail-open that turns a cache outage into a security incident.
-    const backend = new MapBackend();
-    const limiter = new RateLimiter({ backend, degradedFactor: 0.5, now: () => 60_000 });
-    const rule = { limit: 10, windowMs: 60_000 };
-    backend.failing = true;
-
-    const results = [];
-    for (let i = 0; i < 8; i++) results.push(await limiter.consume("id", rule));
-    expect(results.every((r) => r.degraded)).toBe(true);
-    // Half of 10, per node, rather than unlimited.
-    expect(results.filter((r) => r.allowed)).toHaveLength(5);
-  });
-
   it("counts a previous window, so a burst across the boundary is caught", async () => {
-    const backend = new MapBackend();
     let now = 59_000;
-    const limiter = new RateLimiter({ backend, now: () => now });
+    const limiter = new RateLimiter({ now: () => now });
     const rule = { limit: 5, windowMs: 60_000 };
     for (let i = 0; i < 5; i++) await limiter.consume("id", rule);
     // One millisecond later, in the next fixed window: a naive fixed-window
@@ -146,11 +114,10 @@ describe("RateLimiter", () => {
     expect((await limiter.consume("id", rule)).allowed).toBe(false);
   });
 
-  it("bounds its local fallback state", async () => {
+  it("bounds its counter state", async () => {
     const limiter = new RateLimiter({ maxLocalKeys: 10, now: () => 60_000 });
     for (let i = 0; i < 200; i++) await limiter.consume(`id-${i}`, { limit: 5, windowMs: 60_000 });
-    // No backend at all: everything goes through the local limiter, which must
-    // not grow without bound.
+    // Counters are per node and in memory, so they must not grow without bound.
     expect(limiter["local"].size).toBeLessThanOrEqual(200);
   });
 });
@@ -185,7 +152,7 @@ describe("rate limit identity", () => {
 
 describe("rate limit middleware", () => {
   it("returns 429 with Retry-After once the limit is spent", async () => {
-    const limiter = new RateLimiter({ backend: new MapBackend() });
+    const limiter = new RateLimiter();
     const base = await serve([
       rateLimitMiddleware({
         limiter,
@@ -203,7 +170,7 @@ describe("rate limit middleware", () => {
   it("leaves unlisted routes alone", async () => {
     const base = await serve([
       rateLimitMiddleware({
-        limiter: new RateLimiter({ backend: new MapBackend() }),
+        limiter: new RateLimiter(),
         rules: new Map([["/v1/client/state", { limit: 1, windowMs: 60_000 }]]),
       }),
     ]);
@@ -233,7 +200,7 @@ describe("body limits", () => {
 
 describe("per-environment rate limits", () => {
   it("applies an override for one environment without touching the others", async () => {
-    const limiter = new RateLimiter({ backend: new MapBackend() });
+    const limiter = new RateLimiter();
     const router = new Router().get("/v1/snapshot/:envKey", () => ({ status: 200 }));
     const server = new HttpServer({
       router,

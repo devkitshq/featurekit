@@ -95,7 +95,7 @@ describe("a provider that throws is unresolved, never an exception", () => {
     const index = new SegmentIndex({ enterprise: cuckoo(["usr_1"]) });
     index.setCache({
       has() {
-        throw new Error("redis unreachable");
+        throw new Error("cache unreachable");
       },
     });
     // Evaluation never blocks and never rejects. The rule fails closed above.

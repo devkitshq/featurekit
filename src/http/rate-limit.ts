@@ -12,11 +12,11 @@
  *    authenticated requests cannot slow down key-guessing, which is the attack
  *    that matters here ("brute-force identities"). Identity is therefore derived
  *    from the presented credential's *hash* plus the peer address — never the
- *    credential itself, which must not be a key in Redis or a label in a log.
- * 2. **Redis loss degrades to a local limit, never to unlimited.** This is the
- *    fail-open that turns a cache outage into a security incident: the moment
- *    Redis blips, an unlimited endpoint is exactly what an attacker was waiting
- *    for. Each node instead enforces its own share, conservatively.
+ *    credential itself, which must not be a map key or a label in a log.
+ * 2. **Counted per node, in memory.** No shared counter means no dependency
+ *    that can fail open: there is no outage during which the endpoint becomes
+ *    unlimited. The cost is that a fleet of N nodes behind a round-robin load
+ *    balancer admits up to N times the limit in total, so set limits per node.
  * 3. **Sliding, not fixed, window.** A fixed window lets a caller spend its
  *    whole budget in the last millisecond of one window and again in the first
  *    of the next — double the intended rate, at the worst possible moment.
@@ -31,38 +31,17 @@ export interface RateLimitRule {
   windowMs: number;
 }
 
-/**
- * The counter store. Deliberately one method: `SnapshotStore` is a class with
- * one method for the same reason, and it means a test can substitute a
- * Map without a container.
- */
-export interface RateLimitBackend {
-  /** Increment `key`, returning the new value. The key expires after `ttlMs`. */
-  incr(key: string, ttlMs: number): Promise<number>;
-  /** Read a counter without creating it. Missing reads as 0. */
-  peek(key: string): Promise<number>;
-}
-
 export interface RateLimitDecision {
   allowed: boolean;
   limit: number;
   remaining: number;
   retryAfterSeconds: number;
-  /** True when the decision came from the local fallback rather than Redis. */
-  degraded: boolean;
 }
 
 export interface RateLimiterOptions {
-  backend?: RateLimitBackend;
-  /**
-   * Share of the configured limit each node allows on its own when the backend
-   * is unavailable. Below 1 because every node is doing this simultaneously.
-   */
-  degradedFactor?: number;
-  /** Bounded, so the fallback cannot itself become the memory leak. */
+  /** Bounded, so the counters cannot themselves become the memory leak. */
   maxLocalKeys?: number;
   now?: () => number;
-  onDegraded?: (error: unknown) => void;
 }
 
 interface LocalCounter {
@@ -85,33 +64,15 @@ export class RateLimiter {
    *
    * The estimate weights the previous window by how much of it is still inside
    * the trailing window. It is the standard approximation, it is stable under
-   * concurrency, and it needs one counter per window rather than a sorted set
-   * per caller — which at a million SDKs is the difference between a Redis that
-   * works and one that does not.
+   * concurrency, and it needs one counter per window rather than a log of
+   * timestamps per caller — which at a million SDKs is the difference between
+   * a map that fits in memory and one that does not.
    */
-  async consume(identity: string, rule: RateLimitRule): Promise<RateLimitDecision> {
+  consume(identity: string, rule: RateLimitRule): RateLimitDecision {
     const now = this.now();
     const windowStart = Math.floor(now / rule.windowMs) * rule.windowMs;
     const elapsed = (now - windowStart) / rule.windowMs;
-
-    const backend = this.options.backend;
-    if (backend !== undefined) {
-      try {
-        const currentKey = `${identity}:${windowStart}`;
-        const previousKey = `${identity}:${windowStart - rule.windowMs}`;
-        const current = await backend.incr(currentKey, rule.windowMs * 2);
-        // A miss reads as zero, which is correct: no traffic, or a window that
-        // has already expired.
-        const previous = await backend.peek(previousKey);
-        const estimate = current + previous * (1 - elapsed);
-        return this.decide(estimate, rule, elapsed, false);
-      } catch (error) {
-        this.options.onDegraded?.(error);
-        // fall through to the local limiter
-      }
-    }
-
-    return this.decide(this.localEstimate(identity, windowStart, rule, elapsed), rule, elapsed, true);
+    return this.decide(this.localEstimate(identity, windowStart, rule, elapsed), rule, elapsed);
   }
 
   private localEstimate(
@@ -139,11 +100,11 @@ export class RateLimiter {
    * Make room in the local counter map.
    *
    * Expired windows first — that is the cheap, correct eviction. But it is not
-   * *sufficient*, and the difference matters: during a Redis outage with many
-   * distinct callers, every counter belongs to the current window, so an
+   * *sufficient*, and the difference matters: under a flood of many distinct
+   * callers, every counter belongs to the current window, so an
    * expiry-only prune deletes nothing. The map then keeps growing while a full
    * scan runs on every single request, which is quadratic work and unbounded
-   * memory at exactly the moment the system is already degraded. A memory test
+   * memory at exactly the moment the system is under attack. A memory test
    * is what found that; it took 90 seconds to insert 100,000 identities.
    *
    * So if expiry frees nothing, the oldest half goes. Dropping a counter is
@@ -166,22 +127,14 @@ export class RateLimiter {
     }
   }
 
-  private decide(
-    estimate: number,
-    rule: RateLimitRule,
-    elapsed: number,
-    degraded: boolean,
-  ): RateLimitDecision {
-    const limit = degraded
-      ? Math.max(1, Math.ceil(rule.limit * (this.options.degradedFactor ?? 0.5)))
-      : rule.limit;
+  private decide(estimate: number, rule: RateLimitRule, elapsed: number): RateLimitDecision {
+    const limit = rule.limit;
     const allowed = estimate <= limit;
     return {
       allowed,
       limit,
       remaining: Math.max(0, Math.floor(limit - estimate)),
       retryAfterSeconds: Math.max(1, Math.ceil((rule.windowMs * (1 - elapsed)) / 1000)),
-      degraded,
     };
   }
 }
@@ -189,9 +142,9 @@ export class RateLimiter {
 /**
  * The identity a limit is counted against.
  *
- * The credential is hashed and truncated: Redis keys end up in `MONITOR`
- * output, slow logs and support tickets, and an SDK key that reaches any of
- * those is a leaked credential. The peer address is included so that
+ * The credential is hashed and truncated: map keys end up in heap snapshots,
+ * debug output and support tickets, and an SDK key that reaches any of those
+ * is a leaked credential. The peer address is included so that
  * rotating through unauthenticated requests does not reset the counter.
  */
 export function rateLimitIdentity(ctx: RequestContext, scope: string): string {
@@ -234,7 +187,7 @@ export function rateLimitMiddleware(options: RateLimitMiddlewareOptions) {
         ? base
         : (options.overrides?.(environmentKey, ctx.routePattern) ?? base);
 
-    const decision = await options.limiter.consume(
+    const decision = options.limiter.consume(
       rateLimitIdentity(ctx, ctx.routePattern),
       rule,
     );

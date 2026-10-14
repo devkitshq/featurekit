@@ -1,7 +1,8 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
-import { MemorySnapshotStore } from "../../src/redis/memory-store.js";
-import { RedisSnapshotStore } from "../../src/redis/redis-store.js";
-import type { SnapshotStore, StreamPatch } from "../../src/redis/snapshot-store.js";
+import { MemorySnapshotStore } from "../../src/snapshot/memory-store.js";
+import { PostgresSnapshotStore } from "../../src/snapshot/postgres-store.js";
+import { createDatabase, runMigrations } from "../../src/db/client.js";
+import type { SnapshotStore, StreamPatch } from "../../src/snapshot/store.js";
 import type { Snapshot } from "../../src/sdk/index.js";
 
 const ENV = "env-1";
@@ -25,7 +26,7 @@ const patch = (version: number, flagKey = "f"): StreamPatch => ({
  * One suite, run against every implementation. `SnapshotStore` is a plugin
  * ("Plugins are a class with one method"), so its contract has to be a
  * property of the interface rather than of whichever backend is convenient —
- * otherwise the in-memory store used by tests and the Redis store used in
+ * otherwise the in-memory store used by tests and the Postgres store used in
  * production quietly diverge, and the tests stop meaning anything.
  */
 function storeContract(name: string, create: () => Promise<SnapshotStore> | SnapshotStore) {
@@ -104,7 +105,7 @@ function storeContract(name: string, create: () => Promise<SnapshotStore> | Snap
         expect(await store.patchesSince(ENV, 1, 200)).toBeNull();
       });
 
-      it("returns null when history is empty (Redis restarted)", async () => {
+      it("returns null when history is empty (the cache was emptied)", async () => {
         expect(await store.patchesSince(ENV, 5, 200)).toBeNull();
       });
 
@@ -144,7 +145,7 @@ function storeContract(name: string, create: () => Promise<SnapshotStore> | Snap
 
         expect((await store.get(ENV))?.version).toBe(5);
         expect((await store.patchesSince(ENV, 4, 200))?.map((p) => p.version)).toEqual([5]);
-        // Redis pub/sub delivery is asynchronous; the memory store is not.
+        // NOTIFY delivery is asynchronous; the memory store is not.
         await vi.waitFor(() => expect(seen).toEqual([5]));
       });
 
@@ -267,17 +268,17 @@ function storeContract(name: string, create: () => Promise<SnapshotStore> | Snap
 }
 
 import { vi } from "vitest";
-import { containerUnavailableReason, startInfrastructure } from "../integration/harness.js";
+import { databaseUnavailableReason, startInfrastructure } from "../integration/harness.js";
 
 storeContract("MemorySnapshotStore", () => new MemorySnapshotStore());
 
-const reason = await containerUnavailableReason();
+const reason = await databaseUnavailableReason();
 
-describe("RedisSnapshotStore", () => {
+describe("PostgresSnapshotStore", () => {
   it(
     reason === null
-      ? "container runtime available; Redis store contract runs"
-      : `Redis store contract SKIPPED — ${reason}`,
+      ? "a database is available; the Postgres store contract runs"
+      : `Postgres store contract SKIPPED — ${reason}`,
     () => {
       expect(true).toBe(true);
     },
@@ -286,13 +287,18 @@ describe("RedisSnapshotStore", () => {
 
 if (reason === null) {
   const infra = await startInfrastructure();
-  const stores: RedisSnapshotStore[] = [];
+  const database = createDatabase({ url: infra.databaseUrl, maxConnections: 4 });
+  await runMigrations(database.db);
+  const stores: PostgresSnapshotStore[] = [];
   afterAll(async () => {
     await Promise.all(stores.map((s) => s.close()));
+    await database.close();
     await infra.stop();
   });
-  storeContract("RedisSnapshotStore", () => {
-    const store = new RedisSnapshotStore({ url: infra.redisUrl, keyPrefix: `t${Date.now()}${Math.random()}` });
+  storeContract("PostgresSnapshotStore", async () => {
+    // Each test starts from empty tables.
+    await database.sql`truncate snapshot_cache, snapshot_patches, compile_locks`;
+    const store = new PostgresSnapshotStore({ sql: database.sql, schema: "public" });
     stores.push(store);
     return store;
   });

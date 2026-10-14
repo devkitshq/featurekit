@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { MemorySnapshotStore } from "../../src/redis/memory-store.js";
+import { MemorySnapshotStore } from "../../src/snapshot/memory-store.js";
 import { SnapshotService } from "../../src/snapshot/service.js";
 import type { CompilerInput } from "../../src/snapshot/compile.js";
 

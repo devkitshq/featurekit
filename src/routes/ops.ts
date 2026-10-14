@@ -3,7 +3,7 @@
  *
  * ```
  * GET /live     process is alive        — never touches a dependency
- * GET /ready    safe to route traffic   — Postgres, Redis, partition runway
+ * GET /ready    safe to route traffic   — Postgres, partition runway
  * GET /health   human-readable detail
  * GET /metrics  Prometheus exposition
  * ```
@@ -37,13 +37,6 @@ export interface OpsDeps {
   metrics: Metrics;
   /** Round-trips a trivial query. Truth is in Postgres, so this gates readiness. */
   checkDatabase: () => Promise<CheckResult>;
-  /**
-   * Redis is a cache and a bus, so its loss is `degraded`, never `failed`:
-   * a node that can still serve last-known-good snapshots from memory is a node
-   * that should keep receiving traffic. Pulling it out of the load balancer
-   * during a Redis outage is how a cache incident becomes a flag outage.
-   */
-  checkRedis: () => Promise<CheckResult>;
   /** Backed by `featurekit_partition_runway_days()`. */
   partitionRunwayDays: () => Promise<number>;
   /** Oldest snapshot this node is serving, per environment key. */
@@ -78,9 +71,8 @@ export function registerOpsRoutes(router: Router, deps: OpsDeps): Router {
     const now = Date.now();
     if (cached !== null && now - cached.at < cacheMs) return cached;
 
-    const [database, redis, runway] = await Promise.all([
+    const [database, runway] = await Promise.all([
       deps.checkDatabase().catch((): CheckResult => ({ state: "failed", detail: "unreachable" })),
-      deps.checkRedis().catch((): CheckResult => ({ state: "degraded", detail: "unreachable" })),
       deps.partitionRunwayDays().catch(() => -1),
     ]);
 
@@ -93,7 +85,7 @@ export function registerOpsRoutes(router: Router, deps: OpsDeps): Router {
           ? { state: "failed", detail: `${runway}d runway, minimum ${minimumRunway}d` }
           : { state: "ok", detail: `${runway}d` };
 
-    const checks: Record<string, CheckResult> = { database, redis, partitions };
+    const checks: Record<string, CheckResult> = { database, partitions };
     const ages = deps.snapshotAges?.();
 
     // Readiness fails on a hard dependency only. `degraded` keeps the node in

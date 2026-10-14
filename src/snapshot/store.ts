@@ -3,8 +3,8 @@
  *
  * "Plugins are a class with one method" — notifkit had `Transport.send()`;
  * featurekit has `SnapshotStore` and `EventSink`. This one owns everything the
- * control plane keeps in Redis for the server tier: the compiled snapshot, the
- * patch history that makes SSE resume possible, the pub/sub channel that fans a
+ * control plane shares across nodes for the server tier: the compiled snapshot,
+ * the patch history that makes SSE resume possible, the channel that fans a
  * change out to every API node, and the compile lock that stops them all
  * recompiling at once.
  *
@@ -45,7 +45,7 @@ export interface SnapshotStore {
    *
    * `null` is not an error — it means "send a full `put`", which the resume table lists as
    * the correct outcome for three distinct situations: the SDK was disconnected
-   * across more than `depth` changes, history is empty because Redis restarted,
+   * across more than `depth` changes, history is empty because the cache was emptied,
    * or the SDK claims a version ahead of history (a rolled-back database).
    * Collapsing them into one return value is deliberate: the response is
    * identical, and a caller that had to distinguish them would get it wrong.

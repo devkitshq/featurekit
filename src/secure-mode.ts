@@ -17,7 +17,7 @@
  *
  * **A separate entry point because of what it does not load.** `featurekit`'s
  * main entry is the control plane: importing it pulls Drizzle, a Postgres
- * driver, ioredis, pino and prom-client into the process. A service whose only
+ * driver, pino and prom-client into the process. A service whose only
  * involvement with flags is signing a context for its logged-in user has no
  * business paying that at import time — in a Lambda it is the difference
  * between a cold start you notice and one you do not. This module reaches

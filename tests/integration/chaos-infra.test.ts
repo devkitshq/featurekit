@@ -3,10 +3,9 @@
  *
  * The existing chaos suite kills an in-process HTTP server and swaps a
  * fault-injecting store. That is genuinely useful and it cannot prove the
- * things that only a real Redis and a real Postgres have: a process that
- * *restarts*, a connection that drops mid-command, a Redis whose dataset is
- * gone but whose socket is fine, a partitioned table with no partition for
- * today.
+ * things that only a real Postgres has: a server that *restarts* under a live
+ * LISTEN connection, cache tables emptied the way a crash empties UNLOGGED
+ * tables, a partitioned table with no partition for today.
  *
  * Every scenario here states its expected behaviour in the test name, because
  * the review asks for expected-vs-actual per scenario and a test name is the
@@ -14,12 +13,11 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { Redis } from "ioredis";
 import { sql } from "drizzle-orm";
 import { GenericContainer, Wait, type StartedTestContainer } from "testcontainers";
 import { announceSkip, containerUnavailableReason } from "./harness.js";
 import { createDatabase, runMigrations, type Database } from "../../src/db/client.js";
-import { RedisSnapshotStore } from "../../src/redis/redis-store.js";
+import { PostgresSnapshotStore } from "../../src/snapshot/postgres-store.js";
 import { SnapshotService } from "../../src/snapshot/service.js";
 import { EventBuffer } from "../../src/events/ingest.js";
 import { MemoryDeadLetterQueue, RollupWorker } from "../../src/events/rollup.js";
@@ -42,7 +40,7 @@ const reason = await containerUnavailableReason();
  * High and unusual, to stay clear of anything a developer is likely to be
  * running locally.
  */
-const REDIS_HOST_PORT = 16_379;
+const POSTGRES_HOST_PORT = 15_432;
 
 describe("infrastructure chaos prerequisites", () => {
   it(
@@ -58,37 +56,51 @@ describe("infrastructure chaos prerequisites", () => {
 
 describe.skipIf(reason !== null)("infrastructure chaos", () => {
   let postgres: StartedTestContainer;
-  let redis: StartedTestContainer;
   let handle: ReturnType<typeof createDatabase>;
   let db: Database;
-  let store: RedisSnapshotStore;
-  let service: SnapshotService;
   let environmentId: string;
-  let redisUrl: string;
+  const services: SnapshotService[] = [];
+  const stores: PostgresSnapshotStore[] = [];
+
+  /** A fresh node: its own store and service, so nothing is warm in memory. */
+  function node(): { store: PostgresSnapshotStore; service: SnapshotService } {
+    const store = new PostgresSnapshotStore({
+      sql: handle.sql,
+      schema: "public",
+      revalidateMs: 100,
+      onError: () => {},
+    });
+    const service = new SnapshotService({
+      store,
+      loadInput: (id) => loadCompilerInput(db, id),
+      nextVersion: (id) => nextSnapshotVersion(db, id),
+      debounceMs: 10,
+      degradedCompileIntervalMs: 100,
+      onError: () => {},
+    });
+    stores.push(store);
+    services.push(service);
+    return { store, service };
+  }
 
   beforeAll(async () => {
+    // A FIXED host port, deliberately. `restart()` re-creates the container's
+    // port mapping, so with an ephemeral port every client built before the
+    // restart points at a port nothing is listening on any more — which looks
+    // exactly like "the listener never came back" and is really "the test
+    // moved it".
     postgres = await new GenericContainer("postgres:16-alpine")
       .withEnvironment({
         POSTGRES_USER: "featurekit",
         POSTGRES_PASSWORD: "featurekit",
         POSTGRES_DB: "featurekit",
       })
-      .withExposedPorts(5432)
+      .withExposedPorts({ container: 5432, host: POSTGRES_HOST_PORT })
       .withWaitStrategy(Wait.forLogMessage(/database system is ready to accept connections/, 2))
       .start();
 
-    // A FIXED host port, deliberately. `restart()` re-creates the container's
-    // port mapping, so with an ephemeral port every client built before the
-    // restart points at a port nothing is listening on any more — which looks
-    // exactly like "Redis never came back" and is really "the test moved it".
-    redis = await new GenericContainer("redis:7-alpine")
-      .withExposedPorts({ container: 6379, host: REDIS_HOST_PORT })
-      .withWaitStrategy(Wait.forLogMessage(/Ready to accept connections/))
-      .start();
-
-    redisUrl = `redis://${redis.getHost()}:${REDIS_HOST_PORT}`;
     handle = createDatabase({
-      url: `postgres://featurekit:featurekit@${postgres.getHost()}:${postgres.getMappedPort(5432)}/featurekit`,
+      url: `postgres://featurekit:featurekit@${postgres.getHost()}:${POSTGRES_HOST_PORT}/featurekit`,
     });
     db = handle.db;
     await runMigrations(db);
@@ -126,137 +138,80 @@ describe.skipIf(reason !== null)("infrastructure chaos", () => {
       offVariationId: variations.find((v) => v.idx === 0)!.id,
       fallthroughVariationId: variations.find((v) => v.idx === 1)!.id,
     });
-
-    store = new RedisSnapshotStore({
-      url: redisUrl,
-      commandTimeoutMs: 500,
-      circuitFailureThreshold: 2,
-      circuitResetAfterMs: 300,
-      onError: () => {},
-    });
-    service = new SnapshotService({
-      store,
-      loadInput: (id) => loadCompilerInput(db, id),
-      nextVersion: (id) => nextSnapshotVersion(db, id),
-      debounceMs: 10,
-      degradedCompileIntervalMs: 100,
-      onError: () => {},
-    });
   }, 600_000);
 
   afterAll(async () => {
-    await service?.close();
-    await store?.close().catch(() => undefined);
+    await Promise.all(services.map((s) => s.close()));
+    await Promise.all(stores.map((s) => s.close().catch(() => undefined)));
     await handle?.close();
-    await redis?.stop();
     await postgres?.stop();
   });
 
-  /* ── Redis ────────────────────────────────────────────────────────── */
+  /* ── the cache tables ─────────────────────────────────────────────── */
 
-  it("Redis restart: keeps serving, then recovers on its own", async () => {
-    const before = await service.get(environmentId);
-    expect(before.snapshot.flags["checkout"]).toBeDefined();
+  it("snapshot cache emptied, as a crash empties UNLOGGED tables: rebuilds rather than serving nothing", async () => {
+    await node().service.get(environmentId);
+    await db.execute(sql`truncate snapshot_cache, snapshot_patches, compile_locks`);
 
-    await redis.restart();
-
-    // Expected: the snapshot is served from memory or recompiled from
-    // Postgres. Never an error, never an empty configuration.
-    const during = await service.get(environmentId);
-    expect(during.snapshot.flags["checkout"]).toBeDefined();
-    expect(["memory", "postgres", "store", "compiled"]).toContain(during.source);
-
-    // Expected: once Redis is back, the store is repopulated and used again.
-    let recovered = false;
-    for (let i = 0; i < 40 && !recovered; i++) {
-      await new Promise((r) => setTimeout(r, 250));
-      const attempt = await service.get(environmentId).catch(() => null);
-      recovered = attempt?.source === "store" || attempt?.source === "compiled";
-    }
-    expect(recovered).toBe(true);
-  }, 120_000);
-
-  it("Redis wiped: rebuilds from Postgres rather than serving nothing", async () => {
-    await service.get(environmentId);
-
-    const client = new Redis(redisUrl, { maxRetriesPerRequest: 3 });
-    await client.flushall();
-    await client.quit();
-
-    // Expected: every key in Redis is rebuildable. The flag survives.
-    const after = await service.get(environmentId);
+    // Expected: a cold node finds nothing cached, compiles from the
+    // configuration tables, and serves the flag.
+    const after = await node().service.get(environmentId);
     expect(after.snapshot.flags["checkout"]).toBeDefined();
   }, 120_000);
 
-  it("Redis wiped: patch history loss degrades a resume to a full put", async () => {
+  it("patch history emptied: a resume degrades to a full put", async () => {
+    const { store, service } = node();
     await service.recompile(environmentId);
-    const client = new Redis(redisUrl, { maxRetriesPerRequest: 3 });
-    await client.flushall();
-    await client.quit();
+    await db.execute(sql`truncate snapshot_patches`);
 
     // Expected: `null` means "send a full put", which is the correct answer to
     // an empty history — not an error, and not a silent partial replay.
     expect(await store.patchesSince(environmentId, 1, 200)).toBeNull();
   }, 120_000);
 
-  it("Redis stopped: the breaker makes the degraded path fast, not slow", async () => {
-    await service.get(environmentId);
-    await redis.stop();
-
-    try {
-      // Warm the breaker open with a couple of failures.
-      for (let i = 0; i < 3; i++) await service.get(environmentId).catch(() => undefined);
-
-      const started = Date.now();
-      for (let i = 0; i < 10; i++) {
-        const result = await service.get(environmentId);
-        expect(result.snapshot.flags["checkout"]).toBeDefined();
-      }
-      // Expected: ten requests served from memory in well under the time a
-      // single command timeout would have taken.
-      expect(Date.now() - started).toBeLessThan(2_000);
-    } finally {
-      redis = await new GenericContainer("redis:7-alpine")
-        .withExposedPorts({ container: 6379, host: REDIS_HOST_PORT })
-        .withWaitStrategy(Wait.forLogMessage(/Ready to accept connections/))
-        .start();
-    }
-  }, 180_000);
-
   /* ── Postgres ─────────────────────────────────────────────────────── */
 
-  it("Postgres stopped: the last known good snapshot keeps serving", async () => {
-    // A fresh service against the live Redis, warmed first.
-    const localStore = new RedisSnapshotStore({
-      url: redisUrl,
-      commandTimeoutMs: 500,
-      onError: () => {},
-    });
-    const localService = new SnapshotService({
-      store: localStore,
-      loadInput: (id) => loadCompilerInput(db, id),
-      nextVersion: (id) => nextSnapshotVersion(db, id),
-      debounceMs: 10,
-      onError: () => {},
-    });
+  it("Postgres restart: the listener reconnects and changes are delivered again", async () => {
+    const listener = node();
+    const writer = node();
+    await listener.service.get(environmentId);
+    const seen: number[] = [];
+    await listener.store.subscribe(environmentId, (message) => seen.push(message.version));
 
-    try {
-      const warm = await localService.get(environmentId);
-      expect(warm.snapshot.flags["checkout"]).toBeDefined();
+    await postgres.restart();
 
-      await postgres.stop();
-
-      // Expected: reads keep working. Postgres is truth, but truth already in
-      // memory does not need the database to be up.
-      const during = await localService.get(environmentId);
-      expect(during.snapshot.flags["checkout"]).toBeDefined();
-
-      // Expected: writes fail, loudly, rather than appearing to succeed.
-      await expect(localService.recompile(environmentId)).rejects.toThrow();
-    } finally {
-      await localService.close();
-      await localStore.close().catch(() => undefined);
+    // Expected: postgres.js re-establishes LISTEN on its own. A change
+    // committed by another node after the restart reaches this one, and its
+    // cache serves the new version rather than the one from before.
+    let delivered = false;
+    for (let i = 0; i < 60 && !delivered; i++) {
+      await new Promise((r) => setTimeout(r, 500));
+      const committed = await writer.service.recompile(environmentId).catch(() => undefined);
+      if (committed === undefined) continue;
+      await new Promise((r) => setTimeout(r, 200));
+      delivered = seen.includes(committed.version);
+      if (delivered) {
+        const current = await listener.service.get(environmentId);
+        expect(current.version).toBe(committed.version);
+      }
     }
+    expect(delivered).toBe(true);
+  }, 180_000);
+
+  it("Postgres stopped: the last known good snapshot keeps serving", async () => {
+    const { service } = node();
+    const warm = await service.get(environmentId);
+    expect(warm.snapshot.flags["checkout"]).toBeDefined();
+
+    await postgres.stop();
+
+    // Expected: reads keep working. Postgres is truth, but truth already in
+    // memory does not need the database to be up.
+    const during = await service.get(environmentId);
+    expect(during.snapshot.flags["checkout"]).toBeDefined();
+
+    // Expected: writes fail, loudly, rather than appearing to succeed.
+    await expect(service.recompile(environmentId)).rejects.toThrow();
   }, 180_000);
 });
 

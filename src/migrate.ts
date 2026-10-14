@@ -25,7 +25,7 @@
  *
  * **A separate entry point because of what it does not load.** `featurekit`'s
  * main entry is the control plane, so importing it to run one deploy job pulls
- * ioredis, pino, prom-client and the whole route layer. This reaches the
+ * pino, prom-client and the whole route layer. This reaches the
  * Postgres driver and Drizzle, because migrating is what it does, and nothing
  * else.
  *

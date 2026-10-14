@@ -8,7 +8,7 @@
  * fails here instead of for the first person who tries it.
  *
  *   npm run build
- *   DATABASE_URL=postgres://... REDIS_URL=redis://... node tools/smoke.mjs
+ *   DATABASE_URL=postgres://... node tools/smoke.mjs
  *
  * The database is migrated and written to; use a throwaway one.
  */
@@ -20,7 +20,6 @@ import { join, resolve } from "node:path";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const DATABASE_URL = required("DATABASE_URL");
-const REDIS_URL = required("REDIS_URL");
 const PORT = 40_000 + Math.floor(Math.random() * 10_000);
 const BASE = `http://127.0.0.1:${PORT}`;
 const EMAIL = "smoke@featurekit.dev";
@@ -79,10 +78,10 @@ await server.start();
 `,
   );
   step("README quickstart without dev helpers explains what to install");
-  const quickstart = await run(["quickstart.js"], { DATABASE_URL: undefined, REDIS_URL: undefined }, 60_000);
+  const quickstart = await run(["quickstart.js"], { DATABASE_URL: undefined }, 60_000);
   expect(quickstart.code !== 0, `quickstart should fail without addresses, exited ${quickstart.code}`);
   expect(
-    quickstart.output.includes("npm i -D @testcontainers/postgresql @testcontainers/redis"),
+    quickstart.output.includes("npm i -D @testcontainers/postgresql"),
     `quickstart error does not say what to install:\n${quickstart.output}`,
   );
 
@@ -115,7 +114,6 @@ const server = new FeaturekitServer({
   services: ["all"],
   port: ${PORT},
   databaseUrl: process.env.DATABASE_URL,
-  redisUrl: process.env.REDIS_URL,
   devStateFile: false,
   env: { FEATUREKIT_ADMIN_EMAIL: "${EMAIL}", FEATUREKIT_ADMIN_PASSWORD: "${PASSWORD}" },
   flags: {
@@ -235,7 +233,7 @@ async function api(method, path, body, headers) {
 }
 
 function childEnv(extra) {
-  const env = { ...process.env, DATABASE_URL, REDIS_URL, NODE_ENV: "development", ...extra };
+  const env = { ...process.env, DATABASE_URL, NODE_ENV: "development", ...extra };
   for (const [key, value] of Object.entries(env)) if (value === undefined) delete env[key];
   return env;
 }

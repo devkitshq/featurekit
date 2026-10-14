@@ -1,7 +1,7 @@
 /**
  * Integration-test harness.
  *
- * Real Postgres and Redis via testcontainers ("Zero-config dev, explicit
+ * Real Postgres, via testcontainers or FEATUREKIT_TEST_DATABASE_URL ("Zero-config dev, explicit
  * prod"). These tests exercise the layer that a pure unit test cannot reach —
  * generated columns, check constraints, composite foreign keys, partitioned
  * DDL — which is exactly the layer where a schema bug hides.
@@ -19,13 +19,35 @@ import type { StartedTestContainer } from "testcontainers";
 
 export interface IntegrationContext {
   databaseUrl: string;
-  redisUrl: string;
   stop: () => Promise<void>;
+}
+
+/**
+ * An existing Postgres server to run against instead of a container.
+ *
+ * Each `startInfrastructure()` call gets its own freshly created database on
+ * it, dropped again by `stop()`, so suites stay as isolated as they are with a
+ * container per suite. The URL needs a role allowed to `CREATE DATABASE`.
+ */
+const EXTERNAL_DATABASE_URL = process.env["FEATUREKIT_TEST_DATABASE_URL"];
+
+/**
+ * Null when integration tests can get a database — an external server or a
+ * container runtime — else the reason they cannot.
+ */
+export async function databaseUnavailableReason(): Promise<string | null> {
+  if (EXTERNAL_DATABASE_URL !== undefined && EXTERNAL_DATABASE_URL.length > 0) return null;
+  const reason = await containerUnavailableReason();
+  return reason === null ? null : `${reason}, and FEATUREKIT_TEST_DATABASE_URL is not set`;
 }
 
 let probed: string | null | undefined;
 
-/** Returns null when containers are usable, else the reason they are not. */
+/**
+ * Null when containers are usable, else the reason they are not. Only for the
+ * suites that stop and restart their own containers; everything else needs just
+ * a database — see `databaseUnavailableReason`.
+ */
 export async function containerUnavailableReason(): Promise<string | null> {
   if (probed !== undefined) return probed;
 
@@ -73,11 +95,12 @@ export function announceSkip(reason: string): void {
 }
 
 export async function startInfrastructure(): Promise<IntegrationContext> {
+  if (EXTERNAL_DATABASE_URL !== undefined && EXTERNAL_DATABASE_URL.length > 0) {
+    return freshDatabaseOn(EXTERNAL_DATABASE_URL);
+  }
+
   const { GenericContainer, Wait } = await import("testcontainers");
-
-  const started: StartedTestContainer[] = [];
-
-  const postgres = await new GenericContainer("postgres:16-alpine")
+  const postgres: StartedTestContainer = await new GenericContainer("postgres:16-alpine")
     .withEnvironment({
       POSTGRES_USER: "featurekit",
       POSTGRES_PASSWORD: "featurekit",
@@ -86,19 +109,30 @@ export async function startInfrastructure(): Promise<IntegrationContext> {
     .withExposedPorts(5432)
     .withWaitStrategy(Wait.forLogMessage(/database system is ready to accept connections/, 2))
     .start();
-  started.push(postgres);
-
-  const redis = await new GenericContainer("redis:7-alpine")
-    .withExposedPorts(6379)
-    .withWaitStrategy(Wait.forLogMessage(/Ready to accept connections/))
-    .start();
-  started.push(redis);
 
   return {
     databaseUrl: `postgres://featurekit:featurekit@${postgres.getHost()}:${postgres.getMappedPort(5432)}/featurekit`,
-    redisUrl: `redis://${redis.getHost()}:${redis.getMappedPort(6379)}`,
     stop: async () => {
-      await Promise.all(started.map((c) => c.stop()));
+      await postgres.stop();
+    },
+  };
+}
+
+async function freshDatabaseOn(serverUrl: string): Promise<IntegrationContext> {
+  const { default: postgres } = await import("postgres");
+  const name = `fk_test_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+  const admin = postgres(serverUrl, { max: 1, onnotice: () => {} });
+  await admin.unsafe(`create database ${name}`);
+  await admin.end();
+
+  const url = new URL(serverUrl);
+  url.pathname = `/${name}`;
+  return {
+    databaseUrl: url.toString(),
+    stop: async () => {
+      const cleanup = postgres(serverUrl, { max: 1, onnotice: () => {} });
+      await cleanup.unsafe(`drop database if exists ${name} with (force)`);
+      await cleanup.end();
     },
   };
 }

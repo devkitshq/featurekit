@@ -75,7 +75,7 @@ export class Metrics {
   readonly snapshotAgeSeconds: Gauge<"environment">;
   readonly snapshotCompileDuration: Histogram<never>;
   readonly snapshotCompileFailures: Counter<"reason">;
-  /** Serving a snapshot Redis could not supply. The "silently stale" alarm. */
+  /** Serving a snapshot the store could not supply. The "silently stale" alarm. */
   readonly snapshotDegradedServes: Counter<"source">;
 
   /* ── Delivery ─────────────────────────────────────────────────────── */
@@ -180,7 +180,7 @@ export class Metrics {
     });
     this.snapshotDegradedServes = new Counter({
       name: "featurekit_snapshot_degraded_serves_total",
-      help: "Snapshots served from a fallback source because Redis was unavailable",
+      help: "Snapshots served from a fallback source because the snapshot store was unavailable",
       labelNames: ["source"],
       registers,
     });

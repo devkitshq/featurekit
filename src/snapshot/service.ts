@@ -4,8 +4,8 @@
  * ```
  * PATCH /v1/flags/:key/environments/:env
  *   -> transaction: write config, bump version, write audit row
- *   -> recompile snapshot (debounced ~200ms, guarded by fk:lock:snapshot:{envId})
- *   -> SET fk:snap:{envId}:server, XADD fk:patches:{envId}, PUBLISH fk:chan:{envId}
+ *   -> recompile snapshot (debounced ~200ms, guarded by a compile lock)
+ *   -> one transaction: snapshot_cache, snapshot_patches, NOTIFY
  *   -> each API node pushes `patch` to its connections
  *   -> next evaluation reflects it
  * ```
@@ -14,14 +14,12 @@
  * production process. That number is the product. A flag system whose kill
  * switch takes 30 seconds is not a kill switch.
  *
- * **Two properties were added after the production review, and both are about
- * Redis being allowed to disappear:**
+ * **Two properties were added after the production review:**
  *
  * 1. **This class keeps its own last-known-good snapshot per environment.**
- *    Previously every read went to Redis, so a Redis outage turned
- *    `GET /v1/snapshot/:env` into a 500 — the control plane hard-depending on
- *    the one component the design explicitly calls disposable. Now Redis loss
- *    degrades to serving from memory, and from Postgres when memory is cold.
+ *    Previously every read went to the store, so a store failure turned
+ *    `GET /v1/snapshot/:env` into a 500. Now it degrades to serving from
+ *    memory, and to compiling when memory is cold.
  * 2. **A kill switch does not wait for the debounce.** Coalescing five
  *    dashboard edits into one recompile is right; making an operator's "turn it
  *    off" wait 200ms behind a lock during an incident is not.
@@ -36,7 +34,7 @@
 
 import type { CompiledFlag, Snapshot } from "../sdk/index.js";
 import { compileSnapshot, type CompilerInput } from "./compile.js";
-import type { SnapshotStore, StreamPatch } from "../redis/snapshot-store.js";
+import type { SnapshotStore, StreamPatch } from "./store.js";
 
 export type SnapshotSource = "store" | "compiled" | "memory" | "postgres";
 
@@ -57,8 +55,8 @@ export interface SnapshotServiceOptions {
   segmentInlineMax?: number;
   cuckooFingerprintBits?: 12 | 16;
   /**
-   * Floor between Postgres-backed compiles for one environment while Redis is
-   * unavailable. Without it, every request during a Redis outage compiles and
+   * Floor between degraded compiles for one environment while the store is
+   * unavailable. Without it, every request during a store outage compiles and
    * burns a version — a self-inflicted load spike on the database that is now
    * the only healthy component in the system.
    */
@@ -80,10 +78,10 @@ export interface RecompileOptions {
 
 /**
  * Marks a failure that came from compiling (Postgres, or a malformed ruleset)
- * rather than from Redis.
+ * rather than from the store.
  *
  * The distinction decides the failure mode, so it must not be guessed from an
- * error message. **A Redis failure degrades** — that is the whole point of the
+ * error message. **A store failure degrades** — that is the whole point of the
  * last-known-good path. **A compile failure propagates**: the caller is usually
  * a management write that has to know its change could not be compiled, and
  * swallowing it would report success for a snapshot nobody can build.
@@ -131,7 +129,7 @@ export class SnapshotService {
         return { ...cached, source: "store" };
       }
     } catch (error) {
-      // Redis is down, not merely empty. Everything below this line is the
+      // The store failed, not merely came back empty. Everything below is the
       // degraded path, and it must not throw into a request.
       this.options.onError?.(error, { environmentId });
       return this.degraded(environmentId);
@@ -167,11 +165,9 @@ export class SnapshotService {
   }
 
   /**
-   * Serve without Redis: memory first, Postgres second.
+   * Serve without the store: memory first, a fresh compile second.
    *
-   * This is the answer to Scenario C ("Redis is completely wiped") and half the
-   * answer to Scenario A ("turn a flag off while Redis is down"). The
-   * alternative — propagating the Redis error — means every SDK polling during
+   * The alternative — propagating the store's error — means every SDK polling during
    * a cache outage receives a 500 and falls back to caller defaults, which is a
    * flag outage caused by a cache.
    */
@@ -184,7 +180,7 @@ export class SnapshotService {
 
     // Memory wins while it is fresh, and also while it is stale but a compile
     // has already run recently. The second clause is the rate limit: without it
-    // every request during a Redis outage compiles, which turns a cache failure
+    // every request during a store outage compiles, which turns a cache failure
     // into a load spike against the only healthy component left — and burns a
     // snapshot version per request while doing it.
     if (known !== undefined && (knownAge < interval || now - lastCompile < interval)) {
@@ -200,7 +196,7 @@ export class SnapshotService {
       this.lastDegradedCompile.set(environmentId, now);
       const { snapshot, version, compileMs } = await this.compileOnly(environmentId);
       this.remember(environmentId, snapshot, version);
-      // Best effort: if Redis has come back, put the result where the rest of
+      // Best effort: if the store has come back, put the result where the rest of
       // the fleet can see it. Failure here is expected and ignored.
       void this.options.store.put(environmentId, snapshot).catch(() => undefined);
       this.options.onSnapshot?.({ environmentId, version, source: "postgres", compileMs });
@@ -215,7 +211,7 @@ export class SnapshotService {
         });
         return { snapshot: known.snapshot, version: known.version, source: "memory" };
       }
-      // Redis is gone, Postgres is gone, and this node never held a snapshot for
+      // The store is gone, compiling failed, and this node never held a snapshot for
       // this environment. There is genuinely nothing to serve.
       throw new Error(`featurekit: could not obtain a snapshot for ${environmentId}`);
     }
@@ -330,7 +326,7 @@ export class SnapshotService {
         // an operator believes a kill switch landed when it did not.
         throw error.cause;
       }
-      // Redis failed somewhere in the publish sequence. The configuration is
+      // The store failed somewhere in the publish sequence. The configuration is
       // already committed in Postgres, so the change is not lost — but this node
       // must still be able to serve it, which is what the degraded path does.
       this.options.onError?.(error, { environmentId });

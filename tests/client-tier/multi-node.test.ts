@@ -17,7 +17,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { Router } from "../../src/http/router.js";
 import { HttpServer } from "../../src/http/server.js";
-import { MemorySnapshotStore } from "../../src/redis/memory-store.js";
+import { MemorySnapshotStore } from "../../src/snapshot/memory-store.js";
 import { SnapshotService } from "../../src/snapshot/service.js";
 import { registerClientRoutes } from "../../src/routes/client.js";
 import {
@@ -205,12 +205,12 @@ describe("a browser whose requests land on different nodes", () => {
   });
 
   it("survives the shared store throwing on every call", async () => {
-    // A Redis outage must cost a re-identify, never a failed identify.
+    // A store outage must cost a re-identify, never a failed identify.
     const broken: ClientConnectionStore = {
-      save: () => Promise.reject(new Error("redis down")),
-      load: () => Promise.reject(new Error("redis down")),
-      touch: () => Promise.reject(new Error("redis down")),
-      delete: () => Promise.reject(new Error("redis down")),
+      save: () => Promise.reject(new Error("store down")),
+      load: () => Promise.reject(new Error("store down")),
+      touch: () => Promise.reject(new Error("store down")),
+      delete: () => Promise.reject(new Error("store down")),
     };
     const snapshotStore = new MemorySnapshotStore();
     const a = await node(broken, snapshotStore);

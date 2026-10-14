@@ -2,7 +2,7 @@
  * A small router over `node:http`.
  *
  * The server package's runtime dependencies are drizzle,
- * postgres, ioredis, pino, prom-client and zod. No HTTP framework — which is a
+ * postgres, pino, prom-client and zod. No HTTP framework — which is a
  * deliberate signal, not an omission. The control plane serves a handful of
  * routes plus two long-lived SSE endpoints, and SSE is the one thing framework
  * abstractions reliably get in the way of.

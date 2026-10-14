@@ -24,7 +24,7 @@ import { registerOpsRoutes } from "../../src/routes/ops.js";
 import { AccessTokenRepository } from "../../src/repositories/access-tokens.js";
 import { SdkKeyRepository } from "../../src/repositories/sdk-keys.js";
 import { SnapshotService } from "../../src/snapshot/service.js";
-import { MemorySnapshotStore } from "../../src/redis/memory-store.js";
+import { MemorySnapshotStore } from "../../src/snapshot/memory-store.js";
 import { Metrics } from "../../src/observability/metrics.js";
 import { loadCompilerInput } from "../../src/repositories/snapshot-input.js";
 import { nextSnapshotVersion } from "../../src/repositories/environments.js";
@@ -102,7 +102,6 @@ describe.skipIf(reason !== null)("an attacker with a scoped token", () => {
     registerOpsRoutes(router, {
       metrics,
       checkDatabase: async () => ({ state: "ok" }),
-      checkRedis: async () => ({ state: "ok" }),
       partitionRunwayDays: async () => 7,
       snapshotAges: () => snapshots.ages(),
       cacheMs: 0,

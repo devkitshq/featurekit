@@ -24,7 +24,7 @@ import { createDatabase, runMigrations, type Database } from "../../src/db/clien
 import { dashboardSessions, members } from "../../src/db/schema.js";
 import { Router } from "../../src/http/router.js";
 import { HttpServer } from "../../src/http/server.js";
-import { MemorySnapshotStore } from "../../src/redis/memory-store.js";
+import { MemorySnapshotStore } from "../../src/snapshot/memory-store.js";
 import { SnapshotService } from "../../src/snapshot/service.js";
 import { loadCompilerInput } from "../../src/repositories/snapshot-input.js";
 import { nextSnapshotVersion } from "../../src/repositories/environments.js";

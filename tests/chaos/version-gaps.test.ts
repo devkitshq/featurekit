@@ -20,10 +20,10 @@
  */
 
 import { afterEach, describe, expect, it } from "vitest";
-import { MemorySnapshotStore } from "../../src/redis/memory-store.js";
+import { MemorySnapshotStore } from "../../src/snapshot/memory-store.js";
 import { SnapshotService } from "../../src/snapshot/service.js";
-import { resumeFrom } from "../../src/redis/memory-store.js";
-import type { StreamPatch } from "../../src/redis/snapshot-store.js";
+import { resumeFrom } from "../../src/snapshot/memory-store.js";
+import type { StreamPatch } from "../../src/snapshot/store.js";
 import type { CompilerInput } from "../../src/snapshot/compile.js";
 
 const ENV = "env-1";

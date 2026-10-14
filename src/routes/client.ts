@@ -20,7 +20,7 @@ import { checkKey } from "../auth/keys.js";
 import { verifyContext } from "../auth/secure-mode.js";
 import { HttpError, type RequestContext, type Router } from "../http/router.js";
 import { openSse, type SseStream } from "../http/server.js";
-import type { SnapshotStore } from "../redis/snapshot-store.js";
+import type { SnapshotStore } from "../snapshot/store.js";
 import type { SnapshotService } from "../snapshot/service.js";
 import {
   ClientFanout,
@@ -84,7 +84,7 @@ export interface ClientRouteDeps {
    * nodes. Without a shared store the second node has never heard of the
    * handle and answers 409, so the client tier only works behind sticky
    * routing. Defaults to an in-process store, which is exactly that old
-   * behaviour; production passes the Redis one.
+   * behaviour; production passes the Postgres one.
    */
   connectionStore?: ClientConnectionStore;
   /** How long a handle stays resumable on another node. */
@@ -336,7 +336,7 @@ export function registerClientRoutes(router: Router, deps: ClientRouteDeps): Rou
           lastSentVersion: stored.lastSentVersion,
           // Recomputed rather than transported: `lastValues` exists to suppress
           // no-op pushes, and evaluating it here is cheaper than shipping every
-          // flag value through Redis on every identify.
+          // flag value through the shared store on every identify.
           lastValues: fanout.evaluateAll(snapshot, stored.context),
         };
         connections.set(connectionId, registered);

@@ -1,15 +1,15 @@
 /**
- * The control plane without Redis (Scenarios A and C).
+ * The control plane when its snapshot store fails.
  *
- * The design says Postgres is truth and Redis is a disposable cache. Before
- * this suite existed, that was an assertion: `SnapshotService.get` read Redis on
- * every request and propagated the failure, so a Redis outage turned
- * `GET /v1/snapshot/:env` into a 500 for every SDK in the fleet — a flag outage
- * caused by a cache.
+ * The configuration tables are truth and the snapshot store is a disposable
+ * cache. Before this suite existed, that was an assertion: `SnapshotService.get`
+ * read the store on every request and propagated the failure, so a store
+ * outage turned `GET /v1/snapshot/:env` into a 500 for every SDK in the fleet —
+ * a flag outage caused by a cache.
  *
  * What is asserted here:
  *
- * - a warm node keeps serving through a total Redis failure;
+ * - a warm node keeps serving through a total store failure;
  * - a cold node compiles straight from Postgres instead of failing;
  * - it does that at a bounded rate, so an outage does not become a compile storm
  *   against the one healthy component left;
@@ -19,9 +19,9 @@
  */
 
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { MemorySnapshotStore } from "../../src/redis/memory-store.js";
+import { MemorySnapshotStore } from "../../src/snapshot/memory-store.js";
 import { SnapshotService } from "../../src/snapshot/service.js";
-import type { SnapshotStore } from "../../src/redis/snapshot-store.js";
+import type { SnapshotStore } from "../../src/snapshot/store.js";
 import type { CompilerInput } from "../../src/snapshot/compile.js";
 
 const ENV = "env-1";
@@ -67,7 +67,7 @@ function input(flagKeys: string[] = ["f"]): CompilerInput {
   };
 }
 
-/** A store that can be switched off, the way Redis switches off. */
+/** A store that can be switched off, the way a dependency switches off. */
 class FlakyStore implements SnapshotStore {
   failing = false;
   constructor(private readonly inner = new MemorySnapshotStore()) {}
@@ -119,7 +119,7 @@ function service(store: SnapshotStore, over: Partial<Parameters<typeof SnapshotS
   return created;
 }
 
-describe("Redis is gone", () => {
+describe("the store is gone", () => {
   it("keeps serving the last known good snapshot from memory", async () => {
     const store = new FlakyStore();
     const snapshots = service(store);
@@ -134,8 +134,8 @@ describe("Redis is gone", () => {
     expect(Object.keys(degraded.snapshot.flags)).toEqual(["f"]);
   });
 
-  it("compiles from Postgres when the node is cold and Redis is down", async () => {
-    // Scenario C: Redis wiped, a node restarts. Postgres is truth, so there is
+  it("compiles from Postgres when the node is cold and the store is down", async () => {
+    // Scenario C: the cache wiped, a node restarts. Postgres is truth, so there is
     // no reason for this to fail.
     const store = new FlakyStore();
     store.failing = true;
@@ -147,7 +147,7 @@ describe("Redis is gone", () => {
   });
 
   it("does not compile once per request during an outage", async () => {
-    // Otherwise a Redis outage becomes a compile storm against the only healthy
+    // Otherwise a store outage becomes a compile storm against the only healthy
     // component left, and burns a version per request besides.
     const store = new FlakyStore();
     store.failing = true;
@@ -166,7 +166,7 @@ describe("Redis is gone", () => {
     expect(compiles).toBe(1);
   });
 
-  it("throws only when Redis, memory and Postgres have all failed", async () => {
+  it("throws only when the store, memory and compiling have all failed", async () => {
     const store = new FlakyStore();
     store.failing = true;
     const snapshots = service(store, {
@@ -177,7 +177,7 @@ describe("Redis is gone", () => {
     await expect(snapshots.get(ENV)).rejects.toThrow(/could not obtain a snapshot/);
   });
 
-  it("recovers to the store once Redis returns", async () => {
+  it("recovers to the store once it returns", async () => {
     const store = new FlakyStore();
     const snapshots = service(store);
     await snapshots.get(ENV);

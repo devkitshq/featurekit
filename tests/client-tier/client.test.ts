@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { FeaturekitClient } from "featurekit-client";
 import { Router } from "../../src/http/router.js";
 import { HttpServer } from "../../src/http/server.js";
-import { MemorySnapshotStore } from "../../src/redis/memory-store.js";
+import { MemorySnapshotStore } from "../../src/snapshot/memory-store.js";
 import { registerClientRoutes } from "../../src/routes/client.js";
 import { SnapshotService } from "../../src/snapshot/service.js";
 import { signContext } from "../../src/auth/secure-mode.js";

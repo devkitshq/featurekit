@@ -16,7 +16,7 @@
 import type { Snapshot } from "../sdk/index.js";
 import { HttpError, type RequestContext, type Router } from "../http/router.js";
 import { openSse } from "../http/server.js";
-import { serializeSnapshot, type SnapshotStore } from "../redis/snapshot-store.js";
+import { serializeSnapshot, type SnapshotStore } from "../snapshot/store.js";
 import type { SnapshotService } from "../snapshot/service.js";
 import { checkKey, type KeyRecord, type SdkKeyKind } from "../auth/keys.js";
 import { summaryBatchSchema, bucketIsAcceptable, BODY_LIMITS } from "../contracts/wire.js";

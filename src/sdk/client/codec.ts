@@ -9,7 +9,7 @@
  *
  * The base64 is hand-rolled rather than using `Buffer`: this file is compiled
  * into browser and edge bundles, where `Buffer` does not exist. It must stay
- * byte-identical to the server's codec in `src/redis/snapshot-store.ts`.
+ * byte-identical to the server's codec in `src/snapshot/store.ts`.
  */
 
 import type { Snapshot } from "../evaluation/types.js";

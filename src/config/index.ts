@@ -3,7 +3,7 @@
  *
  * **The defaults are for laptops, never for prod.** Development starts
  * containers and binds to localhost; production start fails loudly on a missing
- * `DATABASE_URL`, `REDIS_URL`, `ADMIN_TOKEN`, or — if any client key exists —
+ * `DATABASE_URL`, `ADMIN_TOKEN`, or — if any client key exists —
  * `SECURE_MODE_SECRET`.
  *
  * Every missing variable is reported at once. Three restarts to discover three
@@ -41,23 +41,14 @@ export const configSchema = z
         message: "must be a lowercase identifier (letters, digits, underscores), not starting with pg_",
       })
       .default(DEFAULT_SCHEMA),
-    REDIS_URL: z.url().default("redis://localhost:6379"),
-    /** TLS to a managed Redis. A `rediss://` URL implies it; this forces it. */
-    REDIS_TLS: z.coerce.boolean().default(false),
-    /** Off only for a self-signed certificate you have deliberately trusted. */
-    REDIS_TLS_REJECT_UNAUTHORIZED: z.coerce.boolean().default(true),
-    REDIS_CONNECT_TIMEOUT_MS: z.coerce.number().int().min(100).max(60_000).default(5_000),
-    /** Bounds any single Redis command, so a hung server cannot hang a request. */
-    REDIS_COMMAND_TIMEOUT_MS: z.coerce.number().int().min(50).max(30_000).default(2_000),
     /**
-     * Consecutive Redis failures before commands fail fast.
+     * Where LISTEN connects, when it must bypass a pooler.
      *
-     * The last-known-good path is only useful if reaching it is fast. Without a
-     * breaker every request during an outage pays a connection attempt and a
-     * command timeout before falling back to a snapshot already in memory.
+     * Change delivery between nodes is Postgres LISTEN/NOTIFY, and LISTEN needs
+     * a session that stays put, which a transaction-mode pgbouncer cannot give.
+     * Point this straight at Postgres in that setup. Defaults to DATABASE_URL.
      */
-    REDIS_CIRCUIT_FAILURE_THRESHOLD: z.coerce.number().int().min(1).default(5),
-    REDIS_CIRCUIT_RESET_MS: z.coerce.number().int().min(100).default(5_000),
+    DATABASE_LISTEN_URL: z.url().optional(),
 
     ADMIN_TOKEN: z.string().min(24).optional(),
     /**
@@ -106,8 +97,6 @@ export const configSchema = z
      * by whoever complains loudest.
      */
     RATE_LIMIT_OVERRIDES: z.string().default(""),
-    /** Share of a limit one node allows alone when Redis is unreachable. */
-    RATE_LIMIT_DEGRADED_FACTOR: z.coerce.number().min(0.05).max(1).default(0.5),
 
     /**
      * Where the built dashboard lives, and whether to serve it.
@@ -167,7 +156,7 @@ export const configSchema = z
     /**
      * How long a client connection handle stays resumable on another node.
      *
-     * The record lives in Redis so any node can take over a stream.
+     * The record lives in Postgres so any node can take over a stream.
      * Long enough to survive a reconnect and a rolling deploy; short enough
      * that abandoned browsers do not accumulate.
      */
@@ -219,7 +208,7 @@ export class ConfigError extends Error {
 }
 
 /** Variables with a laptop-shaped default that must never silently apply in prod. */
-const REQUIRED_IN_PRODUCTION = ["DATABASE_URL", "REDIS_URL", "ADMIN_TOKEN"] as const;
+const REQUIRED_IN_PRODUCTION = ["DATABASE_URL", "ADMIN_TOKEN"] as const;
 
 export function loadConfig(
   env: Record<string, string | undefined> = process.env,

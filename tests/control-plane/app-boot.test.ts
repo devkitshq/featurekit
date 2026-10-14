@@ -5,8 +5,8 @@
  * assembled inside a test file — which meant "can it start" had no answer, and
  * operability, capacity and the adversarial scenarios had nothing to run against.
  *
- * These tests deliberately point the app at a **dead Postgres and a dead
- * Redis**, because that is the interesting case: a control plane that only
+ * These tests deliberately point the app at a **dead Postgres**, because
+ * that is the interesting case: a control plane that only
  * starts when its dependencies are healthy is a control plane that cannot be
  * brought up during the incident you most need it in. It must bind, answer
  * liveness, expose metrics, refuse unauthenticated requests, report honestly on
@@ -28,7 +28,6 @@ function config(over: Record<string, string> = {}) {
     HOST: "127.0.0.1",
     PORT: "0",
     DATABASE_URL: "postgres://featurekit:featurekit@127.0.0.1:59999/none",
-    REDIS_URL: "redis://127.0.0.1:59998",
     ...over,
   });
 }
@@ -62,9 +61,6 @@ describe("the app boots with nothing behind it", () => {
     };
     expect(body.status).toBe("not_ready");
     expect(body.checks["database"]?.state).toBe("failed");
-    // Redis is degraded, never failed: a node serving last-known-good snapshots
-    // belongs in the load balancer.
-    expect(body.checks["redis"]?.state).toBe("degraded");
   });
 
   it("exposes metrics", async () => {

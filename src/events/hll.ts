@@ -139,7 +139,7 @@ export class HyperLogLog {
    * Returns `null` rather than throwing on anything unrecognised. A corrupt
    * analytics sketch must degrade to "no unique count for this bucket", never to
    * an exception in the rollup worker — which would stall the drain and turn an
-   * analytics problem into a Redis backlog.
+   * analytics problem into an ingest backlog.
    */
   static fromBytes(bytes: Uint8Array | null | undefined): HyperLogLog | null {
     if (bytes === null || bytes === undefined || bytes.length < HEADER_BYTES) return null;

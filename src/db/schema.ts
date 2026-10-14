@@ -81,8 +81,9 @@ export const environments = pgTable(
      * Monotonic snapshot version for this environment, bumped in the same
      * transaction as any config change.
      *
-     * It lives in Postgres rather than a Redis counter precisely because Redis
-     * is allowed to be lost. A version that reset on a Redis restart would
+     * It lives in a logged table rather than the UNLOGGED snapshot cache
+     * precisely because the cache is allowed to be lost. A version that reset
+     * when the cache was emptied would
      * go *backwards*, and the SDK's version guard would then reject every
      * subsequent patch as stale — an environment frozen on its last good
      * snapshot with nothing in the logs to say why.

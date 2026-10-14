@@ -3,7 +3,7 @@ import { FeaturekitSDK, bucket, buildCuckooFilter, evaluate, SegmentIndex } from
 import type { CompiledFlag, Snapshot } from "../../src/sdk/index.js";
 import { Router } from "../../src/http/router.js";
 import { HttpServer } from "../../src/http/server.js";
-import { MemorySnapshotStore } from "../../src/redis/memory-store.js";
+import { MemorySnapshotStore } from "../../src/snapshot/memory-store.js";
 import { registerSdkRoutes, type AuthenticatedEnvironment } from "../../src/routes/sdk.js";
 import { SnapshotService } from "../../src/snapshot/service.js";
 import type { CompilerInput } from "../../src/snapshot/compile.js";
@@ -16,9 +16,8 @@ import type { CompilerInput } from "../../src/snapshot/compile.js";
  * shipping the marketing copy without the thing it describes — so these assert
  * the reliability claim rather than restating it.
  *
- * Scenarios needing a real Redis or Postgres to kill (`degraded.test.ts`,
- * `rollup-contention.test.ts`) are gated with the integration suite and are
- * noted in TASKS.md; everything here runs against a real HTTP control plane
+ * Scenarios needing a real Postgres to kill are in
+ * `tests/integration/chaos-infra.test.ts`; everything here runs against a real HTTP control plane
  * that is genuinely killed, flapped and stormed.
  */
 
@@ -346,7 +345,7 @@ describe("segment-fail-closed: the r2 leak, as a chaos test", () => {
     const index = new SegmentIndex(snapshot.segments);
     index.setCache({
       has() {
-        throw new Error("redis unreachable");
+        throw new Error("store unreachable");
       },
     });
 

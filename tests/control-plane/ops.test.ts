@@ -2,10 +2,8 @@
  * Operational endpoints.
  *
  * The assertions that matter here are the ones about *which* failures take a
- * node out of rotation. Getting that backwards is how a Redis blip becomes a
- * full outage: if readiness failed on Redis, every node would leave the load
- * balancer at the same moment, while each of them was still perfectly capable
- * of serving last-known-good snapshots.
+ * node out of rotation, and that liveness never depends on anything outside
+ * the process.
  */
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -18,7 +16,6 @@ const servers: HttpServer[] = [];
 
 interface Overrides {
   database?: () => Promise<CheckResult>;
-  redis?: () => Promise<CheckResult>;
   runway?: () => Promise<number>;
   shuttingDown?: boolean;
 }
@@ -29,7 +26,6 @@ async function serve(over: Overrides = {}) {
   registerOpsRoutes(router, {
     metrics,
     checkDatabase: over.database ?? (async () => ({ state: "ok" })),
-    checkRedis: over.redis ?? (async () => ({ state: "ok" })),
     partitionRunwayDays: over.runway ?? (async () => 7),
     snapshotAges: () => new Map([["env-1", 12]]),
     isShuttingDown: () => over.shuttingDown === true,
@@ -53,9 +49,6 @@ describe("GET /live", () => {
       database: async () => {
         throw new Error("postgres is gone");
       },
-      redis: async () => {
-        throw new Error("redis is gone");
-      },
     });
     const response = await fetch(`${base}/live`);
     expect(response.status).toBe(200);
@@ -75,15 +68,6 @@ describe("GET /ready", () => {
     const body = (await response.json()) as { status: string; snapshotAgeSeconds: unknown };
     expect(body.status).toBe("ok");
     expect(body.snapshotAgeSeconds).toEqual({ "env-1": 12 });
-  });
-
-  it("stays in rotation when Redis is unreachable", async () => {
-    // Redis is a cache and a bus. A node that can still serve its
-    // last-known-good snapshots should keep receiving traffic.
-    const { base } = await serve({ redis: async () => ({ state: "degraded", detail: "unreachable" }) });
-    const response = await fetch(`${base}/ready`);
-    expect(response.status).toBe(200);
-    expect(((await response.json()) as { status: string }).status).toBe("degraded");
   });
 
   it("leaves rotation when Postgres is unreachable", async () => {

@@ -10,15 +10,11 @@
  * every time, for every browser, on any deployment with more than one node.
  * The single-node case worked perfectly, which is exactly why this survived.
  *
- * `fk:cctx:{connectionId}` was reserved for this in the Redis key map from the
- * start ("Client-tier connection → context. Rebuild: client re-identifies").
- * This is the code that finally uses it.
- *
- * **Redis is still not authoritative here.** Every node keeps its own in-memory
+ * **The shared store is not authoritative.** Every node keeps its own in-memory
  * copy and consults it first — a stream is served by the node holding the
- * socket, so the local copy is the hot path and Redis is only consulted on a
- * miss. If Redis is unavailable the tier degrades to exactly its old behaviour:
- * single-node correct, and a browser whose two requests split across nodes
+ * socket, so the local copy is the hot path and the shared store (a Postgres
+ * table) is only consulted on a miss. If it is unavailable the tier degrades to
+ * single-node behaviour: a browser whose two requests split across nodes
  * re-identifies. That is a worse experience, not a wrong answer.
  *
  * **The handle is a 256-bit random value, not a uuid.** It is a bearer token
@@ -59,7 +55,7 @@ export function newConnectionId(): string {
 /**
  * In-process store.
  *
- * Correct for a single-node deployment, and the fixture the Redis
+ * Correct for a single-node deployment, and the fixture the Postgres
  * implementation is held against. Entries expire, because a browser that closes
  * without a clean disconnect must not pin its context in memory forever — that
  * is the unbounded-Map failure in miniature.
@@ -128,7 +124,7 @@ export class MemoryClientConnectionStore implements ClientConnectionStore {
  * A store that never remembers anything.
  *
  * For a deployment that has deliberately chosen sticky routing and does not want
- * connection contexts in Redis at all. Behaviour is identical to the original
+ * connection contexts in Postgres at all. Behaviour is identical to the original
  * per-process registry, and choosing it is an explicit decision rather than an
  * accident of not configuring anything.
  */

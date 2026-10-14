@@ -9,7 +9,7 @@
  * The shape is deliberate: `createApp` builds and returns everything, and
  * `main.ts` does nothing but call it and wire signals. That keeps the whole
  * wiring testable in-process — a test can start a real app against a real
- * Postgres and Redis without binding a port or forking a process.
+ * Postgres without binding a port or forking a process.
  *
  * **Startup order matters and is the reverse of shutdown order.** Dependencies
  * first, then the things that use them, then the socket. On the way out: stop
@@ -26,9 +26,8 @@ import { Router } from "./http/router.js";
 import { HttpServer, SseRegistry } from "./http/server.js";
 import { corsMiddleware } from "./http/cors.js";
 import { RateLimiter, rateLimitMiddleware, type RateLimitRule } from "./http/rate-limit.js";
-import { RedisRateLimitBackend } from "./redis/rate-limit-backend.js";
-import { RedisSnapshotStore } from "./redis/redis-store.js";
-import { RedisClientConnectionStore } from "./redis/client-connections.js";
+import { PostgresSnapshotStore } from "./snapshot/postgres-store.js";
+import { PostgresClientConnectionStore } from "./client-tier/postgres-connection-store.js";
 import { SnapshotService } from "./snapshot/service.js";
 import { loadCompilerInput } from "./repositories/snapshot-input.js";
 import { compileSnapshot } from "./snapshot/compile.js";
@@ -57,7 +56,7 @@ export interface App {
   server: HttpServer;
   router: Router;
   db: Database;
-  store: RedisSnapshotStore;
+  store: PostgresSnapshotStore;
   snapshots: SnapshotService;
   metrics: Metrics;
   logger: Logger;
@@ -141,26 +140,30 @@ export function createApp(config: FeaturekitConfig, options: CreateAppOptions = 
   });
   const metrics = new Metrics();
 
-  const { db, close: closeDatabase } = createDatabase({
+  const { db, sql, close: closeDatabase } = createDatabase({
     url: config.DATABASE_URL,
     schema: config.DATABASE_SCHEMA,
     maxConnections: config.DB_MAX_CONNECTIONS,
   });
+  // Only when LISTEN has to bypass a transaction-mode pooler; otherwise the
+  // main pool opens its own dedicated LISTEN connection.
+  const listener =
+    config.DATABASE_LISTEN_URL === undefined
+      ? undefined
+      : createDatabase({
+          url: config.DATABASE_LISTEN_URL,
+          schema: config.DATABASE_SCHEMA,
+          maxConnections: 1,
+        });
 
-  const store = new RedisSnapshotStore({
-    url: config.REDIS_URL,
-    tls: config.REDIS_TLS,
-    tlsRejectUnauthorized: config.REDIS_TLS_REJECT_UNAUTHORIZED,
-    connectTimeoutMs: config.REDIS_CONNECT_TIMEOUT_MS,
-    commandTimeoutMs: config.REDIS_COMMAND_TIMEOUT_MS,
-    circuitFailureThreshold: config.REDIS_CIRCUIT_FAILURE_THRESHOLD,
-    circuitResetAfterMs: config.REDIS_CIRCUIT_RESET_MS,
-    onCircuitStateChange: (state) =>
-      logger.warn({ state }, "redis circuit breaker changed state"),
-    // Sampled rather than logged per event: a Redis outage produces several
-    // reconnect errors a second, and a log nobody can read during an incident
-    // is worse than no log.
-    onError: throttled((error) => logger.warn({ err: error }, "redis connection error"), 10_000),
+  const store = new PostgresSnapshotStore({
+    sql,
+    schema: config.DATABASE_SCHEMA,
+    ...(listener !== undefined ? { listenSql: listener.sql } : {}),
+    // Sampled rather than logged per event: a database outage produces a
+    // reconnect error every few seconds per node, and a log nobody can read
+    // during an incident is worse than no log.
+    onError: throttled((error) => logger.warn({ err: error }, "snapshot store error"), 10_000),
   });
 
   /* ── snapshots ─────────────────────────────────────────────────────── */
@@ -287,7 +290,7 @@ export function createApp(config: FeaturekitConfig, options: CreateAppOptions = 
     // Shared so a browser whose POST and stream land on different nodes is
     // taken over rather than refused. Without this the client tier
     // requires sticky routing.
-    connectionStore: new RedisClientConnectionStore(store.guarded, {
+    connectionStore: new PostgresClientConnectionStore(sql, {
       onError: throttled(
         (error) => logger.warn({ err: error }, "client connection store error"),
         10_000,
@@ -370,12 +373,7 @@ export function createApp(config: FeaturekitConfig, options: CreateAppOptions = 
       }),
       rateLimitMiddleware({
         overrides: parseRateLimitOverrides(config.RATE_LIMIT_OVERRIDES, logger),
-        limiter: new RateLimiter({
-          backend: new RedisRateLimitBackend(store.guarded),
-          degradedFactor: config.RATE_LIMIT_DEGRADED_FACTOR,
-          onDegraded: () =>
-            logger.warn("rate limiter degraded to local counters; Redis unreachable"),
-        }),
+        limiter: new RateLimiter(),
         rules: rateLimitRules(config),
         onLimited: (ctx) => metrics.rateLimited.inc({ route: ctx.routePattern }),
       }),
@@ -409,21 +407,6 @@ export function createApp(config: FeaturekitConfig, options: CreateAppOptions = 
       return schema.state === "ok"
         ? { state: "ok" }
         : { state: "failed", detail: `schema ${schema.state}` };
-    },
-    checkRedis: async () => {
-      // The breaker's own view first: when it is open, commands are failing
-      // fast by design and a ping would just be another timeout to wait for.
-      if (store.circuitState === "open") {
-        return { state: "degraded", detail: "circuit open" };
-      }
-      try {
-        await store.ping();
-        return { state: "ok" };
-      } catch {
-        // Degraded, never failed: a node serving last-known-good snapshots
-        // should stay in the load balancer.
-        return { state: "degraded", detail: "unreachable" };
-      }
     },
     partitionRunwayDays: () => partitionRunwayDays(db),
     snapshotAges: () => snapshots.ages(),
@@ -500,7 +483,7 @@ export function createApp(config: FeaturekitConfig, options: CreateAppOptions = 
      *
      * Readiness fails first (inside `server.close`), then streams are drained
      * with a jittered reconnect hint, then the workers stop — each flushing what
-     * it holds — and only then do the database and Redis handles close.
+     * it holds — and only then do the database handles close.
      */
     async close() {
       await server.close();
@@ -508,6 +491,7 @@ export function createApp(config: FeaturekitConfig, options: CreateAppOptions = 
       await scheduler.close();
       await rollup.close();
       await store.close().catch(() => undefined);
+      await listener?.close();
       await closeDatabase();
       logger.info("featurekit control plane stopped");
     },

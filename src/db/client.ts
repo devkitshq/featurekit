@@ -1,7 +1,7 @@
 /**
  * Postgres connection and migration.
  *
- * Postgres is truth. Everything in Redis is a cache or a bus and is
+ * Postgres is truth. Its UNLOGGED cache tables are a cache and a bus, and are
  * rebuildable from here.
  *
  * **Schema.** Every table, type and function lives in one schema, `public`

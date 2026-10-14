@@ -36,6 +36,13 @@
       "when": 1788604685626,
       "tag": "0004_dashboard_auth",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1788604685627,
+      "tag": "0005_postgres_only",
+      "breakpoints": true
     }
   ]
 }

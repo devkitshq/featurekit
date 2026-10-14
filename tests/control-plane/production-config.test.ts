@@ -2,8 +2,8 @@
  * A production deployment that forgot a variable must die, not dial.
  *
  * `loadConfig`'s `REQUIRED_IN_PRODUCTION` check has always been right, and for
- * `DATABASE_URL` and `REDIS_URL` it was **unreachable**. It tests
- * `env[key] === undefined`, and `FeaturekitServer.start()` wrote both keys into
+ * `DATABASE_URL` it was **unreachable**. It tests
+ * `env[key] === undefined`, and `FeaturekitServer.start()` wrote the key into
  * that object unconditionally — holding the loopback defaults it had just
  * invented when nobody supplied any. So production configuration validation
  * passed on a deployment with no database configured at all.
@@ -46,37 +46,25 @@ function productionServer(options: Record<string, unknown> = {}): FeaturekitServ
     ...options,
     // A bare object: `start()` spreads `process.env` first, and this repository's
     // own DATABASE_URL would otherwise make every case look "supplied".
-    env: { DATABASE_URL: undefined, REDIS_URL: undefined, ...(options["env"] as object) },
+    env: { DATABASE_URL: undefined, ...(options["env"] as object) },
   });
   started.push(server);
   return server;
 }
 
 describe("production refuses the development defaults", () => {
-  it("names every missing variable at once, not one per restart", async () => {
-    // Three restarts to discover three missing variables is three outages.
+  it("refuses to start without an explicit database", async () => {
     const error = await productionServer().start().catch((cause: unknown) => cause);
 
     expect(error).toBeInstanceOf(ConfigError);
     expect((error as ConfigError).message).toContain("DATABASE_URL");
-    expect((error as ConfigError).message).toContain("REDIS_URL");
-  }, 15_000);
-
-  it("still refuses when only one of the two was supplied", async () => {
-    const error = await productionServer({ databaseUrl: "postgres://u:p@db:5432/f" })
-      .start()
-      .catch((cause: unknown) => cause);
-
-    expect(error).toBeInstanceOf(ConfigError);
-    expect((error as ConfigError).message).not.toContain("  DATABASE_URL");
-    expect((error as ConfigError).message).toContain("REDIS_URL");
   }, 15_000);
 
   it("accepts an explicit URL from the environment, not only from options", async () => {
     // The PaaS shape: variables arrive in the environment, nothing is passed in
     // code. `start()` must treat those as supplied.
     const error = await productionServer({
-      env: { DATABASE_URL: "postgres://u:p@db:5432/f", REDIS_URL: "redis://cache:6379" },
+      env: { DATABASE_URL: "postgres://u:p@db:5432/f" },
     })
       .start()
       .catch((cause: unknown) => cause);
@@ -89,7 +77,7 @@ describe("production refuses the development defaults", () => {
   it("has not made ADMIN_TOKEN's check redundant", async () => {
     const error = await productionServer({
       adminToken: undefined,
-      env: { DATABASE_URL: "postgres://u:p@db:5432/f", REDIS_URL: "redis://cache:6379" },
+      env: { DATABASE_URL: "postgres://u:p@db:5432/f" },
     })
       .start()
       .catch((cause: unknown) => cause);

@@ -41,7 +41,7 @@ export interface RollupWorkerOptions {
   deadLetter?: DeadLetterSink;
   /**
    * Only one worker per shard should drain concurrently. The lease is the
-   * mechanism; on a single node it is a no-op, and with Redis it is a SET NX.
+   * mechanism; on a single node it is a no-op.
    */
   acquireLease?: (shard: number, ttlMs: number) => Promise<boolean>;
   releaseLease?: (shard: number) => Promise<void>;

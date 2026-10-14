@@ -107,10 +107,9 @@ describe("the dead-letter queue", () => {
   });
 });
 
-describe("the rate limiter's local fallback", () => {
-  it("stops growing while Redis is unavailable", async () => {
-    // The fallback runs for the whole duration of a Redis outage, keyed by
-    // caller identity — which is the internet.
+describe("the rate limiter's counters", () => {
+  it("stop growing under a flood of distinct callers", async () => {
+    // Counters are keyed by caller identity — which is the internet.
     const limiter = new RateLimiter({ maxLocalKeys: 1_000, now: () => 60_000 });
     const delta = await heapDelta(async () => {
       for (let i = 0; i < 100_000; i++) {

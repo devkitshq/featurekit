@@ -4,7 +4,6 @@ import { loadConfig, secureModeSecrets } from "../../src/config/index.js";
 const PROD = {
   NODE_ENV: "production",
   DATABASE_URL: "postgres://u:p@db:5432/featurekit",
-  REDIS_URL: "redis://cache:6379",
   ADMIN_TOKEN: "a".repeat(24),
   SECURE_MODE_SECRET: "s".repeat(32),
 };
@@ -16,7 +15,6 @@ describe("defaults are for laptops, never for prod", () => {
     expect(config.PORT).toBe(3000);
     expect(config.HOST).toBe("127.0.0.1");
     expect(config.DATABASE_URL).toContain("localhost");
-    expect(config.REDIS_URL).toContain("localhost");
   });
 
   it("coerces numeric env vars, which arrive as strings", () => {
@@ -40,7 +38,7 @@ describe("production start fails loudly", () => {
     expect(() => loadConfig(PROD)).not.toThrow();
   });
 
-  it.each(["DATABASE_URL", "REDIS_URL", "ADMIN_TOKEN"])(
+  it.each(["DATABASE_URL", "ADMIN_TOKEN"])(
     "refuses to start in production without %s",
     (key) => {
       const env: Record<string, string> = { ...PROD };
@@ -50,7 +48,7 @@ describe("production start fails loudly", () => {
   );
 
   it("names every missing variable at once, not one per restart", () => {
-    // Three restarts to discover three missing variables is three outages.
+    // Two restarts to discover two missing variables is two outages.
     let message = "";
     try {
       loadConfig({ NODE_ENV: "production" });
@@ -58,7 +56,6 @@ describe("production start fails loudly", () => {
       message = (error as Error).message;
     }
     expect(message).toContain("DATABASE_URL");
-    expect(message).toContain("REDIS_URL");
     expect(message).toContain("ADMIN_TOKEN");
   });
 

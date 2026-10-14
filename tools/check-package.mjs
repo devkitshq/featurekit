@@ -145,7 +145,7 @@ for (const [path, source] of sourcesUnder(join("src", "sdk"))) {
  *
  * Its entire reason to exist as a separate entry point is that a customer's
  * backend can mint a signed context without loading Drizzle, a Postgres driver,
- * ioredis and pino at import time. That promise is one careless import away from
+ * and pino at import time. That promise is one careless import away from
  * being false, and nothing would fail — the signature would still be correct,
  * just preceded by a second of module loading in a cold Lambda. So the
  * transitive closure of its relative imports is walked, and any runtime
@@ -191,7 +191,7 @@ function closureOf(entry) {
 const ENTRY_BUDGETS = [
   // Signing is an HMAC over a string. It needs nothing.
   { entry: join("src", "secure-mode.ts"), name: "featurekit-server/secure-mode", allow: [] },
-  // Migrating is talking to Postgres, so it may. Not Redis, not the logger,
+  // Migrating is talking to Postgres, so it may. Not the logger,
   // not the metrics registry.
   { entry: join("src", "migrate.ts"), name: "featurekit-server/migrate", allow: ["drizzle-orm", "postgres"] },
 ];

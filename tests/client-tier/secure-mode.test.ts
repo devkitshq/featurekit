@@ -14,7 +14,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { Router } from "../../src/http/router.js";
 import { HttpServer } from "../../src/http/server.js";
-import { MemorySnapshotStore } from "../../src/redis/memory-store.js";
+import { MemorySnapshotStore } from "../../src/snapshot/memory-store.js";
 import { SnapshotService } from "../../src/snapshot/service.js";
 import { registerClientRoutes } from "../../src/routes/client.js";
 import { signContext, verifyContext } from "../../src/auth/secure-mode.js";

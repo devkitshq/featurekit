@@ -2,10 +2,10 @@
 /**
  * Load the module that starts a development container.
  *
- * The testcontainers packages are dev dependencies, so they are not installed
- * with featurekit-server and production never carries them. Starting Postgres
- * and Redis in Docker is opt-in: install them as dev dependencies of your own
- * project, or pass the addresses.
+ * The testcontainers package is a dev dependency, so it is not installed with
+ * featurekit-server and production never carries it. Starting Postgres in
+ * Docker is opt-in: install it as a dev dependency of your own project, or pass
+ * the address.
  */
 export async function devServiceModule<T>(load: () => Promise<T>, name: string): Promise<T> {
   try {
@@ -16,9 +16,9 @@ export async function devServiceModule<T>(load: () => Promise<T>, name: string):
       String((error as { message?: unknown }).message).includes(name);
     if (!missing) throw error;
     throw new ConfigError(
-      `featurekit: no databaseUrl/redisUrl given, and starting them in Docker needs ${name}.\n` +
-        `  Either pass databaseUrl and redisUrl (or set DATABASE_URL and REDIS_URL),\n` +
-        `  or install the dev-only helpers: npm i -D @testcontainers/postgresql @testcontainers/redis`,
+      `featurekit: no databaseUrl given, and starting Postgres in Docker needs ${name}.\n` +
+        `  Either pass databaseUrl (or set DATABASE_URL),\n` +
+        `  or install the dev-only helper: npm i -D @testcontainers/postgresql`,
     );
   }
 }
@@ -30,7 +30,7 @@ export async function startDevContainer<T>(start: () => Promise<T>): Promise<T> 
   } catch (error) {
     throw new ConfigError(
       `featurekit: could not start a development container: ${String((error as Error)?.message ?? error)}\n` +
-        `  Start Docker, or pass databaseUrl and redisUrl (or set DATABASE_URL and REDIS_URL).`,
+        `  Start Docker, or pass databaseUrl (or set DATABASE_URL).`,
     );
   }
 }
@@ -52,7 +52,7 @@ export function redact(url: string): string {
  * import { FeaturekitServer } from "featurekit-server";
  *
  * const server = new FeaturekitServer({ services: ["all"], port: 3000 });
- * await server.start();   // dev: Postgres + Redis start automatically
+ * await server.start();   // dev: Postgres starts automatically
  * ```
  *
  * `main.ts` is this class plus signal handling; a test is this class plus
@@ -96,7 +96,6 @@ export interface FeaturekitServerOptions {
    * `DATABASE_SCHEMA`, then `public`; migrations create it if missing.
    */
   databaseSchema?: string;
-  redisUrl?: string;
   nodeEnv?: "development" | "test" | "production";
   logLevel?: "fatal" | "error" | "warn" | "info" | "debug" | "trace" | "silent";
 
@@ -115,7 +114,7 @@ export interface FeaturekitServerOptions {
    */
   autoMigrate?: boolean;
   /**
-   * Start Postgres and Redis in Docker when they are not reachable.
+   * Start Postgres in Docker when no address is given.
    *
    * Development only, and only for addresses you did not specify: an explicit
    * `databaseUrl` that does not answer is an error, never a redirect to a fresh
@@ -212,7 +211,6 @@ export class FeaturekitServer {
   #starting: Promise<FeaturekitAddress> | null = null;
   #appHost: AppHost | null = null;
   #pgContainer: any = null;
-  #redisContainer: any = null;
 
   constructor(private readonly options: FeaturekitServerOptions = {}) {}
 
@@ -272,23 +270,10 @@ export class FeaturekitServer {
 
     const databaseExplicit =
       this.options.databaseUrl !== undefined || process.env["DATABASE_URL"] !== undefined;
-    const redisExplicit =
-      this.options.redisUrl !== undefined || process.env["REDIS_URL"] !== undefined;
 
     let databaseUrl = this.options.databaseUrl ?? process.env["DATABASE_URL"];
-    let redisUrl = this.options.redisUrl ?? process.env["REDIS_URL"];
 
     const wantsDevServices = this.options.devServices ?? !isProduction;
-
-    if (!redisUrl && wantsDevServices && !isProduction) {
-      log("No redisUrl provided, spinning up Redis container for development/testing...");
-      const { RedisContainer } = await devServiceModule(
-        () => import("@testcontainers/redis"),
-        "@testcontainers/redis",
-      );
-      this.#redisContainer = await startDevContainer(() => new RedisContainer("redis:alpine").start());
-      redisUrl = this.#redisContainer.getConnectionUrl();
-    }
 
     if (!databaseUrl && wantsDevServices && !isProduction) {
       log("No databaseUrl provided, spinning up PostgreSQL container for development/testing...");
@@ -314,7 +299,7 @@ export class FeaturekitServer {
       // the loopback default).
       //
       // Unconditionally writing the resolved value made
-      // `REQUIRED_IN_PRODUCTION` unreachable for these two: `loadConfig` tests
+      // `REQUIRED_IN_PRODUCTION` unreachable for this one: `loadConfig` tests
       // `env[key] === undefined`, and by this line the key is always defined —
       // holding the laptop default we just invented. A production deployment
       // that forgot `DATABASE_URL` therefore passed configuration validation
@@ -323,7 +308,6 @@ export class FeaturekitServer {
       // precisely so "the development defaults must never silently apply", and
       // it was silently not applying.
       ...(isProduction && !databaseExplicit ? {} : { DATABASE_URL: databaseUrl }),
-      ...(isProduction && !redisExplicit ? {} : { REDIS_URL: redisUrl }),
       ...(this.options.databaseSchema !== undefined
         ? { DATABASE_SCHEMA: this.options.databaseSchema }
         : {}),
@@ -377,7 +361,6 @@ export class FeaturekitServer {
       await this.#writeDevState({
         databaseUrl: databaseUrl ?? config.DATABASE_URL,
         databaseSchema: config.DATABASE_SCHEMA,
-        redisUrl: redisUrl ?? config.REDIS_URL,
       }).catch(() => {
         // A demo that cannot write a scratch file should still serve flags.
         log("could not write the dev state file; scripts will need explicit URLs");
@@ -578,7 +561,6 @@ export class FeaturekitServer {
   async #writeDevState(addresses: {
     databaseUrl: string;
     databaseSchema: string;
-    redisUrl: string;
   }): Promise<void> {
     const path =
       typeof this.options.devStateFile === "string"
@@ -592,7 +574,6 @@ export class FeaturekitServer {
           url: this.#address?.url,
           databaseUrl: addresses.databaseUrl,
           databaseSchema: addresses.databaseSchema,
-          redisUrl: addresses.redisUrl,
           services: this.options.services ?? ["all"],
           startedAt: new Date().toISOString(),
         },
@@ -625,7 +606,7 @@ export class FeaturekitServer {
   /**
    * Stop serving and release everything.
    *
-   * Streams drain, workers flush, then the database and Redis handles close —
+   * Streams drain, workers flush, then the database handles close —
    * the reverse of startup. Containers started for development are left
    * running: the next `start()` is faster for it, and the data is still there.
    */
@@ -642,11 +623,6 @@ export class FeaturekitServer {
       this.#logger()("Stopping PostgreSQL container...");
       await this.#pgContainer.stop();
       this.#pgContainer = null;
-    }
-    if (this.#redisContainer) {
-      this.#logger()("Stopping Redis container...");
-      await this.#redisContainer.stop();
-      this.#redisContainer = null;
     }
   }
 

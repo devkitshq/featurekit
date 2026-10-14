@@ -4,12 +4,12 @@
  * Two real uses, not just tests:
  *
  * - **`services: ["all"]` on a single node.** A monolith deployment with one
- *   process has nobody to fan out to, and Redis buys it nothing.
- * - **The contract fixture.** `MemorySnapshotStore` and `RedisSnapshotStore`
+ *   process has nobody to fan out to.
+ * - **The contract fixture.** `MemorySnapshotStore` and `PostgresSnapshotStore`
  *   run the *same* suite, so the store tests use in production and the store
  *   tests run against cannot quietly diverge.
  *
- * It deliberately serialises through the same binary-safe codec as the Redis
+ * It deliberately serialises through the same binary-safe codec as the Postgres
  * implementation rather than holding object references. Handing back a live
  * reference would let a caller mutate the cached snapshot in place, and would
  * hide exactly the `Uint8Array` round-trip bug the codec exists to prevent.
@@ -22,7 +22,7 @@ import {
   type ChangeMessage,
   type SnapshotStore,
   type StreamPatch,
-} from "./snapshot-store.js";
+} from "./store.js";
 
 export class MemorySnapshotStore implements SnapshotStore {
   private readonly snapshots = new Map<string, { text: string; version: number }>();
@@ -75,7 +75,7 @@ export class MemorySnapshotStore implements SnapshotStore {
    *
    * Trivially atomic here: this store is single-threaded and does no I/O, so
    * the interesting property — a subscriber never seeing the broadcast before
-   * the snapshot it describes — falls out of ordering alone. The Redis
+   * the snapshot it describes — falls out of ordering alone. The Postgres
    * implementation has to work for it, and both are held to the same contract
    * test.
    */
@@ -125,7 +125,7 @@ export class MemorySnapshotStore implements SnapshotStore {
  * | :-- | :-- |
  * | >= oldest retained version | replay from there, then stream live |
  * | < oldest retained version  | full `put` — more than `depth` changes missed |
- * | history empty              | full `put` — Redis restarted |
+ * | history empty              | full `put` — the cache was emptied |
  * | ahead of current version   | full `put` — indicates a rolled-back database |
  */
 export function resumeFrom(history: readonly StreamPatch[], version: number): StreamPatch[] | null {

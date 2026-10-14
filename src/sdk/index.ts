@@ -7,7 +7,7 @@
  * for one identity and asks the server for another.
  *
  * Nothing under `src/sdk/` may import from the rest of `src/` — the evaluator
- * has to stay reachable without the control plane's database and Redis layers.
+ * has to stay reachable without the control plane's database layer.
  * `tools/check-package.mjs` asserts that boundary.
  */
 

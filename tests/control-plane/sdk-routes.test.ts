@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Router } from "../../src/http/router.js";
 import { HttpServer } from "../../src/http/server.js";
-import { MemorySnapshotStore } from "../../src/redis/memory-store.js";
+import { MemorySnapshotStore } from "../../src/snapshot/memory-store.js";
 import { registerSdkRoutes, type AuthenticatedEnvironment } from "../../src/routes/sdk.js";
 import { SnapshotService } from "../../src/snapshot/service.js";
 import type { CompilerInput } from "../../src/snapshot/compile.js";
@@ -416,7 +416,7 @@ describe("POST /v1/events", () => {
     const errors: unknown[] = [];
     const { base } = await harness({
       ingestEvents: async () => {
-        throw new Error("redis down");
+        throw new Error("store down");
       },
       onError: (error) => errors.push(error),
     });

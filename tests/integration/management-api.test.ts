@@ -1,5 +1,5 @@
 /**
- * The management API against real Postgres and real Redis.
+ * The management API against real Postgres.
  *
  * These are the tenant-isolation and concurrent-edit tests, and
  * they cannot be written against mocks: tenant isolation is a property of the
@@ -26,7 +26,7 @@ import { registerSdkRoutes } from "../../src/routes/sdk.js";
 import { AccessTokenRepository } from "../../src/repositories/access-tokens.js";
 import { SdkKeyRepository } from "../../src/repositories/sdk-keys.js";
 import { SnapshotService } from "../../src/snapshot/service.js";
-import { MemorySnapshotStore } from "../../src/redis/memory-store.js";
+import { MemorySnapshotStore } from "../../src/snapshot/memory-store.js";
 import { loadCompilerInput } from "../../src/repositories/snapshot-input.js";
 import { nextSnapshotVersion } from "../../src/repositories/environments.js";
 

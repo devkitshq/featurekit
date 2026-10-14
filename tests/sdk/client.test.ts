@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { FeaturekitSDK, type Snapshot } from "../../src/sdk/index.js";
 import { Router } from "../../src/http/router.js";
 import { HttpServer } from "../../src/http/server.js";
-import { MemorySnapshotStore } from "../../src/redis/memory-store.js";
+import { MemorySnapshotStore } from "../../src/snapshot/memory-store.js";
 import { registerSdkRoutes, type AuthenticatedEnvironment } from "../../src/routes/sdk.js";
 import { SnapshotService } from "../../src/snapshot/service.js";
 import type { CompilerInput } from "../../src/snapshot/compile.js";

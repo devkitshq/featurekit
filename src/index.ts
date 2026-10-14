@@ -11,7 +11,7 @@
  * Two things live here because both are server-side and neither belongs in a
  * client bundle:
  *
- * - **`FeaturekitServer`** — the control plane. Owns Postgres, Redis, the
+ * - **`FeaturekitServer`** — the control plane. Owns Postgres, the
  *   management API, the client tier and the dashboard.
  * - **`FeaturekitSDK`** — the server-tier SDK. Holds the compiled ruleset in
  *   memory and evaluates any context synchronously, with no network call.
@@ -50,7 +50,7 @@ export type {
 /**
  * Migrations, for a process that already imports the control plane. A deploy
  * job should import `featurekit-server/migrate` instead — same functions, without the
- * route layer, Redis and the metrics registry.
+ * route layer and the metrics registry.
  */
 export { migrate, migrationStatus, MIGRATION_LOCK } from "./migrate.js";
 export type { MigrateOptions, MigrationStatus } from "./migrate.js";
@@ -60,7 +60,7 @@ export type { MigrateOptions, MigrationStatus } from "./migrate.js";
  *
  * A backend whose only job is signing contexts should import
  * `featurekit-server/secure-mode` instead — same functions, without loading Drizzle,
- * Postgres, Redis and the rest at import time.
+ * Postgres and the rest at import time.
  */
 export { signContext, verifyContext } from "./auth/secure-mode.js";
 export type { SignedContext, SignatureRejection, VerifyOptions } from "./auth/secure-mode.js";

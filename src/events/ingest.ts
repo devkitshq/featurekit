@@ -9,7 +9,7 @@
  * 1. **The route never awaits a write to Postgres.** Batches land in a bounded
  *    in-memory buffer and the request returns 202 immediately.
  * 2. **The buffer has a hard ceiling and drops the *oldest* entries.** A stalled
- *    rollup worker, a dead Redis or a Postgres outage therefore costs bounded
+ *    rollup worker or a Postgres outage therefore costs bounded
  *    memory and some analytics, not the process.
  * 3. **Every drop is counted.** `featurekit_events_dropped_total{reason}` is how
  *    you discover the loss, which is the difference between a documented
