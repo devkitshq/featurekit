@@ -219,8 +219,7 @@ async function authenticate(ctx: RequestContext, deps: AdminRouteDeps): Promise<
   if (
     ctx.method !== "GET" &&
     ctx.method !== "HEAD" &&
-    ctx.header(CSRF_HEADER) === undefined &&
-    ctx.header("x-featurekit-csrf") === undefined
+    ctx.header(CSRF_HEADER) === undefined
   ) {
     throw new HttpError(403, "CSRF_HEADER_REQUIRED", `${CSRF_HEADER} is required for cookie auth`);
   }
