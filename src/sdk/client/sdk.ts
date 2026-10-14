@@ -19,7 +19,7 @@
  */
 
 import { evaluate } from "../evaluation/evaluate.js";
-import { SegmentIndex, type SegmentCacheProvider } from "../evaluation/segments.js";
+import { SegmentIndex } from "../evaluation/segments.js";
 import type {
   CompiledFlag,
   EvaluationContext,
@@ -52,8 +52,6 @@ export interface FeaturekitSdkOptions {
   bootstrap?: Snapshot;
   /** Survive a restart that happens during a control-plane outage. */
   persist?: { kind: "file"; path: string } | SnapshotPersistence;
-  /** Where large-segment membership is confirmed. */
-  segmentCache?: SegmentCacheProvider;
   mode?: "streaming" | "polling" | "offline";
   pollIntervalMs?: number;
   events?: { enabled?: boolean; flushIntervalMs?: number; maxBuckets?: number };
@@ -95,7 +93,6 @@ export class FeaturekitSDK {
     // Bootstrap is applied synchronously in the constructor, so a caller that
     // never awaits `ready()` still evaluates real flags on its first request.
     if (options.bootstrap !== undefined) this.applySnapshot(options.bootstrap, { persist: false });
-    if (options.segmentCache !== undefined) this.segments.setCache(options.segmentCache);
 
     void this.start();
   }
@@ -463,7 +460,6 @@ export class FeaturekitSDK {
 
     this.snapshot = snapshot;
     this.segments = new SegmentIndex(snapshot.segments);
-    if (this.options.segmentCache !== undefined) this.segments.setCache(this.options.segmentCache);
     this.markReady();
     this.emit("change", { flagKey: null });
     if (options.persist && this.persistence !== null) {

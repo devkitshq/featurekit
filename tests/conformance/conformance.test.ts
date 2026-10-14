@@ -66,9 +66,9 @@ describe("bucketing corpus", () => {
 /* ─────────────────────────── evaluation corpus ──────────────────────── */
 
 /**
- * The corpus spells an unconfirmable segment as `kind: "unresolvable"`. The
- * runner realises it as a cuckoo filter that admits the case's context key
- * with no confirmation set loaded — the exact cold-start condition.
+ * The corpus spells a segment the SDK cannot read as `kind: "unresolvable"`.
+ * The runner realises it as a version-1 cuckoo filter — a format this SDK
+ * refuses — which is what an old persisted snapshot would hold.
  */
 function buildSegments(
   segments: Record<string, unknown>,
@@ -82,8 +82,8 @@ function buildSegments(
       realised[key] = {
         kind: "cuckoo",
         version: seg["version"] as number,
-        filter: buildCuckooFilter(keys).filter.encode(),
-        fpRate: 0.00012,
+        filter: versionOne(buildCuckooFilter(keys).filter.encode()),
+        fpRate: 1.9e-9,
         loadFactor: 0.8,
       };
     } else {
@@ -91,6 +91,12 @@ function buildSegments(
     }
   }
   return new SegmentIndex(realised);
+}
+
+function versionOne(bytes: Uint8Array): Uint8Array {
+  const copy = bytes.slice();
+  copy[4] = 1;
+  return copy;
 }
 
 function collectKeys(context: EvaluationContext): string[] {
@@ -166,7 +172,6 @@ describe("evaluation corpus", () => {
 
 describe("cuckoo corpus - a porting SDK is verified against bytes", () => {
   const built = buildCuckooFilter(cuckooCorpus.members, {
-    fingerprintBits: cuckooCorpus.header.fingerprintBits as 16,
     loadFactor: cuckooCorpus.header.targetLoadFactor,
     seed: cuckooCorpus.header.seed,
   });
@@ -190,11 +195,17 @@ describe("cuckoo corpus - a porting SDK is verified against bytes", () => {
     for (const member of cuckooCorpus.members) expect(decoded.contains(member)).toBe(true);
   });
 
-  it("rejects known non-members, within the pinned false-positive budget", () => {
+  it("rejects every known non-member", () => {
+    // eps ~= 1.9e-9 at 32 bits: a positive is membership, so none may slip in.
     const decoded = CuckooFilter.decode(bytes);
-    const admitted = cuckooCorpus.nonMembers.filter((k) => decoded.contains(k));
-    // eps ~= 0.012% at f=16, so 1000 probes should admit approximately none.
-    expect(admitted.length).toBeLessThanOrEqual(1);
+    expect(cuckooCorpus.nonMembers.filter((k) => decoded.contains(k))).toEqual([]);
+  });
+
+  it("decodes the corpus's own bytes, not only freshly encoded ones", () => {
+    // A porting SDK has only the base64; it must find the members in it.
+    const shipped = CuckooFilter.decode(new Uint8Array(Buffer.from(cuckooCorpus.filterBase64, "base64")));
+    for (const member of cuckooCorpus.members) expect(shipped.contains(member)).toBe(true);
+    expect(cuckooCorpus.nonMembers.filter((k) => shipped.contains(k))).toEqual([]);
   });
 
   it("finds non-ASCII members, which is where a byte-vs-code-unit port breaks", () => {

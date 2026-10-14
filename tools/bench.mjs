@@ -17,7 +17,7 @@ import { buildCuckooFilter } from "../dist/sdk/evaluation/cuckoo.js";
 import { evaluate } from "../dist/sdk/evaluation/evaluate.js";
 import { murmur3Bytes, murmur3Utf8 } from "../dist/sdk/evaluation/murmur3.js";
 import { RoaringBitmap } from "../dist/sdk/evaluation/roaring.js";
-import { InMemorySegmentCache, SegmentIndex } from "../dist/sdk/evaluation/segments.js";
+import { SegmentIndex } from "../dist/sdk/evaluation/segments.js";
 
 /** Kept alive so V8 cannot eliminate the work as dead. */
 let sink = 0;
@@ -112,10 +112,9 @@ const segRule = {
 };
 const cuckooSnap = snap(
   { [K]: flag({ rules: [segRule] }) },
-  { enterprise: { kind: "cuckoo", version: 1, filter: filter.encode(), fpRate: 0.00012, loadFactor: 0.8 } },
+  { enterprise: { kind: "cuckoo", version: 1, filter: filter.encode(), fpRate: 1.9e-9, loadFactor: 0.8 } },
 );
 const cuckooIndex = new SegmentIndex(cuckooSnap.segments);
-cuckooIndex.setCache(new InMemorySegmentCache({ enterprise: members }));
 
 const roaringSnap = snap(
   { [K]: flag({ rules: [segRule] }) },
@@ -156,7 +155,7 @@ const groups = [
     "Evaluate - segment rules",
     [
       ["cuckoo miss (exact negative)", () => evaluate(K, { key: "ghost_1" }, cuckooSnap, false, { segments: cuckooIndex })],
-      ["cuckoo hit + in-heap confirm", () => evaluate(K, { key: "usr_250000" }, cuckooSnap, false, { segments: cuckooIndex })],
+      ["cuckoo hit (no confirmation)", () => evaluate(K, { key: "usr_250000" }, cuckooSnap, false, { segments: cuckooIndex })],
       ["roaring hit (exact)", () => evaluate(K, { key: "250000" }, roaringSnap, false, { segments: roaringIndex })],
     ],
   ],
@@ -193,7 +192,7 @@ console.log(`### Segment structure sizes, 500k members\n`);
 console.log("| Structure | serialized | bits/member |");
 console.log("| :-- | --: | --: |");
 console.log(
-  `| cuckoo filter, f=16, ${filter.bucketCount.toLocaleString("en-US")} buckets | ` +
+  `| cuckoo filter, f=32, ${filter.bucketCount.toLocaleString("en-US")} buckets | ` +
     `${size(cuckooBytes)} | ${((cuckooBytes * 8) / 500_000).toFixed(1)} |`,
 );
 console.log(

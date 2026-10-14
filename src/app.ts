@@ -179,7 +179,6 @@ export function createApp(config: FeaturekitConfig, options: CreateAppOptions = 
     debounceMs: config.SNAPSHOT_DEBOUNCE_MS,
     patchHistoryDepth: config.PATCH_HISTORY_DEPTH,
     segmentInlineMax: config.SEGMENT_INLINE_MAX,
-    cuckooFingerprintBits: config.SEGMENT_CUCKOO_FINGERPRINT_BITS,
     onError: (error, ctx) => {
       metrics.snapshotCompileFailures.inc({ reason: "error" });
       logger.error({ err: error, environmentId: ctx.environmentId }, "snapshot pipeline error");

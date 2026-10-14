@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildCuckooFilter } from "../../src/sdk/evaluation/cuckoo.js";
 import { evaluate } from "../../src/sdk/evaluation/evaluate.js";
 import { RoaringBitmap } from "../../src/sdk/evaluation/roaring.js";
-import { InMemorySegmentCache, SegmentIndex } from "../../src/sdk/evaluation/segments.js";
+import { SegmentIndex } from "../../src/sdk/evaluation/segments.js";
 import type {
   CompiledClause,
   CompiledFlag,
@@ -396,30 +396,41 @@ describe("segmentMatch", () => {
 
 describe("an UNRESOLVED segment fails the whole rule closed, in BOTH polarities", () => {
   const members = Array.from({ length: 2_000 }, (_, i) => `usr_${i}`);
-  const bigSeg = (): CompiledSegment => ({
+  const readableSeg = (): CompiledSegment => ({
     kind: "cuckoo",
     version: 1,
     filter: buildCuckooFilter(members).filter.encode(),
-    fpRate: 0.00012,
+    fpRate: 1.9e-9,
     loadFactor: 0.8,
   });
+  /**
+   * A segment this SDK cannot read: a version-1 filter, as an old persisted
+   * snapshot would hold. Undecodable data is what "unresolved" means now.
+   */
+  const bigSeg = (): CompiledSegment => {
+    const segment = readableSeg();
+    if (segment.kind !== "cuckoo") throw new Error("unreachable");
+    const bytes = segment.filter.slice();
+    bytes[4] = 1;
+    return { ...segment, filter: bytes };
+  };
   const segRule = (negate: boolean) =>
     rule({ clauses: [clause({ op: "segmentMatch", attribute: "key", values: ["enterprise"], negate })] });
   const member: EvaluationContext = { key: "usr_1" };
 
-  it("does not match a POSITIVE segment clause while membership is unconfirmed", () => {
+  it("does not match a POSITIVE segment clause while the segment cannot be read", () => {
     const snap = snapshot({ f: flag({ rules: [segRule(false)] }) }, { enterprise: bigSeg() });
-    const index = new SegmentIndex(snap.segments); // no cache loaded yet
+    const index = new SegmentIndex(snap.segments);
     const d = evalIn(snap, member, "DEFAULT", { segments: index });
     expect(d.reason).toEqual({ kind: "FALLTHROUGH" });
   });
 
-  it("does NOT match a NEGATED segment clause while membership is unconfirmed", () => {
+  it("does NOT match a NEGATED segment clause while the segment cannot be read", () => {
     // This is the r2 leak. "NOT in enterprise -> serve the gated feature" with
-    // an unloaded cache evaluated the clause to false, negate flipped it to
-    // TRUE, and every unconfirmed user was served the feature. Exclusion lists
-    // are the ordinary use of negated segment clauses, so this was the feature
-    // failing OPEN on every cold start.
+    // an unreadable segment would evaluate the clause to false, negate would
+    // flip it to TRUE, and every user would be served the feature. Exclusion
+    // lists are the ordinary use of negated segment clauses, so this is the
+    // feature failing OPEN on corrupt data.
     const snap = snapshot({ f: flag({ rules: [segRule(true)] }) }, { enterprise: bigSeg() });
     const index = new SegmentIndex(snap.segments);
     const d = evalIn(snap, member, "DEFAULT", { segments: index });
@@ -436,17 +447,16 @@ describe("an UNRESOLVED segment fails the whole rule closed, in BOTH polarities"
     ]);
   });
 
-  it("counts the unresolved lookup for the metric that says the LRU is too small", () => {
+  it("counts the unresolved lookup for featurekit_sdk_segment_unresolved_total", () => {
     const snap = snapshot({ f: flag({ rules: [segRule(false)] }) }, { enterprise: bigSeg() });
     const index = new SegmentIndex(snap.segments);
     evalIn(snap, member, "DEFAULT", { segments: index });
     expect(index.unresolvedCount).toBeGreaterThan(0);
   });
 
-  it("matches normally once the confirmation set is loaded", () => {
-    const snap = snapshot({ f: flag({ rules: [segRule(false)] }) }, { enterprise: bigSeg() });
+  it("matches normally when the filter is readable, with nothing to confirm", () => {
+    const snap = snapshot({ f: flag({ rules: [segRule(false)] }) }, { enterprise: readableSeg() });
     const index = new SegmentIndex(snap.segments);
-    index.setCache(new InMemorySegmentCache({ enterprise: members }));
     const d = evalIn(snap, member, "DEFAULT", { segments: index });
     expect(d.reason).toMatchObject({ kind: "RULE_MATCH" });
     expect(d.unresolved).toBeUndefined();

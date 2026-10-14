@@ -281,7 +281,14 @@ describe("bucketing-stability", () => {
 describe("segment-fail-closed: the r2 leak, as a chaos test", () => {
   const members = Array.from({ length: 2_000 }, (_, i) => `usr_${i}`);
 
-  function snapshotWithNegatedSegment(): Snapshot {
+  /** A filter the SDK cannot read: version 1, as an old persisted snapshot holds. */
+  function unreadableFilter(): Uint8Array {
+    const bytes = buildCuckooFilter(members).filter.encode().slice();
+    bytes[4] = 1;
+    return bytes;
+  }
+
+  function snapshotWithNegatedSegment(filter = unreadableFilter()): Snapshot {
     const flag: CompiledFlag = {
       key: "new-checkout",
       version: 1,
@@ -317,18 +324,18 @@ describe("segment-fail-closed: the r2 leak, as a chaos test", () => {
         enterprise: {
           kind: "cuckoo",
           version: 1,
-          filter: buildCuckooFilter(members).filter.encode(),
-          fpRate: 0.00012,
+          filter,
+          fpRate: 1.9e-9,
           loadFactor: 0.8,
         },
       },
     };
   }
 
-  it("does not grant the gated feature in the window before membership loads", () => {
-    // This gets a chaos test rather than only a unit test because the bug only
-    // appears in the window between process start and the first segment load —
-    // which exists on EVERY cold start.
+  it("does not grant the gated feature while the segment cannot be read", () => {
+    // A process holding a persisted snapshot from before an upgrade, or a
+    // corrupt one, cannot read this segment. Treating that as "not a member"
+    // would let the negated clause grant the feature to everyone.
     const snapshot = snapshotWithNegatedSegment();
     const index = new SegmentIndex(snapshot.segments);
 
@@ -340,28 +347,9 @@ describe("segment-fail-closed: the r2 leak, as a chaos test", () => {
     }
   });
 
-  it("does not grant it when the cache provider is unreachable either", () => {
-    const snapshot = snapshotWithNegatedSegment();
+  it("grants it correctly when the segment is readable", () => {
+    const snapshot = snapshotWithNegatedSegment(buildCuckooFilter(members).filter.encode());
     const index = new SegmentIndex(snapshot.segments);
-    index.setCache({
-      has() {
-        throw new Error("store unreachable");
-      },
-    });
-
-    for (const key of members.slice(0, 200)) {
-      expect(evaluate("new-checkout", { key }, snapshot, false, { segments: index }).value).toBe(
-        false,
-      );
-    }
-    expect(index.unresolvedCount).toBeGreaterThan(0);
-  });
-
-  it("grants it correctly once membership resolves", async () => {
-    const { InMemorySegmentCache } = await import("../../src/sdk/index.js");
-    const snapshot = snapshotWithNegatedSegment();
-    const index = new SegmentIndex(snapshot.segments);
-    index.setCache(new InMemorySegmentCache({ enterprise: members }));
 
     // A member of `enterprise` is excluded by the negated clause.
     expect(evaluate("new-checkout", { key: "usr_1" }, snapshot, false, { segments: index }).value).toBe(

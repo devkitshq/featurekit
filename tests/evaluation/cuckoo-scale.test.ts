@@ -40,14 +40,15 @@ describe("cuckoo filter at import scale", () => {
     expect(result.filter.relocations).toBeLessThan(n * 6);
   });
 
-  it("keeps the 500k-member filter near the ~1.25 MB the plan prices it at", () => {
+  it("prices a 500k-member filter at 4 MB", () => {
     const keys = Array.from({ length: 500_000 }, (_, i) => `usr_${i.toString(36)}`);
     const bytes = buildCuckooFilter(keys).filter.encode();
-    // 262_144 buckets * 8 bytes + 16 = 2_097_168 at f=16... but pow2 rounding
-    // means 500k sizes to 262_144 buckets = 1_048_576 slots, alpha = 0.477.
-    // The price of the power-of-two requirement, stated rather than hidden.
-    expect(bytes.byteLength).toBe(16 + 262_144 * 8);
-    expect(bytes.byteLength / 1024 / 1024).toBeLessThan(2.1);
+    // Power-of-two rounding sizes 500k to 262_144 buckets = 1_048_576 slots,
+    // alpha = 0.477, at 4 bytes a slot. The price of the power-of-two
+    // requirement and of fingerprints wide enough to need no confirmation,
+    // stated rather than hidden.
+    expect(bytes.byteLength).toBe(16 + 262_144 * 16);
+    expect(bytes.byteLength / 1024 / 1024).toBeLessThan(4.1);
   });
 
   it("round-trips a large filter through the wire format byte-for-byte", () => {

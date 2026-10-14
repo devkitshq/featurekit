@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildCuckooFilter } from "../../src/sdk/evaluation/cuckoo.js";
-import {
-  InMemorySegmentCache,
-  LruSegmentCache,
-  SegmentIndex,
-} from "../../src/sdk/evaluation/segments.js";
+import { SegmentIndex } from "../../src/sdk/evaluation/segments.js";
 import type { CompiledSegment } from "../../src/sdk/evaluation/types.js";
 
 const inline = (members: string[], excluded: string[] = []): CompiledSegment => ({
@@ -18,10 +14,19 @@ const cuckoo = (members: string[], excluded: string[] = []): CompiledSegment => 
   kind: "cuckoo",
   version: 1,
   filter: buildCuckooFilter(members).filter.encode(),
-  fpRate: 0.00012,
+  fpRate: 1.9e-9,
   loadFactor: 0.8,
   excluded,
 });
+
+/** A filter in the old version-1 format, as an old persisted snapshot would hold. */
+const unreadable = (members: string[]): CompiledSegment => {
+  const segment = cuckoo(members);
+  if (segment.kind !== "cuckoo") throw new Error("unreachable");
+  const bytes = segment.filter.slice();
+  bytes[4] = 1;
+  return { ...segment, filter: bytes };
+};
 
 describe("inline segments are fully resolved", () => {
   const index = new SegmentIndex({ beta: inline(["usr_1", "usr_2"], ["usr_2"]) });
@@ -52,102 +57,60 @@ describe("an unknown segment key", () => {
   });
 });
 
-describe("cuckoo segments - negatives are exact, positives need confirmation", () => {
+describe("cuckoo segments are answered from the filter alone", () => {
   const members = Array.from({ length: 5_000 }, (_, i) => `usr_${i}`);
 
-  it("answers not-member from the filter alone, with no confirmation set", () => {
-    // Step 1: a negative is exact and final. No network, done.
+  it("answers not-member for a key that was never added", () => {
     const index = new SegmentIndex({ enterprise: cuckoo(members) });
     expect(index.membership("enterprise", "definitely_not_a_member_xyz")).toBe("not-member");
   });
 
-  it("answers UNRESOLVED for a filter positive when membership cannot be confirmed", () => {
-    // Step 3: this is the state that must never reach the negation operator.
+  it("answers member for a key that was added, with nothing else loaded", () => {
+    // No provider, no confirmation set, no warm-up: the snapshot is enough.
     const index = new SegmentIndex({ enterprise: cuckoo(members) });
-    expect(index.membership("enterprise", "usr_1")).toBe("unresolved");
-    expect(index.isResolved("enterprise")).toBe(false);
-  });
-
-  it("confirms a positive once the membership set is loaded", () => {
-    const index = new SegmentIndex({ enterprise: cuckoo(members) });
-    index.setCache(new InMemorySegmentCache({ enterprise: members }));
     expect(index.membership("enterprise", "usr_1")).toBe("member");
     expect(index.isResolved("enterprise")).toBe(true);
   });
 
-  it("rejects a filter false-positive at the confirmation step", () => {
-    const index = new SegmentIndex({ enterprise: cuckoo(["usr_1"]) });
-    index.setCache(new InMemorySegmentCache({ enterprise: ["usr_1"] }));
-    // Anything the filter happens to admit is still checked against the set.
-    expect(index.membership("enterprise", "usr_1")).toBe("member");
-    expect(index.membership("enterprise", "usr_2")).toBe("not-member");
+  it("admits no non-member across 50,000 lookups", () => {
+    // At 32-bit fingerprints the expected count here is ~0.0001.
+    const index = new SegmentIndex({ enterprise: cuckoo(members) });
+    let falsePositives = 0;
+    for (let i = 0; i < 50_000; i++) {
+      if (index.membership("enterprise", `ghost_${i}`) === "member") falsePositives++;
+    }
+    expect(falsePositives).toBe(0);
   });
 
   it("applies exclusions before consulting the filter", () => {
     const index = new SegmentIndex({ enterprise: cuckoo(members, ["usr_1"]) });
-    index.setCache(new InMemorySegmentCache({ enterprise: members }));
     expect(index.membership("enterprise", "usr_1")).toBe("not-member");
   });
 });
 
-describe("a provider that throws is unresolved, never an exception", () => {
-  it("catches provider errors and fails closed", () => {
-    const index = new SegmentIndex({ enterprise: cuckoo(["usr_1"]) });
-    index.setCache({
-      has() {
-        throw new Error("cache unreachable");
-      },
-    });
-    // Evaluation never blocks and never rejects. The rule fails closed above.
+describe("an unreadable segment is unresolved, never a guess", () => {
+  it("answers UNRESOLVED for a filter in a format this SDK does not read", () => {
+    // This is the state that must never reach the negation operator.
+    const index = new SegmentIndex({ enterprise: unreadable(["usr_1"]) });
     expect(index.membership("enterprise", "usr_1")).toBe("unresolved");
+    expect(index.membership("enterprise", "usr_2")).toBe("unresolved");
+    expect(index.isResolved("enterprise")).toBe(false);
   });
 
-  it("treats a promise-returning provider as unresolved on a cold lookup", () => {
-    // `boolean()` stays synchronous. An async provider is consulted out of
-    // band; a synchronous evaluation reads only the LRU, and a miss is
-    // unresolved -- which fails the rule closed and warms the cache.
-    const index = new SegmentIndex({ enterprise: cuckoo(["usr_1"]) });
-    index.setCache({ has: async () => true });
+  it("answers UNRESOLVED for corrupt bytes rather than throwing", () => {
+    const segment = cuckoo(["usr_1"]);
+    if (segment.kind !== "cuckoo") throw new Error("unreachable");
+    const truncated = { ...segment, filter: segment.filter.slice(0, 20) };
+    const index = new SegmentIndex({ enterprise: truncated });
     expect(index.membership("enterprise", "usr_1")).toBe("unresolved");
-  });
-});
-
-describe("LruSegmentCache - the bounded confirmation cache for remote providers", () => {
-  it("returns undefined on a miss, which the index reports as unresolved", () => {
-    const lru = new LruSegmentCache(4);
-    expect(lru.peek("seg", "usr_1")).toBeUndefined();
-  });
-
-  it("returns a warmed answer, positive or negative", () => {
-    const lru = new LruSegmentCache(4);
-    lru.put("seg", "usr_1", true);
-    lru.put("seg", "usr_2", false);
-    expect(lru.peek("seg", "usr_1")).toBe(true);
-    expect(lru.peek("seg", "usr_2")).toBe(false);
-  });
-
-  it("evicts least-recently-used entries at the cap", () => {
-    const lru = new LruSegmentCache(2);
-    lru.put("seg", "a", true);
-    lru.put("seg", "b", true);
-    lru.peek("seg", "a"); // touch a, so b becomes least-recent
-    lru.put("seg", "c", true);
-    expect(lru.peek("seg", "b")).toBeUndefined();
-    expect(lru.peek("seg", "a")).toBe(true);
-    expect(lru.peek("seg", "c")).toBe(true);
-  });
-
-  it("keys by segment as well as context, so segments cannot bleed together", () => {
-    const lru = new LruSegmentCache(8);
-    lru.put("seg_a", "usr_1", true);
-    expect(lru.peek("seg_b", "usr_1")).toBeUndefined();
   });
 
   it("counts unresolved lookups for featurekit_sdk_segment_unresolved_total", () => {
-    const index = new SegmentIndex({ enterprise: cuckoo(["usr_1"]) });
+    const index = new SegmentIndex({ enterprise: unreadable(["usr_1"]), beta: inline(["usr_1"]) });
+    index.membership("beta", "usr_1");
     expect(index.unresolvedCount).toBe(0);
     index.membership("enterprise", "usr_1");
-    index.membership("enterprise", "usr_1");
+    index.membership("enterprise", "usr_2");
     expect(index.unresolvedCount).toBe(2);
   });
 });
@@ -165,7 +128,6 @@ describe("segment membership deltas ride the patch stream", () => {
     // operation on this kind of segment. It must be a few hundred bytes.
     const members = Array.from({ length: 5_000 }, (_, i) => `usr_${i}`);
     const index = new SegmentIndex({ enterprise: cuckoo(members) });
-    index.setCache(new InMemorySegmentCache({ enterprise: members }));
     expect(index.membership("enterprise", "usr_7")).toBe("member");
 
     index.applyDelta("enterprise", 2, { add: [], remove: ["usr_7"] });

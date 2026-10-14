@@ -826,7 +826,7 @@
     },
     {
       "name": "NEGATED segment clause does not match while membership is unresolved",
-      "$comment": "The r2 leak. `NOT in big` with an unloaded cache evaluated the clause to false, negate flipped it to TRUE, and every unconfirmed user was served the gated feature. The rule must fail closed in BOTH polarities.",
+      "$comment": "The r2 leak. `NOT in big` against a segment the SDK cannot read, evaluated as false, is flipped to TRUE by negate and serves the gated feature to everyone. The rule must fail closed in BOTH polarities.",
       "flagKey": "f",
       "snapshot": {
         "version": 1,

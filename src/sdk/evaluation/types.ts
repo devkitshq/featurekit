@@ -61,8 +61,9 @@ export type EvaluationReason =
   | { kind: "ERROR"; error: EvaluationErrorKind };
 
 /**
- * A rule that could not be fully evaluated because segment membership was
- * unverifiable. The rule failed closed and evaluation continued past
+ * A rule that could not be fully evaluated because a segment it names could
+ * not be read — a corrupt snapshot, or a filter format this SDK does not
+ * decode. The rule failed closed and evaluation continued past
  * it, so this is an *annotation*, not the outcome: `reason` still reports what
  * was actually served. Without it, `POST /v1/debug/evaluate` could only say
  * "no match", which is the difference between a five-minute diagnosis and an
@@ -218,7 +219,7 @@ export type CompiledSegment = CompiledSegmentBase &
     | { kind: "inline"; members: readonly string[] }
     /** Exact, and only when every member key is integral — the ordinal IS the key. */
     | { kind: "roaring"; bitmap: Uint8Array; contextKind: string }
-    /** Probabilistic but deletable. Positives are confirmed against the resolved set. */
+    /** 32-bit fingerprints: a positive is wrong about once in 500 million. Deletable. */
     | { kind: "cuckoo"; filter: Uint8Array; fpRate: number; loadFactor: number }
   );
 

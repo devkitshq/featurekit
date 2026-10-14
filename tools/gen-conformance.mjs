@@ -441,9 +441,9 @@ const evaluation = {
     {
       name: "NEGATED segment clause does not match while membership is unresolved",
       $comment:
-        "The r2 leak. `NOT in big` with an unloaded cache evaluated the clause " +
-        "to false, negate flipped it to TRUE, and every unconfirmed user was " +
-        "served the gated feature. The rule must fail closed in BOTH polarities.",
+        "The r2 leak. `NOT in big` against a segment the SDK cannot read, " +
+        "evaluated as false, is flipped to TRUE by negate and serves the gated " +
+        "feature to everyone. The rule must fail closed in BOTH polarities.",
       flagKey: "f",
       snapshot: snap(
         {
@@ -534,18 +534,20 @@ const cuckoo = {
   $comment:
     "Header fields are specified by hand from the wire format. The table bytes are " +
     "encoder output: a porting SDK must read THESE bytes and find THESE " +
-    "members. Parameters are frozen: (2,4) partial-key cuckoo, 16-bit " +
-    "fingerprints, power-of-two buckets, i2 = i1 XOR h(fingerprint).",
+    "members. Parameters are frozen: (2,4) partial-key cuckoo, 32-bit " +
+    "fingerprints, bucket = h[0] & mask and fingerprint = h[1] (0 -> 1) from " +
+    "MurmurHash3_x86_128(utf8(key), seed), power-of-two buckets, " +
+    "i2 = i1 XOR (fmix32(fp ^ seed ^ 0x5bd1e995) & mask, 0 -> 1).",
   header: {
     magic: "FKCF",
-    formatVersion: 1,
-    fingerprintBits: 16,
+    formatVersion: 2,
+    fingerprintBits: 32,
     slotsPerBucket: 4,
     targetLoadFactor: 0.8,
     maxKicks: 500,
     // 1003 members / (4 * 0.8) = 313.4 -> 314 -> nextPow2 = 512 buckets.
     expectedBucketsLog2: 9,
-    expectedByteLength: 16 + 512 * 8,
+    expectedByteLength: 16 + 512 * 16,
     seed: 0,
   },
   members: cuckooMembers,
@@ -575,7 +577,7 @@ const cuckoo = {
  */
 function encodeCuckooFixture(members) {
   const { buildCuckooFilter } = require("../dist/sdk/evaluation/cuckoo.js");
-  const built = buildCuckooFilter(members, { fingerprintBits: 16, loadFactor: 0.8 });
+  const built = buildCuckooFilter(members, { loadFactor: 0.8 });
   return Buffer.from(built.filter.encode()).toString("base64");
 }
 

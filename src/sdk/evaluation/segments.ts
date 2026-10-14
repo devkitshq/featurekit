@@ -1,20 +1,22 @@
 /**
  * Segment membership resolution.
  *
- * The contract that makes `boolean()` synchronous while still supporting
- * segments too large to inline:
+ * Every segment is answered from the snapshot, synchronously, with no lookup
+ * anywhere else:
  *
- * 1. A **deletable membership filter** ships in the snapshot. A negative is
- *    exact and final: not a member, no network, done.
- * 2. **Positives are confirmed** against a resolved membership set — in-process
- *    by default, or behind a `SegmentCacheProvider` when the process cannot
- *    afford the heap.
- * 3. When membership cannot be confirmed the answer is **`"unresolved"`** — a
- *    third state, never a boolean. `evaluate.ts` fails the whole *rule* closed
- *    on it, because a boolean here is something `negate` can invert, and
- *    inverting an unverified miss grants the gated feature to everyone.
+ * - **inline** — the member list itself, for small segments;
+ * - **roaring** — an exact bitmap, when every member key is an integer;
+ * - **cuckoo** — a filter with 32-bit fingerprints for everything else, whose
+ *   false-positive rate (~1.9e-9) is low enough to treat a positive as
+ *   membership. See `cuckoo.ts`.
  *
- * Nothing here throws. A provider that throws is treated as unresolved.
+ * Membership is still **three-valued**. A structure that fails to decode — a
+ * corrupt snapshot, or a filter in a format this SDK does not read — answers
+ * `"unresolved"`, never a boolean. `evaluate.ts` fails the whole *rule* closed
+ * on it, because a boolean here is something `negate` can invert, and
+ * inverting an unverified miss grants the gated feature to everyone.
+ *
+ * Nothing here throws.
  *
  * @see docs/evaluation/segments.md
  */
@@ -32,105 +34,6 @@ export type MembershipResult = "member" | "not-member" | "unresolved";
 export interface SegmentDelta {
   add: readonly string[];
   remove: readonly string[];
-}
-
-/**
- * Where large-segment membership is confirmed.
- *
- * The default is an in-process `Set<string>`: synchronous, ~14 ns, and correct
- * for a long-lived microservice. It is also 50–80 MB of V8 heap for a few large
- * segments, which is fatal in a 128 MB Lambda or a memory-limited pod — the
- * failure there is not slow evaluation, it is OOMKilled, and it takes the whole
- * service with it. So the confirmation set is pluggable.
- */
-export interface SegmentCacheProvider {
-  /**
-   * A **sync** return keeps evaluation synchronous. A provider may return a
-   * promise; the index then treats the lookup as unresolved and the caller is
-   * expected to warm the answer out of band. Never awaited on the hot path.
-   */
-  has(segmentKey: string, contextKey: string): boolean | Promise<boolean>;
-  /** Whether this provider can answer for a segment at all. */
-  isResolved?(segmentKey: string): boolean;
-  /** Called when a segment-patch arrives; a shared remote provider may no-op. */
-  apply?(segmentKey: string, delta: SegmentDelta): void | Promise<void>;
-}
-
-/** The default: full membership in the heap. Always resolved, always sync. */
-export class InMemorySegmentCache implements SegmentCacheProvider {
-  private readonly sets = new Map<string, Set<string>>();
-
-  constructor(sets: Record<string, Iterable<string>> = {}) {
-    for (const [key, members] of Object.entries(sets)) this.sets.set(key, new Set(members));
-  }
-
-  has(segmentKey: string, contextKey: string): boolean {
-    return this.sets.get(segmentKey)?.has(contextKey) ?? false;
-  }
-
-  isResolved(segmentKey: string): boolean {
-    return this.sets.has(segmentKey);
-  }
-
-  apply(segmentKey: string, delta: SegmentDelta): void {
-    const set = this.sets.get(segmentKey);
-    if (set === undefined) return;
-    for (const k of delta.remove) set.delete(k);
-    for (const k of delta.add) set.add(k);
-  }
-
-  load(segmentKey: string, members: Iterable<string>): void {
-    this.sets.set(segmentKey, new Set(members));
-  }
-}
-
-/**
- * The bounded confirmed-membership cache a remote provider reads through.
- *
- * A miss is unresolved, which fails the rule closed and should enqueue a
- * background fetch so the next evaluation for that context resolves. In
- * request-scoped workloads the same context usually evaluates several flags per
- * request, so warm-up is paid once per context rather than once per evaluation
- * — but a genuinely cold Lambda invocation *will* fail a large-segment rule
- * closed on its first look. `SEGMENT_CACHE_LRU_MAX` is the knob;
- * `featurekit_sdk_segment_unresolved_total` is the metric that says it is too
- * small.
- */
-export class LruSegmentCache {
-  private readonly entries = new Map<string, boolean>();
-
-  constructor(private readonly max: number) {}
-
-  private static id(segmentKey: string, contextKey: string): string {
-    // Segment first, and length-prefixed, so no two (segment, context) pairs
-    // can collide through the separator.
-    return `${segmentKey.length}:${segmentKey}:${contextKey}`;
-  }
-
-  peek(segmentKey: string, contextKey: string): boolean | undefined {
-    const id = LruSegmentCache.id(segmentKey, contextKey);
-    const v = this.entries.get(id);
-    if (v === undefined) return undefined;
-    // Map preserves insertion order, so re-inserting marks it most-recent.
-    this.entries.delete(id);
-    this.entries.set(id, v);
-    return v;
-  }
-
-  put(segmentKey: string, contextKey: string, value: boolean): void {
-    const id = LruSegmentCache.id(segmentKey, contextKey);
-    this.entries.delete(id);
-    this.entries.set(id, value);
-    while (this.entries.size > this.max) {
-      const oldest = this.entries.keys().next();
-      if (oldest.done === true) break;
-      this.entries.delete(oldest.value);
-    }
-  }
-
-  get size(): number {
-    return this.entries.size;
-  }
 }
 
 interface ResidentSegment {
@@ -151,7 +54,6 @@ interface ResidentSegment {
  */
 export class SegmentIndex {
   private readonly resident = new Map<string, ResidentSegment>();
-  private cache: SegmentCacheProvider | null = null;
 
   /** Backs `featurekit_sdk_segment_unresolved_total` — rules failing closed. */
   unresolvedCount = 0;
@@ -178,28 +80,16 @@ export class SegmentIndex {
     this.resident.set(key, entry);
   }
 
-  setCache(cache: SegmentCacheProvider | null): void {
-    this.cache = cache;
-  }
-
   /** The compiled segment, for the rule evaluation `evaluate.ts` does. */
   get(segmentKey: string): CompiledSegment | undefined {
     return this.resident.get(segmentKey)?.compiled;
   }
 
-  /**
-   * Whether this segment can be answered exactly right now.
-   *
-   * Inline and roaring segments are always resolved — which is a second reason
-   * to prefer roaring: the unresolved state cannot arise at all.
-   */
+  /** Whether this segment can be answered: its structure decoded. */
   isResolved(segmentKey: string): boolean {
     const seg = this.resident.get(segmentKey);
     if (seg === undefined) return true; // a definite non-match, not an unknown
-    if (seg.compiled.kind === "inline") return seg.members !== undefined;
-    if (seg.compiled.kind === "roaring") return seg.bitmap !== undefined;
-    if (seg.filter === undefined) return false;
-    return this.cache !== null && (this.cache.isResolved?.(segmentKey) ?? true);
+    return seg.members !== undefined || seg.filter !== undefined || seg.bitmap !== undefined;
   }
 
   membership(segmentKey: string, contextKey: string): MembershipResult {
@@ -226,21 +116,7 @@ export class SegmentIndex {
     }
 
     if (seg.filter === undefined) return this.unresolved();
-    // Step 1: a filter negative is exact and final.
-    if (!seg.filter.contains(contextKey)) return "not-member";
-
-    // Step 2: confirm the positive. Anything else is unresolved.
-    if (this.cache === null) return this.unresolved();
-    let confirmed: boolean | Promise<boolean>;
-    try {
-      confirmed = this.cache.has(segmentKey, contextKey);
-    } catch {
-      // Provider errors are caught, not thrown: evaluation never blocks and
-      // never rejects, and the rule fails closed above.
-      return this.unresolved();
-    }
-    if (typeof confirmed !== "boolean") return this.unresolved();
-    return confirmed ? "member" : "not-member";
+    return seg.filter.contains(contextKey) ? "member" : "not-member";
   }
 
   private unresolved(): MembershipResult {
@@ -279,7 +155,5 @@ export class SegmentIndex {
       // An add must clear a prior exclusion, or the member stays pinned out.
       seg.excluded.delete(key);
     }
-
-    void this.cache?.apply?.(segmentKey, delta);
   }
 }

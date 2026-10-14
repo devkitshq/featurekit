@@ -46,8 +46,8 @@ const DEFAULT_MAX_SEGMENT_DEPTH = 10;
  *
  * The list exists so a caller can see *why* a rule was skipped, which is a
  * diagnostic. It is also one allocation per unresolved rule, on the hot path,
- * for a flag whose rule count a customer chooses: 5,000 segment rules against a
- * cold segment index allocates 5,000 objects per evaluation, per request, and
+ * for a flag whose rule count a customer chooses: 5,000 segment rules naming an
+ * unreadable segment allocates 5,000 objects per evaluation, per request, and
  * the diagnostic value of entries 21 through 5,000 is nil. Past the cap the
  * evaluation proceeds identically and only the reporting stops.
  */

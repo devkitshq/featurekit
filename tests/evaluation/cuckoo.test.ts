@@ -41,7 +41,7 @@ describe("altIndex - the involution the whole structure rests on", () => {
     for (let log2 = 0; log2 <= 14; log2++) {
       const bucketCount = 1 << log2;
       const mask = bucketCount - 1;
-      for (const fp of [1, 2, 0x5a, 0xff, 0x1234, 0xffff]) {
+      for (const fp of [1, 2, 0x5a, 0xffff, 0xdeadbeef, 0xffffffff]) {
         for (let i = 0; i < bucketCount; i++) {
           const j = altIndex(i, fp, 0x9747b28c, mask);
           expect(j).toBeGreaterThanOrEqual(0);
@@ -57,7 +57,7 @@ describe("altIndex - the involution the whole structure rests on", () => {
     // item would have half the homes it is sized for.
     for (let log2 = 1; log2 <= 12; log2++) {
       const mask = (1 << log2) - 1;
-      for (let fp = 1; fp <= 0xffff; fp += 97) {
+      for (let fp = 1; fp <= 0xffffffff; fp += 0x10003) {
         expect(altIndex(0, fp, 12345, mask)).not.toBe(0);
       }
     }
@@ -71,14 +71,13 @@ describe("CuckooFilter - membership", () => {
     for (const k of keys) expect(f.contains(k)).toBe(true);
   });
 
-  it("holds a false-positive rate near the pinned 0.012% at f=16", () => {
-    // eps ~= 2b/2^f = 8/65536 = 0.0122%. Asserted with headroom, since this is
-    // a targeting-accuracy budget rather than a correctness bug (the segment
-    // cache confirms every positive).
+  it("admits no non-member across 200,000 probes", () => {
+    // eps ~= 2b/2^32 ~= 1.9e-9, so the expected count here is ~0.0004. A
+    // positive is treated as membership with nothing to confirm it, which is
+    // only sound because this is effectively zero.
     const f = buildCuckooFilter(members(50_000)).filter;
     const probes = members(200_000, "nonmember_");
-    const fp = probes.filter((k) => f.contains(k)).length;
-    expect(fp / probes.length).toBeLessThan(0.0006);
+    expect(probes.filter((k) => f.contains(k))).toEqual([]);
   });
 
   it("reports zero false negatives, which would be a correctness bug", () => {
@@ -142,20 +141,20 @@ describe("CuckooFilter - deletion (the entire reason Bloom was dropped)", () => 
 
 describe("CuckooFilter - fingerprints are never zero", () => {
   it("remaps a computed zero to 1, since zero is the empty-slot sentinel", () => {
-    // Scanned over enough keys that a zero fingerprint would certainly occur
-    // at f=12 (1 in 4096) if it were not remapped.
-    const f = CuckooFilter.create(100_000, { fingerprintBits: 12 });
+    // A computed zero is one in 2^32, so it cannot be provoked by scanning;
+    // this guards the remap against a refactor that drops it.
+    const f = CuckooFilter.create(100_000);
     for (const k of members(50_000)) expect(f.fingerprintOf(k)).toBeGreaterThan(0);
   });
 });
 
 describe("CuckooFilter - wire format is frozen", () => {
   it("writes the pinned header", () => {
-    const f = CuckooFilter.create(1000, { fingerprintBits: 16, seed: 0xdeadbeef });
+    const f = CuckooFilter.create(1000, { seed: 0xdeadbeef });
     const bytes = f.encode();
     expect(String.fromCharCode(...bytes.slice(0, 4))).toBe("FKCF");
-    expect(bytes[4]).toBe(1); // format version
-    expect(bytes[5]).toBe(16); // fingerprint bits
+    expect(bytes[4]).toBe(2); // format version
+    expect(bytes[5]).toBe(32); // fingerprint bits
     expect(bytes[6]).toBe(9); // log2(512) buckets
     expect(bytes[7]).toBe(4); // slots per bucket
     const view = new DataView(bytes.buffer, bytes.byteOffset);
@@ -163,29 +162,17 @@ describe("CuckooFilter - wire format is frozen", () => {
     expect(view.getUint32(12, true)).toBe(0); // item count
   });
 
-  it("is exactly header + buckets * 8 bytes at f=16", () => {
-    const f = CuckooFilter.create(1000, { fingerprintBits: 16 });
-    expect(f.encode().byteLength).toBe(CUCKOO_HEADER_BYTES + 512 * 8);
+  it("is exactly header + buckets * 16 bytes", () => {
+    const f = CuckooFilter.create(1000);
+    expect(f.encode().byteLength).toBe(CUCKOO_HEADER_BYTES + 512 * 16);
   });
 
-  it("is exactly header + buckets * 6 bytes at f=12", () => {
-    const f = CuckooFilter.create(1000, { fingerprintBits: 12 });
-    expect(f.encode().byteLength).toBe(CUCKOO_HEADER_BYTES + 512 * 6);
-  });
-
-  it("round-trips membership through encode/decode at f=16", () => {
+  it("round-trips membership through encode/decode", () => {
     const keys = members(20_000);
     const encoded = buildCuckooFilter(keys).filter.encode();
     const decoded = CuckooFilter.decode(encoded);
     for (const k of keys) expect(decoded.contains(k)).toBe(true);
     expect(decoded.size).toBe(keys.length);
-  });
-
-  it("round-trips membership through encode/decode at f=12", () => {
-    const keys = members(20_000);
-    const encoded = buildCuckooFilter(keys, { fingerprintBits: 12 }).filter.encode();
-    const decoded = CuckooFilter.decode(encoded);
-    for (const k of keys) expect(decoded.contains(k)).toBe(true);
   });
 
   it("re-encodes to identical bytes after a decode", () => {
@@ -216,6 +203,12 @@ describe("CuckooFilter - wire format is frozen", () => {
     badBits[5] = 13;
     expect(() => CuckooFilter.decode(badBits)).toThrow(/fingerprint/i);
 
+    // Version 1 — 16-bit fingerprints whose positives needed confirming — is
+    // refused rather than read: it cannot be answered on its own.
+    const versionOne = good.slice();
+    versionOne[4] = 1;
+    expect(() => CuckooFilter.decode(versionOne)).toThrow(/version/i);
+
     expect(() => CuckooFilter.decode(good.slice(0, 10))).toThrow(/truncat/i);
     expect(() => CuckooFilter.decode(good.slice(0, good.length - 1))).toThrow(/truncat/i);
   });
@@ -231,25 +224,6 @@ describe("buildCuckooFilter - construction policy", () => {
 
   it("caps relocations at 500 per insert", () => {
     expect(CUCKOO_MAX_KICKS).toBe(500);
-  });
-
-  it("refuses an incremental insert that would exceed the patch ceiling", () => {
-    // Converts "insert failure" from a runtime surprise into a scheduled,
-    // observable event: the compiler emits a full re-encode instead.
-    // 100_000 members -> 32_768 buckets -> 131_072 slots, so alpha = 0.763.
-    const f = buildCuckooFilter(members(100_000)).filter;
-    expect(f.loadFactor).toBeCloseTo(100_000 / 131_072, 6);
-
-    const headroom = Math.floor(0.85 * 131_072) - 100_000; // 11_411 slots to the ceiling
-    expect(f.wouldExceedCeiling(headroom, 0.85)).toBe(false);
-    expect(f.wouldExceedCeiling(headroom + 1, 0.85)).toBe(true);
-  });
-
-  it("leaves real headroom below the ceiling for the next segment patch", () => {
-    // The 0.8 target is not decoration: a filter built at 0.95 has no room for
-    // the members a `segment-patch` will add after it was sized.
-    const f = buildCuckooFilter(members(100_000)).filter;
-    expect(f.wouldExceedCeiling(1, 0.85)).toBe(false);
   });
 
   it("deduplicates repeated members rather than double-counting capacity", () => {

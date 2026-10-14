@@ -21,7 +21,9 @@
 
 import {
   buildCuckooFilter,
+  FINGERPRINT_BITS,
   ordinalOf,
+  SLOTS_PER_BUCKET,
   RoaringBitmap,
   type CompiledClause,
   type CompiledFlag,
@@ -159,7 +161,6 @@ export interface CompileOptions {
    * force an encoding, for tests.
    */
   segmentFilter?: "auto" | "roaring" | "cuckoo";
-  cuckooFingerprintBits?: 12 | 16;
 }
 
 export type CompileErrorCode =
@@ -508,17 +509,13 @@ function compileSegments(
       continue;
     }
 
-    const built = buildCuckooFilter(
-      included,
-      options.cuckooFingerprintBits !== undefined
-        ? { fingerprintBits: options.cuckooFingerprintBits }
-        : {},
-    );
+    const built = buildCuckooFilter(included);
     out[segment.key] = {
       ...base,
       kind: "cuckoo",
       filter: built.filter.encode(),
-      fpRate: 2 * 4 / 2 ** (options.cuckooFingerprintBits ?? 16),
+      // Two candidate buckets of four slots, each a 1-in-2^32 fingerprint match.
+      fpRate: (2 * SLOTS_PER_BUCKET) / 2 ** FINGERPRINT_BITS,
       loadFactor: built.filter.loadFactor,
     };
   }

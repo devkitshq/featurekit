@@ -13,21 +13,18 @@ export {
   CuckooFilter,
   CUCKOO_HEADER_BYTES,
   CUCKOO_MAX_KICKS,
+  FINGERPRINT_BITS,
   SLOTS_PER_BUCKET,
 } from "./cuckoo.js";
-export type { CuckooBuildResult, CuckooOptions, FingerprintBits } from "./cuckoo.js";
+export type { CuckooBuildResult, CuckooOptions } from "./cuckoo.js";
 export { evaluate } from "./evaluate.js";
 export type { EvaluateOptions } from "./evaluate.js";
-export { murmur3Bytes, murmur3Utf8 } from "./murmur3.js";
+export { murmur3Bytes, murmur3Utf8, murmur3x86_128 } from "./murmur3.js";
 export { applyOperator, compareSemVer, parseSemVer } from "./operators.js";
 export type { SemVer } from "./operators.js";
 export { ordinalOf, RoaringBitmap, ROARING_ORDINAL_RE } from "./roaring.js";
-export {
-  InMemorySegmentCache,
-  LruSegmentCache,
-  SegmentIndex,
-} from "./segments.js";
-export type { MembershipResult, SegmentCacheProvider, SegmentDelta } from "./segments.js";
+export { SegmentIndex } from "./segments.js";
+export type { MembershipResult, SegmentDelta } from "./segments.js";
 export type * from "./types.js";
 export {
   checkRegexPattern,

@@ -141,16 +141,6 @@ export const configSchema = z
     SEGMENT_MEMBER_CEILING: z.coerce.number().int().min(1_000).default(2_000_000),
     /** Rows per round trip while reading segment members. */
     SEGMENT_MEMBER_PAGE_SIZE: z.coerce.number().int().min(1_000).max(100_000).default(25_000),
-    SEGMENT_REFRESH_MS: z.coerce.number().int().min(1000).default(60_000),
-    /** 16 is byte-aligned (eps ~ 0.012%); 12 trades accuracy for ~25% space. */
-    SEGMENT_CUCKOO_FINGERPRINT_BITS: z.coerce
-      .number()
-      .refine((n): n is 12 | 16 => n === 12 || n === 16, {
-        message: "must be 12 or 16 — the cuckoo wire format is frozen",
-      })
-      .default(16),
-    /** SDK-side: confirmed-membership LRU when a remote provider is used. */
-    SEGMENT_CACHE_LRU_MAX: z.coerce.number().int().min(1_000).default(100_000),
 
     /**
      * How long a client connection handle stays resumable on another node.

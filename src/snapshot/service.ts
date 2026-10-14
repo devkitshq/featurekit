@@ -53,7 +53,6 @@ export interface SnapshotServiceOptions {
   debounceMs?: number;
   patchHistoryDepth?: number;
   segmentInlineMax?: number;
-  cuckooFingerprintBits?: 12 | 16;
   /**
    * Floor between degraded compiles for one environment while the store is
    * unavailable. Without it, every request during a store outage compiles and
@@ -272,9 +271,6 @@ export class SnapshotService {
       version,
       ...(this.options.segmentInlineMax !== undefined
         ? { segmentInlineMax: this.options.segmentInlineMax }
-        : {}),
-      ...(this.options.cuckooFingerprintBits !== undefined
-        ? { cuckooFingerprintBits: this.options.cuckooFingerprintBits }
         : {}),
     });
     return { snapshot, version, compileMs: Date.now() - startedAt };

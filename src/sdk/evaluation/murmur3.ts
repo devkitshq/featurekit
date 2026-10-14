@@ -26,7 +26,7 @@ function rotl32(x: number, r: number): number {
 }
 
 /** The final avalanche. Shared by both input paths so they cannot drift. */
-function fmix32(h: number): number {
+export function fmix32(h: number): number {
   h ^= h >>> 16;
   h = mul32(h, 0x85ebca6b);
   h ^= h >>> 13;
@@ -141,4 +141,191 @@ const encoder = new TextEncoder();
  */
 export function murmur3Utf8(s: string, seed = 0): number {
   return isAscii(s) ? murmur3Ascii(s, seed) : murmur3Bytes(encoder.encode(s), seed);
+}
+
+/* ───────────────────────── MurmurHash3 x86_128 ───────────────────────── */
+
+/*
+ * The 128-bit variant built from 32-bit lanes, so it runs without BigInt.
+ * Used where one pass over a key has to yield more than 32 bits — the cuckoo
+ * filter takes its bucket and its 32-bit fingerprint from one call, where two
+ * separate x86_32 calls read the key twice and cost twice as much.
+ *
+ * Also a wire format: output matches the reference implementation
+ * (`MurmurHash3_x86_128`, read as four little-endian uint32s), pinned by
+ * `tests/evaluation/murmur3-128.test.ts` against vectors from the C original.
+ */
+
+const K1 = 0x239b961b;
+const K2 = 0xab0e9789;
+const K3 = 0x38b34ae5;
+const K4 = 0xa1e38b93;
+
+/**
+ * Hash the UTF-8 bytes of `s` into `out` (four uint32s).
+ *
+ * Writes into a caller-owned array rather than returning a fresh one: this
+ * runs once per segment lookup, and an allocation per call would cost more than
+ * the hash. ASCII keys are read once — the ASCII check rides along with the
+ * hashing rather than being a separate pass — and anything else is hashed over
+ * its UTF-8 encoding.
+ */
+export function murmur3x86_128(s: string, seed: number, out: Uint32Array): void {
+  if (!hash128Ascii(s, seed, out)) hash128Bytes(encoder.encode(s), seed, out);
+}
+
+function hash128Ascii(s: string, seed: number, out: Uint32Array): boolean {
+  const len = s.length;
+  let h1 = seed | 0;
+  let h2 = seed | 0;
+  let h3 = seed | 0;
+  let h4 = seed | 0;
+  let seen = 0;
+  const blocks = len & ~15;
+  for (let i = 0; i < blocks; i += 16) {
+    const a0 = s.charCodeAt(i), a1 = s.charCodeAt(i + 1), a2 = s.charCodeAt(i + 2), a3 = s.charCodeAt(i + 3);
+    const b0 = s.charCodeAt(i + 4), b1 = s.charCodeAt(i + 5), b2 = s.charCodeAt(i + 6), b3 = s.charCodeAt(i + 7);
+    const c0 = s.charCodeAt(i + 8), c1 = s.charCodeAt(i + 9), c2 = s.charCodeAt(i + 10), c3 = s.charCodeAt(i + 11);
+    const d0 = s.charCodeAt(i + 12), d1 = s.charCodeAt(i + 13), d2 = s.charCodeAt(i + 14), d3 = s.charCodeAt(i + 15);
+    seen |= a0 | a1 | a2 | a3 | b0 | b1 | b2 | b3 | c0 | c1 | c2 | c3 | d0 | d1 | d2 | d3;
+    const k1 = a0 | (a1 << 8) | (a2 << 16) | (a3 << 24);
+    const k2 = b0 | (b1 << 8) | (b2 << 16) | (b3 << 24);
+    const k3 = c0 | (c1 << 8) | (c2 << 16) | (c3 << 24);
+    const k4 = d0 | (d1 << 8) | (d2 << 16) | (d3 << 24);
+    h1 ^= mul32(rotl32(mul32(k1, K1), 15), K2);
+    h1 = (mul32(rotl32(h1, 19) + h2, 5) + 0x561ccd1b) | 0;
+    h2 ^= mul32(rotl32(mul32(k2, K2), 16), K3);
+    h2 = (mul32(rotl32(h2, 17) + h3, 5) + 0x0bcaa747) | 0;
+    h3 ^= mul32(rotl32(mul32(k3, K3), 17), K4);
+    h3 = (mul32(rotl32(h3, 15) + h4, 5) + 0x96cd1c35) | 0;
+    h4 ^= mul32(rotl32(mul32(k4, K4), 18), K1);
+    h4 = (mul32(rotl32(h4, 13) + h1, 5) + 0x32ac3b17) | 0;
+  }
+
+  for (let j = blocks; j < len; j++) seen |= s.charCodeAt(j);
+  if (seen > 0x7f) return false;
+
+  let k1 = 0;
+  let k2 = 0;
+  let k3 = 0;
+  let k4 = 0;
+  const t = blocks;
+  const rem = len & 15;
+  if (rem > 12) {
+    if (rem > 14) k4 ^= s.charCodeAt(t + 14) << 16;
+    if (rem > 13) k4 ^= s.charCodeAt(t + 13) << 8;
+    k4 ^= s.charCodeAt(t + 12);
+    h4 ^= mul32(rotl32(mul32(k4, K4), 18), K1);
+  }
+  if (rem > 8) {
+    if (rem > 11) k3 ^= s.charCodeAt(t + 11) << 24;
+    if (rem > 10) k3 ^= s.charCodeAt(t + 10) << 16;
+    if (rem > 9) k3 ^= s.charCodeAt(t + 9) << 8;
+    k3 ^= s.charCodeAt(t + 8);
+    h3 ^= mul32(rotl32(mul32(k3, K3), 17), K4);
+  }
+  if (rem > 4) {
+    if (rem > 7) k2 ^= s.charCodeAt(t + 7) << 24;
+    if (rem > 6) k2 ^= s.charCodeAt(t + 6) << 16;
+    if (rem > 5) k2 ^= s.charCodeAt(t + 5) << 8;
+    k2 ^= s.charCodeAt(t + 4);
+    h2 ^= mul32(rotl32(mul32(k2, K2), 16), K3);
+  }
+  if (rem > 0) {
+    if (rem > 3) k1 ^= s.charCodeAt(t + 3) << 24;
+    if (rem > 2) k1 ^= s.charCodeAt(t + 2) << 16;
+    if (rem > 1) k1 ^= s.charCodeAt(t + 1) << 8;
+    k1 ^= s.charCodeAt(t);
+    h1 ^= mul32(rotl32(mul32(k1, K1), 15), K2);
+  }
+  finish128(h1, h2, h3, h4, len, out);
+  return true;
+}
+
+function hash128Bytes(b: Uint8Array, seed: number, out: Uint32Array): void {
+  const len = b.length;
+  let h1 = seed | 0;
+  let h2 = seed | 0;
+  let h3 = seed | 0;
+  let h4 = seed | 0;
+  const blocks = len & ~15;
+  for (let i = 0; i < blocks; i += 16) {
+    const k1 = b[i]! | (b[i + 1]! << 8) | (b[i + 2]! << 16) | (b[i + 3]! << 24);
+    const k2 = b[i + 4]! | (b[i + 5]! << 8) | (b[i + 6]! << 16) | (b[i + 7]! << 24);
+    const k3 = b[i + 8]! | (b[i + 9]! << 8) | (b[i + 10]! << 16) | (b[i + 11]! << 24);
+    const k4 = b[i + 12]! | (b[i + 13]! << 8) | (b[i + 14]! << 16) | (b[i + 15]! << 24);
+    h1 ^= mul32(rotl32(mul32(k1, K1), 15), K2);
+    h1 = (mul32(rotl32(h1, 19) + h2, 5) + 0x561ccd1b) | 0;
+    h2 ^= mul32(rotl32(mul32(k2, K2), 16), K3);
+    h2 = (mul32(rotl32(h2, 17) + h3, 5) + 0x0bcaa747) | 0;
+    h3 ^= mul32(rotl32(mul32(k3, K3), 17), K4);
+    h3 = (mul32(rotl32(h3, 15) + h4, 5) + 0x96cd1c35) | 0;
+    h4 ^= mul32(rotl32(mul32(k4, K4), 18), K1);
+    h4 = (mul32(rotl32(h4, 13) + h1, 5) + 0x32ac3b17) | 0;
+  }
+
+  let k1 = 0;
+  let k2 = 0;
+  let k3 = 0;
+  let k4 = 0;
+  const t = blocks;
+  const rem = len & 15;
+  if (rem > 12) {
+    if (rem > 14) k4 ^= b[t + 14]! << 16;
+    if (rem > 13) k4 ^= b[t + 13]! << 8;
+    k4 ^= b[t + 12]!;
+    h4 ^= mul32(rotl32(mul32(k4, K4), 18), K1);
+  }
+  if (rem > 8) {
+    if (rem > 11) k3 ^= b[t + 11]! << 24;
+    if (rem > 10) k3 ^= b[t + 10]! << 16;
+    if (rem > 9) k3 ^= b[t + 9]! << 8;
+    k3 ^= b[t + 8]!;
+    h3 ^= mul32(rotl32(mul32(k3, K3), 17), K4);
+  }
+  if (rem > 4) {
+    if (rem > 7) k2 ^= b[t + 7]! << 24;
+    if (rem > 6) k2 ^= b[t + 6]! << 16;
+    if (rem > 5) k2 ^= b[t + 5]! << 8;
+    k2 ^= b[t + 4]!;
+    h2 ^= mul32(rotl32(mul32(k2, K2), 16), K3);
+  }
+  if (rem > 0) {
+    if (rem > 3) k1 ^= b[t + 3]! << 24;
+    if (rem > 2) k1 ^= b[t + 2]! << 16;
+    if (rem > 1) k1 ^= b[t + 1]! << 8;
+    k1 ^= b[t]!;
+    h1 ^= mul32(rotl32(mul32(k1, K1), 15), K2);
+  }
+  finish128(h1, h2, h3, h4, len, out);
+}
+
+function finish128(
+  h1: number,
+  h2: number,
+  h3: number,
+  h4: number,
+  len: number,
+  out: Uint32Array,
+): void {
+  h1 ^= len;
+  h2 ^= len;
+  h3 ^= len;
+  h4 ^= len;
+  h1 = (h1 + h2 + h3 + h4) | 0;
+  h2 = (h2 + h1) | 0;
+  h3 = (h3 + h1) | 0;
+  h4 = (h4 + h1) | 0;
+  h1 = fmix32(h1);
+  h2 = fmix32(h2);
+  h3 = fmix32(h3);
+  h4 = fmix32(h4);
+  h1 = (h1 + h2 + h3 + h4) | 0;
+  h2 = (h2 + h1) | 0;
+  h3 = (h3 + h1) | 0;
+  h4 = (h4 + h1) | 0;
+  out[0] = h1;
+  out[1] = h2;
+  out[2] = h3;
+  out[3] = h4;
 }
