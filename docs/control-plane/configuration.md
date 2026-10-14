@@ -19,6 +19,33 @@ missing variables is three outages.
 server-tier-only deployment should not be forced to configure a secret it cannot
 use, and demanding one would train operators to set a dummy value.
 
+## Database schema
+
+`DATABASE_SCHEMA` (or `databaseSchema` on `FeaturekitServer`) names the one
+Postgres schema featurekit owns: every table, enum type, function, analytics
+partition, and Drizzle's migration history. It defaults to `public`, and the
+migrations create it if it does not exist. Several installs can share a
+database in different schemas without seeing each other.
+
+It must be a lowercase identifier (letters, digits, underscores) not starting
+with `pg_`, so it never needs quoting.
+
+The schema is applied as each connection's `search_path`, with nothing else on
+the path. A table missing from the schema is an error, never a silent read from
+`public`.
+
+**Behind pgbouncer**, a `search_path` sent at connect time may be dropped or
+refused. Set it on the database role instead:
+
+```sql
+ALTER ROLE featurekit SET search_path = featurekit;
+```
+
+`FeaturekitServer` checks at startup that its connections really are in the
+configured schema and that it is migrated, and refuses to start otherwise with
+an error naming the cause. A bare `createApp` still boots and reports it through
+`/ready` (`schema missing`, `schema unmigrated` or `schema mismatch`).
+
 ## Secret rotation without a flag day
 
 ```

@@ -142,6 +142,9 @@ const server = new FeaturekitServer({
   nodeEnv: "production",
 
   databaseUrl: process.env.DATABASE_URL,
+  // Optional. Everything featurekit stores goes in this one schema; `public`
+  // if unset. Migrations create it.
+  databaseSchema: "featurekit",
   redisUrl: process.env.REDIS_URL,
 
   // Required in production. Generated for you in development.
@@ -205,8 +208,8 @@ Or without a file at all:
 node -e 'import("featurekit-server/migrate").then(m => m.migrate())'
 ```
 
-`migrate()` reads `DATABASE_URL`, or takes `{ databaseUrl }`. It refuses to
-guess: a deploy job with a missing variable quietly migrating the wrong database
+`migrate()` reads `DATABASE_URL` and `DATABASE_SCHEMA`, or takes
+`{ databaseUrl, schema }`. It refuses to guess the database: a deploy job with a missing variable quietly migrating the wrong database
 is worse than a failed deploy by a wide margin.
 
 Safe to run concurrently — a retried pipeline or two CI jobs racing produce one

@@ -53,8 +53,8 @@ await migrate();                                   // apply
 const { applied, partitionRunwayDays } = await migrationStatus();
 ```
 
-It reads `DATABASE_URL` or takes `{ databaseUrl }`, and refuses to default to
-anything: a deploy job with a missing variable migrating the wrong database is
+It reads `DATABASE_URL` and `DATABASE_SCHEMA`, or takes `{ databaseUrl, schema }`,
+and refuses to default the database to anything: a deploy job with a missing variable migrating the wrong database is
 worse than a failed deploy. `FeaturekitServer`'s `autoMigrate` calls the same
 function, so the boot-time path and the deploy step apply the same SQL under the
 same advisory lock rather than being two implementations that drift.
