@@ -26,14 +26,18 @@ await server.start();
 
 ## Quick Start
 
+Needs Docker running: with no `DATABASE_URL` or `REDIS_URL` set, the server
+starts Postgres and Redis in containers, using the `@testcontainers` dev
+dependencies. Set both variables to use your own instead.
+
 ```bash
+npm install
+
 # 1. Start the Server & Website
 node server.js
-# Or from workspace root: npm run demo
 
 # 2. In another terminal, swap the flags anytime:
 node swap.js
-# Or from workspace root: npm run demo:swap
 ```
 
 ## Endpoints
