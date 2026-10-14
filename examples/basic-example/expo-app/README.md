@@ -5,15 +5,18 @@ React Native mobile application connecting to Featurekit Control Plane using **`
 ## Code Example
 
 ```typescript
+import { fetch as expoFetch } from "expo/fetch";
 import { FeaturekitClient } from "featurekit-client";
 
 const client = new FeaturekitClient({
   baseUrl: "http://127.0.0.1:3000",
   clientKey: "fk_clt_...",
-  initialContext: { kind: "user", key: "mobile-user-1" },
+  context: { kind: "user", key: "mobile-user-1" },
+  // React Native's built-in fetch cannot stream; this one can.
+  fetchImpl: expoFetch as unknown as typeof fetch,
 });
 
-await client.identify({ kind: "user", key: "mobile-user-1" });
+await client.ready();
 
 // Evaluate flags:
 const isEnabled = client.get("feature-toggle", false);

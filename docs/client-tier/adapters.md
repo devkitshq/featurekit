@@ -189,5 +189,5 @@ import { fetch as expoFetch } from "expo/fetch";
 new FeaturekitClient({ ...options, fetchImpl: expoFetch as unknown as typeof fetch });
 ```
 
-See [`examples/mobile`](../../examples/mobile), which is this page's React
-adapter and that one line, in a working app.
+See [`examples/basic-example/expo-app`](../../examples/basic-example/expo-app)
+for that one line in a working Expo app.

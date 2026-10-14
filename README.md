@@ -392,7 +392,7 @@ import { fetch as expoFetch } from "expo/fetch";
 new FeaturekitClient({ …options, fetchImpl: expoFetch as unknown as typeof fetch });
 ```
 
-[`examples/mobile`](examples/mobile) is that, in a working app.
+[`examples/basic-example/expo-app`](examples/basic-example/expo-app) is that, in a working Expo app.
 
 ### Secure mode
 

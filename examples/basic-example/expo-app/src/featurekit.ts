@@ -4,6 +4,7 @@
  * Uses 'featurekit-client' to evaluate feature flags and subscribe to real-time updates.
  */
 
+import { fetch as expoFetch } from "expo/fetch";
 import { FeaturekitClient, type FlagValue } from "featurekit-client";
 
 export type FeaturekitValues = Record<string, FlagValue>;
@@ -25,7 +26,10 @@ export class FeaturekitMobileClient {
     this.client = new FeaturekitClient({
       baseUrl: options.baseUrl,
       clientKey: options.clientKey,
-      initialContext: options.context,
+      context: options.context,
+      // React Native's built-in fetch cannot stream, so without this the SSE
+      // stream never opens and the client falls back to polling.
+      fetchImpl: expoFetch as unknown as typeof fetch,
       onError: (err) => {
         console.warn("[Featurekit Mobile] Error:", err);
       },
@@ -49,7 +53,7 @@ export class FeaturekitMobileClient {
   async start(): Promise<void> {
     this.options.onStatus?.("connecting");
     try {
-      await this.client.identify(this.options.context);
+      await this.client.ready();
       this.options.onValues(this.getAllValues());
       this.options.onStatus?.("live");
     } catch {
