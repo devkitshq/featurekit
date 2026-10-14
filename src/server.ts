@@ -1,4 +1,40 @@
 
+/**
+ * Load the module that starts a development container.
+ *
+ * The testcontainers packages are dev dependencies, so they are not installed
+ * with featurekit-server and production never carries them. Starting Postgres
+ * and Redis in Docker is opt-in: install them as dev dependencies of your own
+ * project, or pass the addresses.
+ */
+export async function devServiceModule<T>(load: () => Promise<T>, name: string): Promise<T> {
+  try {
+    return await load();
+  } catch (error) {
+    const missing =
+      (error as { code?: unknown }).code === "ERR_MODULE_NOT_FOUND" &&
+      String((error as { message?: unknown }).message).includes(name);
+    if (!missing) throw error;
+    throw new ConfigError(
+      `featurekit: no databaseUrl/redisUrl given, and starting them in Docker needs ${name}.\n` +
+        `  Either pass databaseUrl and redisUrl (or set DATABASE_URL and REDIS_URL),\n` +
+        `  or install the dev-only helpers: npm i -D @testcontainers/postgresql @testcontainers/redis`,
+    );
+  }
+}
+
+/** Start a development container, or say plainly that Docker is the problem. */
+export async function startDevContainer<T>(start: () => Promise<T>): Promise<T> {
+  try {
+    return await start();
+  } catch (error) {
+    throw new ConfigError(
+      `featurekit: could not start a development container: ${String((error as Error)?.message ?? error)}\n` +
+        `  Start Docker, or pass databaseUrl and redisUrl (or set DATABASE_URL and REDIS_URL).`,
+    );
+  }
+}
+
 export function redact(url: string): string {
   try {
     const parsed = new URL(url);
@@ -246,15 +282,23 @@ export class FeaturekitServer {
 
     if (!redisUrl && wantsDevServices && !isProduction) {
       log("No redisUrl provided, spinning up Redis container for development/testing...");
-      const { RedisContainer } = await import("@testcontainers/redis");
-      this.#redisContainer = await new RedisContainer("redis:alpine").start();
+      const { RedisContainer } = await devServiceModule(
+        () => import("@testcontainers/redis"),
+        "@testcontainers/redis",
+      );
+      this.#redisContainer = await startDevContainer(() => new RedisContainer("redis:alpine").start());
       redisUrl = this.#redisContainer.getConnectionUrl();
     }
 
     if (!databaseUrl && wantsDevServices && !isProduction) {
       log("No databaseUrl provided, spinning up PostgreSQL container for development/testing...");
-      const { PostgreSqlContainer } = await import("@testcontainers/postgresql");
-      this.#pgContainer = await new PostgreSqlContainer("postgres:16-alpine").start();
+      const { PostgreSqlContainer } = await devServiceModule(
+        () => import("@testcontainers/postgresql"),
+        "@testcontainers/postgresql",
+      );
+      this.#pgContainer = await startDevContainer(() =>
+        new PostgreSqlContainer("postgres:16-alpine").start(),
+      );
       databaseUrl = this.#pgContainer.getConnectionUri();
     }
 

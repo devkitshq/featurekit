@@ -53,6 +53,7 @@ service you rent.
 mkdir acme-flags && cd acme-flags
 npm init -y && npm pkg set type=module
 npm i featurekit-server
+npm i -D @testcontainers/postgresql @testcontainers/redis  # dev only, see below
 ```
 
 ```js
@@ -76,10 +77,13 @@ streams, event ingest, the rollup worker, the scheduler, and a dashboard on
 `http://127.0.0.1:3000/admin`.
 
 **It needs no database setup to start.** Outside production, featurekit brings
-up Postgres and Redis in Docker when it cannot reach them, and runs the
-migrations. Only for addresses you did *not* specify — an explicit
-`databaseUrl` that does not answer is an error, never a silent redirect to a
-fresh empty container.
+up Postgres and Redis in Docker when you have not given it their addresses, and
+runs the migrations. This needs Docker running and the two `@testcontainers`
+packages above. They are dev dependencies on purpose, so production installs
+never carry them; without them, `start()` tells you to install them or pass
+`databaseUrl` and `redisUrl`. Only addresses you did *not* specify are started —
+an explicit `databaseUrl` that does not answer is an error, never a silent
+redirect to a fresh empty container.
 
 ### Flags as data in your repository
 
