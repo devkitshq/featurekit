@@ -5,7 +5,7 @@
 ```bash
 npm run build
 DATABASE_URL=... npm run migrate                   # once, as a deploy step
-DATABASE_URL=... ADMIN_TOKEN=... npm start
+DATABASE_URL=... npm start
 ```
 
 `npm start` runs `dist/main.js`, which loads configuration, fails loudly and

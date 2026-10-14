@@ -41,8 +41,6 @@ function productionServer(options: Record<string, unknown> = {}): FeaturekitServ
     port: 0,
     devServices: false,
     autoMigrate: false,
-    // Supplied so the assertions below are about the URLs, not this.
-    adminToken: "a-token-of-at-least-twenty-four-chars",
     ...options,
     // A bare object: `start()` spreads `process.env` first, and this repository's
     // own DATABASE_URL would otherwise make every case look "supplied".
@@ -73,16 +71,4 @@ describe("production refuses the development defaults", () => {
     // which is the correct next failure and a different one.
     expect(error).not.toBeInstanceOf(ConfigError);
   }, 20_000);
-
-  it("has not made ADMIN_TOKEN's check redundant", async () => {
-    const error = await productionServer({
-      adminToken: undefined,
-      env: { DATABASE_URL: "postgres://u:p@db:5432/f" },
-    })
-      .start()
-      .catch((cause: unknown) => cause);
-
-    expect(error).toBeInstanceOf(ConfigError);
-    expect((error as ConfigError).message).toContain("ADMIN_TOKEN");
-  }, 15_000);
 });

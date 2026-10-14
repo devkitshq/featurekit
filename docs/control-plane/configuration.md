@@ -7,7 +7,7 @@ and points at a local Postgres. Production start fails loudly.
 
 ## Production hard-fails
 
-Missing `DATABASE_URL` or `ADMIN_TOKEN` under `NODE_ENV=production`
+A missing `DATABASE_URL` under `NODE_ENV=production`
 is a startup error, not a warning — the development defaults must never silently
 apply. A control plane pointed at a localhost database is a control plane with no
 data, and it will look healthy.

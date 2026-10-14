@@ -3,7 +3,7 @@
  *
  * **The defaults are for laptops, never for prod.** Development starts
  * containers and binds to localhost; production start fails loudly on a missing
- * `DATABASE_URL`, `ADMIN_TOKEN`, or — if any client key exists —
+ * `DATABASE_URL`, or — if any client key exists —
  * `SECURE_MODE_SECRET`.
  *
  * Every missing variable is reported at once. Three restarts to discover three
@@ -50,7 +50,6 @@ export const configSchema = z
      */
     DATABASE_LISTEN_URL: z.url().optional(),
 
-    ADMIN_TOKEN: z.string().min(24).optional(),
     /**
      * Signs client-tier context HMACs. Comma-separated for rotation: sign with
      * the first, verify against all. Required in production once a client key
@@ -208,7 +207,7 @@ export class ConfigError extends Error {
 }
 
 /** Variables with a laptop-shaped default that must never silently apply in prod. */
-const REQUIRED_IN_PRODUCTION = ["DATABASE_URL", "ADMIN_TOKEN"] as const;
+const REQUIRED_IN_PRODUCTION = ["DATABASE_URL"] as const;
 
 export function loadConfig(
   env: Record<string, string | undefined> = process.env,

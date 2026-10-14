@@ -4,7 +4,6 @@ import { loadConfig, secureModeSecrets } from "../../src/config/index.js";
 const PROD = {
   NODE_ENV: "production",
   DATABASE_URL: "postgres://u:p@db:5432/featurekit",
-  ADMIN_TOKEN: "a".repeat(24),
   SECURE_MODE_SECRET: "s".repeat(32),
 };
 
@@ -38,7 +37,7 @@ describe("production start fails loudly", () => {
     expect(() => loadConfig(PROD)).not.toThrow();
   });
 
-  it.each(["DATABASE_URL", "ADMIN_TOKEN"])(
+  it.each(["DATABASE_URL"])(
     "refuses to start in production without %s",
     (key) => {
       const env: Record<string, string> = { ...PROD };
@@ -51,12 +50,12 @@ describe("production start fails loudly", () => {
     // Two restarts to discover two missing variables is two outages.
     let message = "";
     try {
-      loadConfig({ NODE_ENV: "production" });
+      loadConfig({ NODE_ENV: "production" }, { clientKeysExist: true });
     } catch (error) {
       message = (error as Error).message;
     }
     expect(message).toContain("DATABASE_URL");
-    expect(message).toContain("ADMIN_TOKEN");
+    expect(message).toContain("SECURE_MODE_SECRET");
   });
 
   it("refuses a production default that leaks localhost", () => {
@@ -83,10 +82,6 @@ describe("production start fails loudly", () => {
 
   it("rejects a secure mode secret that is too short to be one", () => {
     expect(() => loadConfig({ ...PROD, SECURE_MODE_SECRET: "short" })).toThrow();
-  });
-
-  it("rejects an admin token short enough to guess", () => {
-    expect(() => loadConfig({ ...PROD, ADMIN_TOKEN: "abc" })).toThrow();
   });
 });
 

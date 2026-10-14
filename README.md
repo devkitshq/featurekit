@@ -150,8 +150,6 @@ const server = new FeaturekitServer({
   // if unset. Migrations create it.
   databaseSchema: "featurekit",
 
-  // Required in production. Generated for you in development.
-  adminToken: process.env.ADMIN_TOKEN,
   // Signs client-tier contexts. Comma-separate to rotate: sign with the first,
   // verify against all.
   secureModeSecret: process.env.SECURE_MODE_SECRET,

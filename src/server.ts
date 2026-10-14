@@ -99,8 +99,6 @@ export interface FeaturekitServerOptions {
   nodeEnv?: "development" | "test" | "production";
   logLevel?: "fatal" | "error" | "warn" | "info" | "debug" | "trace" | "silent";
 
-  /** Required in production; generated for you in development. */
-  adminToken?: string;
   /** Signs client-tier contexts. Comma-separate to rotate. */
   secureModeSecret?: string;
   /** Origins allowed to call the client tier. Never `*`. */
@@ -314,7 +312,6 @@ export class FeaturekitServer {
       ...(this.options.port !== undefined ? { PORT: String(this.options.port) } : {}),
       ...(this.options.host !== undefined ? { HOST: this.options.host } : {}),
       ...(this.options.logLevel !== undefined ? { LOG_LEVEL: this.options.logLevel } : {}),
-      ...(this.options.adminToken !== undefined ? { ADMIN_TOKEN: this.options.adminToken } : {}),
       ...(this.options.secureModeSecret !== undefined
         ? { SECURE_MODE_SECRET: this.options.secureModeSecret }
         : {}),
