@@ -90,7 +90,7 @@ BEGIN
 			CREATE EXTENSION IF NOT EXISTS pg_partman SCHEMA partman;
 
 			PERFORM partman.create_parent(
-				p_parent_table => 'public.evaluation_summaries',
+				p_parent_table => current_schema() || '.evaluation_summaries',
 				p_control      => 'bucket_at',
 				p_interval     => '1 day',
 				p_premake      => 7
@@ -100,7 +100,7 @@ BEGIN
 			   SET retention                = '90 days',
 			       retention_keep_table     = false,
 			       infinite_time_partitions = true
-			 WHERE parent_table = 'public.evaluation_summaries';
+			 WHERE parent_table = current_schema() || '.evaluation_summaries';
 
 			IF EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'pg_cron') THEN
 				BEGIN
@@ -138,14 +138,24 @@ DECLARE
 	day date;
 	created integer := 0;
 	part_name text;
+	-- Resolved through the caller's search_path, so the partitions land next to
+	-- the parent in whichever schema featurekit was installed into.
+	parent regclass := to_regclass('evaluation_summaries');
+	parent_schema text;
 BEGIN
+	IF parent IS NULL THEN
+		RAISE EXCEPTION 'featurekit: evaluation_summaries is not on the search_path';
+	END IF;
+	SELECT n.nspname INTO parent_schema
+	  FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+	 WHERE c.oid = parent;
 	FOR i IN 0..days_ahead LOOP
 		day := (CURRENT_DATE + i);
 		part_name := format('evaluation_summaries_p%s', to_char(day, 'YYYYMMDD'));
-		IF NOT EXISTS (SELECT 1 FROM pg_class WHERE relname = part_name) THEN
+		IF to_regclass(format('%I.%I', parent_schema, part_name)) IS NULL THEN
 			EXECUTE format(
-				'CREATE TABLE IF NOT EXISTS %I PARTITION OF evaluation_summaries FOR VALUES FROM (%L) TO (%L)',
-				part_name, day, day + 1
+				'CREATE TABLE IF NOT EXISTS %I.%I PARTITION OF %s FOR VALUES FROM (%L) TO (%L)',
+				parent_schema, part_name, parent, day, day + 1
 			);
 			created := created + 1;
 		END IF;
@@ -169,8 +179,7 @@ RETURNS integer LANGUAGE sql STABLE AS $$
 	)
 	FROM pg_class c
 	JOIN pg_inherits i ON i.inhrelid = c.oid
-	JOIN pg_class p ON p.oid = i.inhparent
-	WHERE p.relname = 'evaluation_summaries'
+	WHERE i.inhparent = to_regclass('evaluation_summaries')
 	  AND c.relname ~ '\d{8}$';
 $$;
 --> statement-breakpoint

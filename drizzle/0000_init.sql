@@ -1,5 +1,5 @@
-CREATE TYPE "public"."flag_kind" AS ENUM('boolean', 'string', 'number', 'json');--> statement-breakpoint
-CREATE TYPE "public"."sdk_key_kind" AS ENUM('server', 'client', 'mobile');--> statement-breakpoint
+CREATE TYPE "flag_kind" AS ENUM('boolean', 'string', 'number', 'json');--> statement-breakpoint
+CREATE TYPE "sdk_key_kind" AS ENUM('server', 'client', 'mobile');--> statement-breakpoint
 CREATE TABLE "access_tokens" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"member_id" uuid NOT NULL,
@@ -231,30 +231,30 @@ CREATE TABLE "targeting_rules" (
 	CONSTRAINT "rule_outcome_xor" CHECK (num_nonnulls("targeting_rules"."variation_id", "targeting_rules"."rollout") = 1)
 );
 --> statement-breakpoint
-ALTER TABLE "access_tokens" ADD CONSTRAINT "access_tokens_member_id_members_id_fk" FOREIGN KEY ("member_id") REFERENCES "public"."members"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "change_requests" ADD CONSTRAINT "change_requests_flag_environment_id_flag_environments_id_fk" FOREIGN KEY ("flag_environment_id") REFERENCES "public"."flag_environments"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "context_kinds" ADD CONSTRAINT "context_kinds_project_id_projects_id_fk" FOREIGN KEY ("project_id") REFERENCES "public"."projects"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "environments" ADD CONSTRAINT "environments_project_id_projects_id_fk" FOREIGN KEY ("project_id") REFERENCES "public"."projects"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "flag_environments" ADD CONSTRAINT "flag_environments_flag_id_flags_id_fk" FOREIGN KEY ("flag_id") REFERENCES "public"."flags"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "flag_environments" ADD CONSTRAINT "flag_environments_environment_id_environments_id_fk" FOREIGN KEY ("environment_id") REFERENCES "public"."environments"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "flag_environments" ADD CONSTRAINT "flag_environments_off_variation_id_flag_variations_id_fk" FOREIGN KEY ("off_variation_id") REFERENCES "public"."flag_variations"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "flag_environments" ADD CONSTRAINT "flag_environments_fallthrough_variation_id_flag_variations_id_fk" FOREIGN KEY ("fallthrough_variation_id") REFERENCES "public"."flag_variations"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "flag_targets" ADD CONSTRAINT "flag_targets_flag_environment_id_flag_environments_id_fk" FOREIGN KEY ("flag_environment_id") REFERENCES "public"."flag_environments"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "flag_targets" ADD CONSTRAINT "flag_targets_variation_id_flag_variations_id_fk" FOREIGN KEY ("variation_id") REFERENCES "public"."flag_variations"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "flag_variations" ADD CONSTRAINT "flag_variations_flag_id_flags_id_fk" FOREIGN KEY ("flag_id") REFERENCES "public"."flags"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "flags" ADD CONSTRAINT "flags_project_id_projects_id_fk" FOREIGN KEY ("project_id") REFERENCES "public"."projects"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "prerequisites" ADD CONSTRAINT "prerequisites_flag_environment_id_flag_environments_id_fk" FOREIGN KEY ("flag_environment_id") REFERENCES "public"."flag_environments"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "prerequisites" ADD CONSTRAINT "prerequisites_prerequisite_flag_id_flags_id_fk" FOREIGN KEY ("prerequisite_flag_id") REFERENCES "public"."flags"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "prerequisites" ADD CONSTRAINT "prerequisites_required_variation_id_flag_variations_id_fk" FOREIGN KEY ("required_variation_id") REFERENCES "public"."flag_variations"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "rule_clauses" ADD CONSTRAINT "rule_clauses_rule_id_targeting_rules_id_fk" FOREIGN KEY ("rule_id") REFERENCES "public"."targeting_rules"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "scheduled_changes" ADD CONSTRAINT "scheduled_changes_flag_environment_id_flag_environments_id_fk" FOREIGN KEY ("flag_environment_id") REFERENCES "public"."flag_environments"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "sdk_keys" ADD CONSTRAINT "sdk_keys_environment_id_environments_id_fk" FOREIGN KEY ("environment_id") REFERENCES "public"."environments"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "segment_members" ADD CONSTRAINT "segment_members_segment_id_segments_id_fk" FOREIGN KEY ("segment_id") REFERENCES "public"."segments"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "segment_rule_clauses" ADD CONSTRAINT "segment_rule_clauses_segment_rule_id_segment_rules_id_fk" FOREIGN KEY ("segment_rule_id") REFERENCES "public"."segment_rules"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "segment_rules" ADD CONSTRAINT "segment_rules_segment_id_segments_id_fk" FOREIGN KEY ("segment_id") REFERENCES "public"."segments"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "segments" ADD CONSTRAINT "segments_env_project_fk" FOREIGN KEY ("project_id","environment_id") REFERENCES "public"."environments"("project_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "targeting_rules" ADD CONSTRAINT "targeting_rules_flag_environment_id_flag_environments_id_fk" FOREIGN KEY ("flag_environment_id") REFERENCES "public"."flag_environments"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "targeting_rules" ADD CONSTRAINT "targeting_rules_variation_id_flag_variations_id_fk" FOREIGN KEY ("variation_id") REFERENCES "public"."flag_variations"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "access_tokens" ADD CONSTRAINT "access_tokens_member_id_members_id_fk" FOREIGN KEY ("member_id") REFERENCES "members"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "change_requests" ADD CONSTRAINT "change_requests_flag_environment_id_flag_environments_id_fk" FOREIGN KEY ("flag_environment_id") REFERENCES "flag_environments"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "context_kinds" ADD CONSTRAINT "context_kinds_project_id_projects_id_fk" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "environments" ADD CONSTRAINT "environments_project_id_projects_id_fk" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "flag_environments" ADD CONSTRAINT "flag_environments_flag_id_flags_id_fk" FOREIGN KEY ("flag_id") REFERENCES "flags"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "flag_environments" ADD CONSTRAINT "flag_environments_environment_id_environments_id_fk" FOREIGN KEY ("environment_id") REFERENCES "environments"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "flag_environments" ADD CONSTRAINT "flag_environments_off_variation_id_flag_variations_id_fk" FOREIGN KEY ("off_variation_id") REFERENCES "flag_variations"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "flag_environments" ADD CONSTRAINT "flag_environments_fallthrough_variation_id_flag_variations_id_fk" FOREIGN KEY ("fallthrough_variation_id") REFERENCES "flag_variations"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "flag_targets" ADD CONSTRAINT "flag_targets_flag_environment_id_flag_environments_id_fk" FOREIGN KEY ("flag_environment_id") REFERENCES "flag_environments"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "flag_targets" ADD CONSTRAINT "flag_targets_variation_id_flag_variations_id_fk" FOREIGN KEY ("variation_id") REFERENCES "flag_variations"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "flag_variations" ADD CONSTRAINT "flag_variations_flag_id_flags_id_fk" FOREIGN KEY ("flag_id") REFERENCES "flags"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "flags" ADD CONSTRAINT "flags_project_id_projects_id_fk" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "prerequisites" ADD CONSTRAINT "prerequisites_flag_environment_id_flag_environments_id_fk" FOREIGN KEY ("flag_environment_id") REFERENCES "flag_environments"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "prerequisites" ADD CONSTRAINT "prerequisites_prerequisite_flag_id_flags_id_fk" FOREIGN KEY ("prerequisite_flag_id") REFERENCES "flags"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "prerequisites" ADD CONSTRAINT "prerequisites_required_variation_id_flag_variations_id_fk" FOREIGN KEY ("required_variation_id") REFERENCES "flag_variations"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "rule_clauses" ADD CONSTRAINT "rule_clauses_rule_id_targeting_rules_id_fk" FOREIGN KEY ("rule_id") REFERENCES "targeting_rules"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "scheduled_changes" ADD CONSTRAINT "scheduled_changes_flag_environment_id_flag_environments_id_fk" FOREIGN KEY ("flag_environment_id") REFERENCES "flag_environments"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "sdk_keys" ADD CONSTRAINT "sdk_keys_environment_id_environments_id_fk" FOREIGN KEY ("environment_id") REFERENCES "environments"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "segment_members" ADD CONSTRAINT "segment_members_segment_id_segments_id_fk" FOREIGN KEY ("segment_id") REFERENCES "segments"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "segment_rule_clauses" ADD CONSTRAINT "segment_rule_clauses_segment_rule_id_segment_rules_id_fk" FOREIGN KEY ("segment_rule_id") REFERENCES "segment_rules"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "segment_rules" ADD CONSTRAINT "segment_rules_segment_id_segments_id_fk" FOREIGN KEY ("segment_id") REFERENCES "segments"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "segments" ADD CONSTRAINT "segments_env_project_fk" FOREIGN KEY ("project_id","environment_id") REFERENCES "environments"("project_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "targeting_rules" ADD CONSTRAINT "targeting_rules_flag_environment_id_flag_environments_id_fk" FOREIGN KEY ("flag_environment_id") REFERENCES "flag_environments"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "targeting_rules" ADD CONSTRAINT "targeting_rules_variation_id_flag_variations_id_fk" FOREIGN KEY ("variation_id") REFERENCES "flag_variations"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "audit_proj_time_idx" ON "audit_log" USING btree ("project_id","created_at");--> statement-breakpoint
 CREATE INDEX "audit_entity_idx" ON "audit_log" USING btree ("entity_type","entity_id");--> statement-breakpoint
 CREATE INDEX "flag_env_env_idx" ON "flag_environments" USING btree ("environment_id");--> statement-breakpoint
