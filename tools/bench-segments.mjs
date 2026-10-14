@@ -21,6 +21,21 @@
 import { createHash } from "node:crypto";
 import { buildCuckooFilter } from "../dist/sdk/evaluation/cuckoo.js";
 import { murmur3Bytes, murmur3Utf8 } from "../dist/sdk/evaluation/murmur3.js";
+import { murmur3x86_128, out as h128 } from "./murmur3-128.mjs";
+
+/**
+ * Reference outputs from the C implementation (`mmh3.hash_bytes(key, seed,
+ * x64arch=False)` as four little-endian u32s): every tail length near a block
+ * boundary, a uuid, and non-ASCII keys that take the UTF-8 path. Nothing is
+ * measured unless these match.
+ */
+const MURMUR128_VECTORS = [["", 0, [0, 0, 0, 0]], ["bcdefghijklmnop", 0, [992468734, 3794467593, 319431428, 517378481]], ["ijklmnopqrstuvwx", 0, [1380693794, 3828654882, 1473312772, 1719562022]], ["pqrstuvwxyzabcdef", 0, [3219694703, 3135617498, 228453302, 2864292497]], ["jklmnopqrstuvwxyzabcdefghijklmn", 0, [3338086313, 3604688955, 2084226618, 1489599640]], ["usr_jos\u00e9", 0, [1554891779, 1069812116, 1139846488, 409595037]], ["\u65e5\u672c\u8a9e\u306e\u30ad\u30fc", 0, [466333444, 728765291, 1718940755, 782304470]], ["94f7804b-762d-437d-a030-5424a79384f1", 0, [4232054028, 29465757, 3797143186, 3523880423]], ["", 2538058380, [4156478881, 1532455452, 1532455452, 1532455452]], ["bcdefghijklmnop", 2538058380, [3718217443, 3711042149, 3875558565, 3322195327]], ["ijklmnopqrstuvwx", 2538058380, [1148572460, 3169441118, 3217592447, 2728960969]], ["pqrstuvwxyzabcdef", 2538058380, [943735483, 875411275, 3529239506, 911464790]], ["jklmnopqrstuvwxyzabcdefghijklmn", 2538058380, [3433112637, 1858342876, 2186315728, 1163611156]], ["usr_jos\u00e9", 2538058380, [2849674028, 2621296233, 1132832733, 186265061]], ["\u65e5\u672c\u8a9e\u306e\u30ad\u30fc", 2538058380, [1651197588, 3708680939, 1477399314, 339926331]], ["94f7804b-762d-437d-a030-5424a79384f1", 2538058380, [2898034673, 3094896365, 3487640917, 3887075490]]];
+for (const [key, seed, expected] of MURMUR128_VECTORS) {
+  murmur3x86_128(key, seed);
+  if ([...h128].some((word, i) => word !== expected[i])) {
+    throw new Error(`murmur3x86_128 does not match the reference for ${JSON.stringify(key)}`);
+  }
+}
 
 const MEMBERS = 500_000;
 const PROBES = 200_000;
@@ -224,6 +239,22 @@ class Cuckoo32OnePass extends Cuckoo32SameHashing {
   }
 }
 
+/** The same 32-bit cuckoo table, indexed and fingerprinted from one MurmurHash3 x86_128. */
+class Cuckoo32Murmur128 extends Cuckoo32OnePass {
+  insert(key) {
+    murmur3x86_128(key, 0);
+    const i = h128[0] & this.mask;
+    const fp = h128[1] === 0 ? 1 : h128[1];
+    return this.insertRaw(i, fp);
+  }
+  contains(key) {
+    murmur3x86_128(key, 0);
+    const i = h128[0] & this.mask;
+    const fp = h128[1] === 0 ? 1 : h128[1];
+    return this.has(i, fp) || this.has(this.alt(i, fp), fp);
+  }
+}
+
 /** Open addressing over 64-bit key hashes (two lanes), linear probing. */
 class HashTable64 {
   constructor(n, load = 0.7) {
@@ -283,10 +314,12 @@ const same32 = new Cuckoo32SameHashing(MEMBERS);
 for (const key of members) same32.insert(key);
 const onePass32 = new Cuckoo32OnePass(MEMBERS);
 for (const key of members) onePass32.insert(key);
+const murmur128 = new Cuckoo32Murmur128(MEMBERS);
+for (const key of members) murmur128.insert(key);
 const table64 = new HashTable64(MEMBERS);
 for (const key of members) table64.insert(key);
 
-for (const [name, s] of [["cuckoo32 same hashing", same32], ["cuckoo32 one pass", onePass32], ["hash table 64", table64]]) {
+for (const [name, s] of [["cuckoo32 same hashing", same32], ["cuckoo32 one pass", onePass32], ["cuckoo32 murmur128", murmur128], ["hash table 64", table64]]) {
   if (!members.every((k) => s.contains(k))) throw new Error(`${name} lost a member`);
 }
 
@@ -326,6 +359,14 @@ const rows = [
     note: "~1.9e-9 expected",
   },
   {
+    name: "cuckoo f=32, murmur3 x86_128",
+    hit: measure((k) => murmur128.contains(k), hits),
+    miss: measure((k) => murmur128.contains(k), missProbes),
+    bytes: murmur128.bytes,
+    fp: falsePositives((k) => murmur128.contains(k)),
+    note: "~1.9e-9 expected; a standard hash",
+  },
+  {
     name: "hash table, 64-bit hashes",
     hit: measure((k) => table64.contains(k), hits),
     miss: measure((k) => table64.contains(k), missProbes),
@@ -346,6 +387,7 @@ const rows = [
 const hashing = [
   ["murmur3Utf8 x2 (today's cuckoo hashing)", measure((k) => (murmur3Utf8(k, 0) ^ murmur3Utf8(k, 1)) & 1, hits)],
   ["murmur3x2, one pass", measure((k) => murmur3x2(k, 0) & 1, hits)],
+  ["murmur3 x86_128, one pass", measure((k) => (murmur3x86_128(k, 0), h128[0] & 1), hits)],
 ];
 
 const kb = (b) => (b === null ? "n/a" : `${Math.round(b / 1024).toLocaleString("en-US")} KB`);
