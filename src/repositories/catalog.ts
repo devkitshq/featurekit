@@ -448,6 +448,22 @@ export async function findSegment(
   return row ?? null;
 }
 
+/**
+ * Rows per statement when writing segment members.
+ *
+ * A page may carry 50,000 members, and one INSERT for all of them is about
+ * 200,000 bind parameters — three times Postgres's 65,535 limit per statement,
+ * and deep enough to overflow the stack while the query is being built. At
+ * 5,000 rows a statement stays near 20,000 parameters.
+ */
+const MEMBER_WRITE_CHUNK = 5_000;
+
+function chunks<T>(items: readonly T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}
+
 export interface SegmentMemberInput {
   contextKind: string;
   contextKey: string;
@@ -469,11 +485,11 @@ export async function applySegmentMembers(
   page: { add: SegmentMemberInput[]; remove: Array<{ contextKind: string; contextKey: string }> },
 ): Promise<{ version: number; memberCount: number }> {
   return db.transaction(async (tx) => {
-    if (page.add.length > 0) {
+    for (const chunk of chunks(page.add, MEMBER_WRITE_CHUNK)) {
       await tx
         .insert(segmentMembers)
         .values(
-          page.add.map((member) => ({
+          chunk.map((member) => ({
             segmentId,
             contextKind: member.contextKind,
             contextKey: member.contextKey,
@@ -486,16 +502,26 @@ export async function applySegmentMembers(
         });
     }
 
+    // Grouped by kind so each statement is one `IN` list, rather than one
+    // DELETE per member — a page of 50,000 removals was 50,000 round trips.
+    const removeByKind = new Map<string, string[]>();
     for (const member of page.remove) {
-      await tx
-        .delete(segmentMembers)
-        .where(
-          and(
-            eq(segmentMembers.segmentId, segmentId),
-            eq(segmentMembers.contextKind, member.contextKind),
-            eq(segmentMembers.contextKey, member.contextKey),
-          ),
-        );
+      const keys = removeByKind.get(member.contextKind) ?? [];
+      keys.push(member.contextKey);
+      removeByKind.set(member.contextKind, keys);
+    }
+    for (const [contextKind, keys] of removeByKind) {
+      for (const chunk of chunks(keys, MEMBER_WRITE_CHUNK)) {
+        await tx
+          .delete(segmentMembers)
+          .where(
+            and(
+              eq(segmentMembers.segmentId, segmentId),
+              eq(segmentMembers.contextKind, contextKind),
+              inArray(segmentMembers.contextKey, chunk),
+            ),
+          );
+      }
     }
 
     const [counted] = await tx
