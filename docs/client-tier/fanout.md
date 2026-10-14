@@ -50,8 +50,11 @@ resolves by key. All three set `perContext`.
 what makes the cache safe to share across users: two contexts with the same
 fingerprint are, for these flags, indistinguishable. It also means the cache must
 be invalidated on a snapshot version bump, so it is keyed
-`(version, flagKey, fingerprint)` — **a bump invalidates by construction rather
-than by an explicit sweep** someone eventually forgets to call.
+`(environmentId, version, flagKey, fingerprint)` — **a bump invalidates by
+construction rather than by an explicit sweep** someone eventually forgets to
+call. The environment is in the key because one instance serves every
+environment and versions restart at 1 in each; without it, two environments at
+the same version shared cached values.
 
 ## What crosses to the browser
 

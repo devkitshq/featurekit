@@ -67,9 +67,10 @@ draws:
   ~900 KB — which strengthens the "deltas must ride the patch stream" argument
   rather than weakening it.
 
-`SEGMENT_CUCKOO_FINGERPRINT_BITS=12` halves it and is already a documented knob.
 No code change is proposed: the power-of-two requirement is load-bearing and the
 parameters are frozen. The numbers in §9.7 should be restated as a range.
+(Later superseded by §22, which doubled the fingerprint instead of offering a
+smaller one.)
 
 ## 3. Roaring beats its estimate by a wide margin
 
@@ -164,10 +165,9 @@ get the flag, visible weeks later and attributable to nothing.
 - **Roaring set operations (AND/OR/ANDNOT).** §9.7 wants segment intersections
   resolved in the compiler. That is compiler-side work and belongs with M2; the
   SDK only ever reads. Read/write of the portable format is complete.
-- **Async `SegmentCacheProvider` warm-up.** The interface, the three-state
-  contract, `LruSegmentCache`, and the fail-closed behaviour on a promise or a
-  throw are all in place. The background fetch that *populates* the LRU belongs
-  with the SDK's transport in M4.
+- **Async `SegmentCacheProvider` warm-up.** Never built, and later made
+  unnecessary: since §22 nothing confirms a filter positive, so there is no
+  provider to warm.
 - **`defineFlags` typed keys (§11.3).** Config-as-code is M7.
 
 ## 11. Test-only surface on `CuckooFilter`
@@ -385,3 +385,63 @@ the 0.01% case needs 100,000 members spread across all of it.
 measurement is the answer to the question, and adding a knob for a 20% saving in
 one uncommon case — at the cost of exactness — would be the wrong trade.
 Reproduce with the density probe described in `docs/evaluation/benchmarks.md`.
+
+Since §22 the filter is twice the sizes above and needs no confirmation, so
+roaring now wins at every density measured here, and the exactness argument is
+about a 1.9e-9 false-positive rate rather than an unresolved state.
+
+---
+
+## 21. Postgres only
+
+Redis held the snapshot cache, the patch history, the client tier's connection
+records, the compile lock, rate-limit counters, and the pub/sub bus between
+nodes. Every one of those was either a cache of Postgres data or the bus, and
+depending on it produced two bugs found by the smoke test: with Redis down,
+client-tier requests took 4-10 s (two callers bypassed the circuit breaker), and
+no change — not even a kill switch — reached connected SDKs.
+
+All of it moved to Postgres. The cache tables are UNLOGGED, which is the same
+contract Redis had: cheap writes, emptied by a crash, rebuilt from the
+configuration tables. Change delivery is `LISTEN/NOTIFY`, and because NOTIFY is
+transactional the snapshot, its patches and the notification commit together —
+the guarantee the Redis `MULTI` was there to provide. The compile lock is a lease
+row rather than an advisory lock, so it works through a transaction-mode pooler;
+LISTEN does not, which is what `DATABASE_LISTEN_URL` is for. Rate limits are per
+node, in memory, with nothing shared that could fail open.
+
+Measured after the change: 30 toggles reached a streaming client within 260 ms,
+and a listener survived a Postgres restart and resumed delivery within a second.
+
+## 22. 32-bit cuckoo fingerprints, and no confirmation
+
+The 16-bit filter's positives were wrong about once in 8,000 lookups, so each
+had to be confirmed by a `SegmentCacheProvider`. Nothing in the control plane
+ever supplied one, so the client tier failed every large-segment rule closed —
+and separately, it was never given a segment index at all, so it failed every
+segment rule closed, inline ones included.
+
+Widening the fingerprint to 32 bits makes a positive wrong about once in 500
+million lookups, which is treated as membership. Measured on 500k uuid members
+(`tools/bench-segments.mjs`): the 16-bit filter took ~465 ns a lookup and ~720
+ns with confirmation; the 32-bit filter takes ~230 ns at 4 MB instead of 2 MB.
+The speed did not come from the width — widening alone measured the same — but
+from hashing the key once with MurmurHash3 x86_128 instead of twice with
+x86_32, since hashing was about 85% of a lookup. A hash table of 64-bit key
+hashes was as fast at twice the size; a `Set` of the keys was slower at 84 MB.
+
+A false positive grants nothing a caller could not already claim: without
+secure mode any key can be presented, including a real member's, and with it
+keys are signed and cannot be chosen to collide.
+
+The confirmation machinery — `SegmentCacheProvider`, `InMemorySegmentCache`,
+`LruSegmentCache`, the SDK's `segmentCache` option — is gone. The unresolved
+state is not: a segment whose structure cannot be read (a corrupt snapshot, a
+version-1 filter) still fails its rule closed, because under negation "not a
+member" would grant the feature to everyone. The wire format is version 2;
+version 1 is refused rather than read.
+
+Verifying this end to end found two more bugs, both fixed: a 50,000-member
+import page returned 500 (one INSERT, ~200,000 bind parameters), and a change
+committed while another compile held the lock was dropped rather than compiled
+— so a kill switch pressed during a slow segment import never propagated.

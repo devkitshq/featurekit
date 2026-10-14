@@ -1,6 +1,6 @@
 # Segments
 
-`src/sdk/evaluation/segments.ts`, `cuckoo.ts`, `roaring.ts` · §9.7
+`src/sdk/evaluation/segments.ts`, `cuckoo.ts`, `roaring.ts`
 
 Large imported lists — an enterprise allow-list, a churn-risk cohort — can be
 too big to inline in a snapshot sent to every SDK. Resolving them must not put
@@ -9,18 +9,20 @@ r1 and contradicted both the latency claim and the outage story.
 
 ## The contract
 
-1. A **deletable membership filter** ships in the snapshot. A negative is exact
-   and final: not a member, no network, done.
-2. **Positives are confirmed** against a resolved membership set — in-process by
-   default, or behind a `SegmentCacheProvider`.
-3. When membership cannot be confirmed the answer is **`"unresolved"`**, and
-   the whole rule fails closed. See [the evaluator](evaluator.md#fail-closed).
-4. During an outage the resolved set is whatever was last loaded, exactly like
-   the snapshot.
+1. **Every segment is answered from the snapshot alone**, synchronously. No
+   lookup service, no confirmation step, no warm-up.
+2. Membership is still **three-valued**:
 
-```ts
-type MembershipResult = "member" | "not-member" | "unresolved";
-```
+   ```ts
+   type MembershipResult = "member" | "not-member" | "unresolved";
+   ```
+
+   `"unresolved"` means the segment's structure could not be read — a corrupt
+   snapshot, or a filter in a format this SDK does not decode. The whole rule
+   then fails closed in either polarity, because treating an unreadable segment
+   as "not a member" would let a negated clause grant the feature to everyone.
+   See [the evaluator](evaluator.md#fail-closed).
+3. During an outage the segments are whatever the last snapshot held.
 
 Order of resolution: **excluded wins over included**, in every encoding, before
 anything else. Then the membership structure. Then the segment's own rules.
@@ -31,16 +33,47 @@ non-match.
 
 ## Choosing a structure
 
-| | When | 500k members, measured | False positives |
+| | When | 500k members | False positives |
 | :-- | :-- | --: | :-- |
-| **inline** | small segments (`SEGMENT_INLINE_MAX`) | — | none, exact |
-| **cuckoo** | **the default** — opaque string keys | 2,097,168 B · 140 ns lookup | 0.012%, confirmed at step 2 |
-| **roaring** | only when the key is integral | **117 B** · 12 ns lookup | **none, exact** |
+| **inline** | small segments (`SEGMENT_INLINE_MAX`, 50,000) | — | none, exact |
+| **roaring** | every member key is an integer | **117 B** for sequential ids | **none, exact** |
+| **cuckoo** | everything else — uuids, emails, opaque strings | 4 MB | ~1.9e-9 per lookup |
 
-Roaring where eligible is not a close call: exact, 12x faster to query, and
-four orders of magnitude smaller on sequential ids. It is also the only
-structure that **cannot enter the unresolved state at all**, which is a second
-reason to prefer it.
+Roaring where eligible is not a close call: exact, faster than a `Set`, and
+four orders of magnitude smaller on sequential ids.
+
+### Why a 32-bit cuckoo filter, and no confirmation
+
+A filter smaller than the set it stands for has false positives; there is no
+way around that. What can be chosen is how rare they are. With 16-bit
+fingerprints a positive was wrong about once in 8,000 lookups, so every positive
+had to be confirmed against the real member list — a provider the SDK had to be
+given, and that the control plane never gave its own client tier. Members of
+large segments failed closed.
+
+At 32 bits a positive is wrong about once in 500 million lookups, rarer than the
+hardware faults nobody guards against, so a positive is treated as membership.
+It also grants nothing a caller could not get anyway: without secure mode a
+caller can claim any key, including a real member's; with it, keys are signed
+by the customer's backend, so a colliding key cannot be chosen.
+
+Measured on 500,000 uuid members, cycling through 200,000 distinct keys
+(`tools/bench-segments.mjs`):
+
+| Structure | hit | miss | size | false positives / 500k non-members |
+| :-- | --: | --: | --: | --: |
+| 16-bit cuckoo (previous format), filter only | 465 ns | 500 ns | 2 MB | 38 — needs confirming |
+| 16-bit cuckoo + confirmation against a `Set` | 720 ns | 505 ns | 2 MB + the keys | 0 |
+| **32-bit cuckoo, one MurmurHash3 x86_128 call** | **229 ns** | **232 ns** | **4 MB** | **0** |
+| hash table of 64-bit key hashes | 227 ns | 207 ns | 8 MB | 0 |
+| `Set<string>` of the keys | 265 ns | 277 ns | 84 MB | 0 |
+
+The speed came from hashing, not the table. The 16-bit format hashed the key
+twice — once for the bucket, once for the fingerprint — and hashing was about
+85% of a lookup. One MurmurHash3 x86_128 call yields both in a single pass
+(~200 ns against ~410 ns for the two passes), and the alternate bucket is
+integer mixing of the fingerprint with no allocation. Widening the fingerprint
+alone, with the old hashing, measured no faster.
 
 ### Why not Bloom
 
@@ -59,41 +92,49 @@ dictionary, roughly 30-40 MB of V8 heap once it is a live `Map`, which is
 So roaring is available only when the ordinal **is** the key: it parses as a
 non-negative integer under 10^9. Then `contains(Number(key))` is the whole
 lookup and nothing extra ships. Shops on numeric primary keys get exact
-matching for free; shops on uuids do not.
+matching for free; shops on uuids get the cuckoo filter.
 
 `ordinalOf` additionally rejects **leading zeros** — `"07"` and `"7"` are
-distinct context keys but the same integer. This diverges from the SQL in §7.6
-and must be reconciled in M2; see [decisions §9](../decisions.md).
+distinct context keys but the same integer. See [decisions §9](../decisions.md).
 
 ## Cuckoo wire format {#wire-format}
 
-Frozen in M1, alongside the bucketing hash. A disagreement about fingerprint
-width or alternate-bucket derivation does not throw — it silently answers
-`false` for members who *are* in the segment, which surfaces as "the flag did
-not turn on for that customer" weeks later.
+A wire format, frozen alongside the bucketing hash. A disagreement about
+hashing or layout does not throw — it silently answers `false` for members who
+*are* in the segment, which surfaces as "the flag did not turn on for that
+customer" weeks later.
 
 ```
  0..3   magic "FKCF"
- 4      format version (1)
- 5      fingerprint bits (12 | 16)
+ 4      format version (2)
+ 5      fingerprint bits (32)
  6      log2(bucketCount)
  7      slots per bucket (4)
  8..11  seed, uint32 LE
 12..15  item count, uint32 LE
-16..    fingerprint table
+16..    fingerprint table: per bucket, four uint32 LE
 ```
 
-At f=16 a bucket is four uint16 LE — 8 bytes, read with no shifting. At f=12
-four fingerprints are nibble-packed into 6 bytes. **No semi-sorting**: it saves
-~1 bit per item and costs a decode on every lookup.
+A bucket is 16 bytes. **No semi-sorting**: it saves a bit per item and costs a
+decode on every lookup. Version 1 (12- or 16-bit fingerprints, two x86_32
+hashes) is refused; a segment in that format is unresolved until the SDK
+receives a fresh snapshot.
 
 | Parameter | Value | Why |
 | :-- | :-- | :-- |
+| hash | MurmurHash3 x86_128 over UTF-8 bytes, filter seed | One pass yields bucket and fingerprint |
+| primary bucket | `h[0] & mask` | |
+| fingerprint | `h[1]`, with 0 remapped to 1 | 32 bits: eps = 2b/2^32 ≈ 1.9e-9 |
+| alternate bucket | `i2 = i1 XOR h(fp)`, `h(fp) = fmix32(fp ^ seed ^ 0x5bd1e995) & mask`, 0 remapped to 1 | Relocation needs only the fingerprint |
 | slots per bucket | 4 | The load-factor knee. b=2 saturates near 84%, b=4 reaches ~95% |
-| fingerprint bits | 16 (12 optional) | eps = 2b/2^f = 0.012%, and byte-aligned |
 | bucket count | `nextPow2(ceil(n / (4 * 0.8)))` | Power of two **required** — see below |
 | max relocations | 500, then rebuild | At alpha <= 0.8 it is not reached |
-| alternate bucket | `i2 = i1 XOR h(fingerprint)` | Relocation needs only the fingerprint |
+
+`h[0]` and `h[1]` are the first two of the four little-endian uint32 words
+MurmurHash3 x86_128 produces. `tests/evaluation/murmur3-128.test.ts` pins the
+hash to 212 vectors from the C reference implementation, and
+`tests/conformance/cuckoo.json` ships an encoded filter with its members and
+non-members for a porting SDK to check against.
 
 ### The four details that make it work
 
@@ -119,11 +160,10 @@ unchanged segment must not produce a spurious new version.
 
 ### Space, honestly
 
-The plan prices 500k members at ~1.25 MB (20 bits/member at alpha=0.8).
-Measured: **2.0 MB, 33.6 bits/member**, because the mandatory power-of-two
-bucket count puts the achieved load factor at 0.477 rather than 0.8. See
-[decisions §2](../decisions.md) — this is a property of the frozen parameters,
-not a defect, but the plan's figures should be restated as a range.
+500,000 members cost **4 MB, 67 bits each**, because the mandatory power-of-two
+bucket count puts the achieved load factor at 0.477 rather than 0.8. A segment
+of 1.6 million members lands near 0.76 and about 42 bits each. Twice the 16-bit
+format's size is the price of answering without a confirmation step.
 
 `buildCuckooFilter` retries once with an incremented seed, then doubles the
 table, reporting `rebuilds` and reasons so
@@ -138,41 +178,11 @@ off-the-shelf library rather than a bespoke port. Run-optimisation is applied
 whenever runs are strictly smaller, which is why 500k sequential ids serialise
 to 117 bytes.
 
-Set operations (AND/OR/ANDNOT) are compiler-side and land with M2; the SDK only
-reads.
+## On the client tier
 
-## `SegmentCacheProvider`
-
-The default is an in-process `Set<string>`: synchronous, ~18 ns, correct for a
-long-lived microservice. It is also **50-80 MB of V8 heap** for a few large
-segments, which is fatal in a 128 MB Lambda or a memory-limited pod. The
-failure there is not slow evaluation — it is OOMKilled, and it takes the whole
-service with it.
-
-```ts
-interface SegmentCacheProvider {
-  has(segmentKey, contextKey): boolean | Promise<boolean>;
-  isResolved?(segmentKey): boolean;
-  apply?(segmentKey, delta): void | Promise<void>;
-}
-```
-
-| Provider | Unresolved evaluations | Heap |
-| :-- | :-- | :-- |
-| `InMemorySegmentCache` | none, ever | 50-80 MB |
-| remote (your own service) | first evaluation per `(segment, context)` fails closed and warms | bounded by `LruSegmentCache` |
-
-**`boolean()` stays synchronous — non-negotiable.** An async provider is
-therefore consulted out of band: a synchronous evaluation reads only the LRU,
-and an LRU miss is *unresolved*, which fails the rule closed and should enqueue
-a background fetch. A provider that returns a promise, or **throws**, is
-treated as unresolved — evaluation never blocks and never rejects.
-
-In request-scoped workloads the same context usually evaluates several flags
-per request, so warm-up is paid once per context. But a genuinely cold Lambda
-invocation *will* fail a large-segment rule closed on its first look. A
-deployment that cannot accept that keeps the in-memory provider and sizes the
-container for it. Both are defensible; silently OOMing is not.
+The control plane evaluates for browsers and phones with the same index, built
+once per environment per snapshot version — decoding a 4 MB filter per request
+would cost more than evaluating.
 
 ## Deltas
 
@@ -184,4 +194,5 @@ A one-row membership change ships as a few hundred bytes rather than a full
 re-encode. **Version-guarded** exactly like a flag patch: a delta at or below
 the held version is ignored, so duplicate broadcasts and out-of-order delivery
 are non-events rather than corruption. An `add` also clears a prior exclusion,
-or the member would stay pinned out.
+or the member would stay pinned out. (The server does not emit deltas yet; a
+membership change re-sends the whole segment in the next snapshot.)

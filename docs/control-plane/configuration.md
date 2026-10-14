@@ -74,10 +74,6 @@ old one on a third.
 
 ## Validation
 
-`SEGMENT_CUCKOO_FINGERPRINT_BITS` accepts only 12 or 16, because the cuckoo wire
-format is frozen (§9.7). Any other value would produce filters no other SDK can
-read.
-
 `ROLLUP_PARTITION_PREMAKE_DAYS` has a floor of 2, matching the runway alert: a
 premake below the alert threshold means the alert fires immediately and forever.
 

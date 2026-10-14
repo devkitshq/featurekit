@@ -78,13 +78,15 @@ cannot quietly disappear.
 A byte-exact cuckoo table cannot be hand-computed, and claiming otherwise would
 be worse than saying so. What the fixture does instead:
 
-- **The header is hand-specified** from §9.7 — magic, format version,
-  fingerprint width, slots per bucket, and the derived bucket count
+- **The header is hand-specified** from the wire format — magic, format
+  version, fingerprint width, slots per bucket, and the derived bucket count
   (1,003 members / (4 x 0.8) = 313.4, so 314, so `nextPow2` = 512 buckets, so
-  `bucketsLog2 = 9` and a total of `16 + 512 * 8` bytes). The runner asserts
+  `bucketsLog2 = 9` and a total of `16 + 512 * 16` bytes). The runner asserts
   every one.
 - **1,003 known members and 1,000 known non-members** are listed, including
-  non-ASCII members — which is where a byte-vs-code-unit port breaks.
+  non-ASCII members — which is where a byte-vs-code-unit port breaks. Every
+  member must be found and no non-member admitted: at 32-bit fingerprints a
+  positive is membership, so there is no false-positive budget to hide in.
 
 A porting SDK must read *these bytes* and find *these members*, which is the
 property that actually matters.
@@ -113,32 +115,33 @@ every member up.
 | Offset | Size | Field |
 | --: | --: | :-- |
 | 0 | 4 | magic, ASCII `FKCF` |
-| 4 | 1 | format version — currently `1` |
-| 5 | 1 | fingerprint bits — `12` or `16` |
+| 4 | 1 | format version — currently `2` |
+| 5 | 1 | fingerprint bits — always `32` |
 | 6 | 1 | log2 of the bucket count |
 | 7 | 1 | slots per bucket — always `4` |
 | 8 | 4 | seed, little-endian `uint32` |
 | 12 | 4 | member count, little-endian `uint32` |
 | 16 | … | the table |
 
-The table is `bucketCount` buckets of four slots. At 16-bit fingerprints a
-bucket is 8 bytes — four little-endian `uint16`s. At 12 bits it is 6 bytes,
-nibble-packed little-endian within each field.
+The table is `bucketCount` buckets of four slots, each slot a little-endian
+`uint32`: 16 bytes a bucket.
 
 **A slot of zero is empty**, which is why a fingerprint that hashes to zero is
-remapped to `1`; the accuracy cost is one collision class in 65,536.
+remapped to `1`.
 
 Lookup uses partial-key hashing, and every constant here is part of the format:
 
 ```
-fingerprint(key) = murmur3(key, seed ^ 0x9747b28c) & fingerprintMask   (0 -> 1)
-i1(key)          = murmur3(key, seed) & mask
-i2(i1, fp)       = (i1 XOR (murmur3(fpBytes, seed ^ 0x5bd1e995) & mask)) & mask
+h                = MurmurHash3_x86_128(utf8(key), seed)   // four uint32 words
+i1(key)          = h[0] & mask
+fingerprint(key) = h[1]                                    (0 -> 1)
+i2(i1, fp)       = (i1 XOR (fmix32(fp ^ seed ^ 0x5bd1e995) & mask)) & mask
 ```
 
-where `fpBytes` is the fingerprint as two little-endian bytes and `h(fp)` is
-forced non-zero — at zero the alternate bucket would equal the primary and every
-item would have half the homes the table was sized for. Masking after the XOR is
+where `fmix32` is MurmurHash3's finaliser, `h[0]` and `h[1]` are the first two
+little-endian words of the 128-bit output, and `h(fp)` is forced non-zero — at
+zero the alternate bucket would equal the primary and every item would have half
+the homes the table was sized for. Masking after the XOR is
 what makes `i2` an involution, and it is exact only because `bucketCount` is a
 power of two.
 

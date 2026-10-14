@@ -83,22 +83,23 @@ type ClauseResult =
   | { unresolved: true; segmentKey: string };   // never negated
 ```
 
-r2 said a segment cache miss makes the clause resolve to "not a match", and
-called that the conservative direction. **Under negation it is precisely the
+A segment is unresolved when its structure cannot be read — a corrupt
+snapshot, or a filter in a format this SDK does not decode. Treating that as
+"not a match" sounds conservative. **Under negation it is precisely the
 opposite:**
 
 ```
 Rule: user is NOT in "beta_testers"  ->  serve new-checkout
 
-Membership not yet confirmed:
+Segment cannot be read:
   clause "in beta_testers"  -> false     (unresolved, treated as a no-match)
   negate: true              -> inverts to TRUE
-  -> the rule matches, and every unconfirmed user is served the gated feature.
+  -> the rule matches, and every user is served the gated feature.
 ```
 
 A negated segment clause is the ordinary way to write an exclusion list —
 "everyone except the enterprise accounts" — so this is the exclusion list
-failing **open**, in a window that exists on every cold start.
+failing **open**.
 
 The fix is that unresolved never reaches the negation operator:
 
@@ -126,8 +127,8 @@ every rule that was skipped and which segment could not be verified:
 }
 ```
 
-So `POST /v1/debug/evaluate` can say "this rule was skipped because segment
-membership was unverified" rather than "no match" — the difference between a
+So `POST /v1/debug/evaluate` can say "this rule was skipped because a segment
+could not be read" rather than "no match" — the difference between a
 five-minute diagnosis and an afternoon. The array is allocated lazily; a clean
 evaluation allocates none.
 
@@ -136,6 +137,7 @@ the `reason` itself.
 
 ## Evaluating without segment state
 
-Legitimate, and it is a cold start rather than an error. Every segment clause
-is unresolved, so every rule containing one fails closed. It does not throw and
-it does not grant the feature under negation.
+Legitimate but degraded: every segment clause is unresolved, so every rule
+containing one fails closed. It does not throw and it does not grant the feature
+under negation. The SDK and the client tier both always pass an index built from
+the snapshot, so in practice this means a caller of `evaluate()` that forgot to.
