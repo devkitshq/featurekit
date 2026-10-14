@@ -197,14 +197,14 @@ The statement is stripped from `0000_init.sql` and `0001_partitioning.sql` is
 the authority for that table. `tests/integration/schema.test.ts` asserts
 `pg_class.relkind = 'p'`, so a regenerate that reintroduces it fails loudly.
 
-## 13. The snapshot version is durable, not a Redis counter
+## 13. The snapshot version is durable, not a cache counter
 
 `environments.snapshot_version`, bumped in the same transaction as a config
 change.
 
-The tempting implementation is `INCR` on a Redis key — it is one round trip and
-the key map (§8) already has a home for it. But §8 also says losing all of Redis
-must not lose a flag configuration, and a counter that resets on restart makes
+The tempting implementation was `INCR` on a Redis key, when Redis held the
+cache. But losing the cache must not lose a flag configuration, and a counter
+that resets when the cache is emptied makes
 the version go **backwards**. The SDK's version guard then rejects every
 subsequent patch as stale, and the environment freezes on its last good snapshot
 with nothing in the logs to say why. Silent, total, and slow to diagnose.
@@ -282,7 +282,7 @@ ships is two:
 
 | | what it is | dependencies |
 | :-- | :-- | :-- |
-| `featurekit` | the control plane, and the server-tier evaluator inside it | drizzle, postgres, ioredis, pino, prom-client, zod |
+| `featurekit` | the control plane, and the server-tier evaluator inside it | drizzle, postgres, pino, prom-client, zod |
 | `featurekit-client` | the client tier, one entry: browsers, React Native, Node, edge, and any backend that would rather ask than evaluate. No framework bindings. | none |
 
 Three changes are folded into that.
@@ -316,7 +316,7 @@ exported — so every integrator reimplemented an HMAC over an undocumented
 string and a sorted-key canonicalisation by hand, discovering any mistake as a
 401 at the moment secure mode was switched on. It is a separate entry because
 `featurekit`'s main entry is the control plane: a service whose only job is
-signing a string should not load Drizzle, Postgres and Redis to do it. The
+signing a string should not load Drizzle and Postgres to do it. The
 closure is asserted dependency-free by `tools/check-package.mjs`.
 
 **The other packages are not planned.** No `@featurekit/edge`, no Swift or
@@ -337,8 +337,8 @@ concurrent requests will serve one user's flags to another. See
 
 Everything this section used to list has shipped — the management API, PAT
 auth, the audit log and revert, rate limiting, `/health` `/live` `/ready`
-`/metrics` with the partition-runway check, the Redis `SegmentCacheProvider`,
-and the container-gated chaos scenarios (`tests/integration/chaos-infra.test.ts`)
+`/metrics` with the partition-runway check, and the container-gated chaos
+scenarios (`tests/integration/chaos-infra.test.ts`)
 — except one:
 
 - **Segment delta patches end to end.** The SDK applies them (`applyDelta`,

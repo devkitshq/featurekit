@@ -4,8 +4,8 @@
 
 ```bash
 npm run build
-DATABASE_URL=... REDIS_URL=... npm run migrate     # once, as a deploy step
-DATABASE_URL=... REDIS_URL=... ADMIN_TOKEN=... npm start
+DATABASE_URL=... npm run migrate                   # once, as a deploy step
+DATABASE_URL=... ADMIN_TOKEN=... npm start
 ```
 
 `npm start` runs `dist/main.js`, which loads configuration, fails loudly and
@@ -15,7 +15,7 @@ to discover three missing variables is three outages), and binds the port.
 Local development, with containers:
 
 ```bash
-docker compose up -d          # postgres + redis
+docker compose up -d          # postgres
 npm run migrate
 npm run dev
 ```
@@ -59,8 +59,8 @@ worse than a failed deploy. `FeaturekitServer`'s `autoMigrate` calls the same
 function, so the boot-time path and the deploy step apply the same SQL under the
 same advisory lock rather than being two implementations that drift.
 
-A separate entry point because a deploy job should not load the route layer,
-Redis and the metrics registry to run one statement.
+A separate entry point because a deploy job should not load the route layer
+and the metrics registry to run one statement.
 
 **Migrations are forward-only, and additive by policy.** Rolling back code is
 safe; rolling back schema is not. The policy that makes both true:
@@ -91,8 +91,8 @@ Shutdown is ordered, and the order is the point:
    jittered delay. Without this, severing thousands of streams at once produces
    a synchronised reconnect storm against the nodes still up — on every release.
 4. In-flight requests finish, bounded by `SHUTDOWN_GRACE_MS` (default 10s).
-5. Sockets close; the rollup worker flushes once more; Postgres and Redis
-   handles close.
+5. Sockets close; the rollup worker flushes once more; Postgres handles
+   close.
 
 A second `SIGTERM` during the drain exits immediately — the operator's escape
 hatch.
@@ -107,7 +107,7 @@ pointless. For Kubernetes: `terminationGracePeriodSeconds: 30` against the
 | Probe | Path | Notes |
 | :-- | :-- | :-- |
 | Liveness | `/live` | Never touches a dependency. A liveness probe that checks Postgres restarts every node during a database blip. |
-| Readiness | `/ready` | Fails on Postgres and on partition runway; *degrades* rather than fails on Redis. |
+| Readiness | `/ready` | Fails on Postgres (including a wrong or unmigrated schema) and on partition runway. |
 
 ---
 
@@ -130,12 +130,14 @@ Requirements:
   a scratch instance and run `npm run migrate:check` plus a snapshot compile
   against it.
 
-### Redis is not backed up, deliberately
+### The cache tables do not need backing up
 
-Every key in Redis is rebuildable from Postgres, and the rebuild cost of each is
-documented in `src/redis/keys.ts`. Persistence (RDB/AOF) is optional and buys
-only a faster warm-up. Backing it up would create a second source of truth for
-configuration, which is the failure mode the whole storage design avoids.
+`snapshot_cache`, `snapshot_patches`, `client_connections` and `compile_locks`
+are UNLOGGED: they are not in the WAL, so they are not in WAL-based backups or
+on streaming replicas, and a crash empties them. That is by design. Everything
+in them is rebuilt from the configuration tables on first use, and restoring
+them would only risk reviving a snapshot that no longer matches the restored
+configuration.
 
 **One consequence to state plainly:** restoring Postgres to an earlier point
 in time rolls `environments.snapshot_version` backwards. SDKs reject snapshots
@@ -201,7 +203,7 @@ snapshot was cached per version, which is a change this harness is what found.
   a 512 MB container and why 50,000 client connections wants more.
 - **Snapshot compilation is the first thing that hurts.** At 10,000 flags it is
   60ms p50 and the snapshot is 3.9 MB — per environment, on every change,
-  before it is written to Redis and pushed to every SDK. An environment with
+  before it is written to the snapshot cache and pushed to every SDK. An environment with
   tens of thousands of flags needs the compile debounce raised and should expect
   propagation in the hundreds of milliseconds rather than under 300ms.
 - **Fan-out scales with connections, not with flags.** 2,000 connections and 20
@@ -220,7 +222,7 @@ is nowhere near being the limit.
 - Sustained load over hours (soak), so no statement about leak-free operation.
 - Real network latency, TLS, or a load balancer in front.
 - 100k+ connections, 10k environments, or 10M-member segments.
-- Postgres and Redis under production-sized data.
+- Postgres under production-sized data, and `NOTIFY` volume at high change rates.
 
 Do not plan a fleet from this table alone.
 

@@ -16,42 +16,41 @@ below:
 
 ---
 
-## Redis is down or unreachable
+## Streaming SDKs miss changes that polling SDKs see
 
-**What the system does.** Nothing breaks. `/ready` reports `degraded` and the
-node stays in the load balancer deliberately — it can still serve snapshots
-from memory. `featurekit_snapshot_degraded_serves_total{source="memory"}` and
-`{source="postgres"}` start climbing. Rate limiting tightens to a per-node
-local limit rather than disappearing.
+**What it looks like.** A change saves and the dashboard shows it, but streaming
+SDKs keep the old value; SDKs that poll or reconnect get the new one. If no SDK
+sees it, see [snapshot age is climbing](#snapshot-age-is-climbing--changes-are-not-reaching-sdks)
+instead: that is a compile failure, not delivery.
 
-**What is actually lost.**
-
-| Capability | State without Redis |
-| :-- | :-- |
-| Serving snapshots to SDKs | Works (memory, then Postgres) |
-| Flag changes reaching SDKs | Works, but each node compiles independently and SSE fan-out between nodes stops — connected SDKs on *other* nodes learn on their next poll or reconnect |
-| SSE patch resume (`Last-Event-ID`) | Lost; reconnects degrade to a full `put`, which is correct |
-| Cross-node change broadcast | Lost until Redis returns |
+**Why it happens.** Nodes learn about changes through Postgres `LISTEN/NOTIFY`.
+A node whose listening connection is down hears nothing, so its open streams are
+not pushed the change. Its own reads still catch up within 10 seconds, because a
+cached snapshot is re-validated against the database on that interval.
 
 **Do.**
 
-1. Confirm the blast radius: `curl -s $HOST/ready | jq .checks.redis`.
-2. Leave the nodes in rotation. Do **not** scale down or restart the fleet.
-3. Fix Redis. No featurekit action is needed on recovery — the next successful
-   `get` repopulates the store and normal fan-out resumes.
-
-**Do not.** Do not fail readiness on Redis "to be safe": every node would leave
-the load balancer simultaneously while each was still perfectly able to serve.
+1. Behind pgbouncer in transaction mode, `LISTEN` cannot work through it. Set
+   `DATABASE_LISTEN_URL` to a direct Postgres address.
+2. Look for `snapshot store error` in the logs. The listener reconnects on its
+   own after a database restart or network blip, and catches its streams up when
+   it does.
+3. If one node is stuck, restarting it re-establishes the listener; its SDKs
+   reconnect and receive the current snapshot.
 
 ---
 
-## Redis has been wiped (empty, not down)
+## The cache tables have been emptied
 
-**What the system does.** Every key is rebuildable; that is the design
-constraint Redis is held to (§8). The first request per environment recompiles
-from Postgres under the compile lock, and the result is written back.
+**What it looks like.** Nothing, usually. The cache tables are UNLOGGED, so a
+Postgres crash or a failover to a replica empties them.
 
-**Watch for.** A recompile storm if the wipe coincides with a deploy: many cold
+**What the system does.** Every row is rebuildable. The first request per
+environment recompiles from the configuration tables under the compile lock and
+writes the result back. Streaming SDKs that reconnect get a full snapshot rather
+than a resume, which is correct.
+
+**Watch for.** A recompile burst if this coincides with a deploy: many cold
 nodes, no cached snapshots. The compile lock and the single-flight guard bound
 this to one compile per environment at a time.
 
@@ -64,7 +63,7 @@ shifting traffic.
 ## Postgres is down
 
 **What the system does.** SDKs keep serving. The control plane keeps serving any
-snapshot already in Redis or in memory. `/ready` fails, so nodes leave the load
+snapshot already in its memory. `/ready` fails, so nodes leave the load
 balancer — correct here, because a node that can neither read config nor accept
 a change has nothing useful to add.
 

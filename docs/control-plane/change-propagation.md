@@ -1,6 +1,6 @@
 # Change propagation
 
-`src/snapshot/service.ts` · `src/redis/` · §8, §10.3, §10.4
+`src/snapshot/service.ts` · `src/snapshot/postgres-store.ts`
 
 ```
 PATCH /v1/flags/:key/environments/:env
@@ -18,24 +18,33 @@ round trip end to end against a real HTTP server.
 
 ## `SnapshotStore` is a plugin
 
-§2: "Plugins are a class with one method." This one owns everything the control
-plane keeps in Redis for the server tier — snapshot, patch history, pub/sub,
-compile lock.
+"Plugins are a class with one method." This one owns everything nodes share for
+the server tier — snapshot, patch history, change delivery, compile lock.
 
-`MemorySnapshotStore` and `RedisSnapshotStore` run the **same contract suite**.
-A store the tests use and a store production uses that are only tested
+`MemorySnapshotStore` and `PostgresSnapshotStore` run the **same contract
+suite**. A store the tests use and a store production uses that are only tested
 separately will diverge, and the tests then mean nothing.
 
-**Nothing in Redis is authoritative.** Postgres is truth; every method's failure
-mode is "recompile from Postgres", which is why §8 can mark the patch stream
-lossy without hedging.
+**How the Postgres store works.** The snapshot, patch history, client connection
+records and compile locks live in UNLOGGED tables: cheap to write, emptied by a
+crash. Each node serves snapshots from its own memory. A change commits the
+snapshot, its patches and a `pg_notify` in one transaction, and Postgres only
+delivers a notification once its transaction commits, so no node is told about a
+version it cannot yet read. Nodes that hear it drop their cached copy and push
+the change to their streams. A cached snapshot is also re-validated (one integer,
+by primary key) at most every 10 seconds, which bounds how stale a node can be
+if its `LISTEN` connection dies without anyone noticing.
+
+**Nothing in the cache tables is authoritative.** The configuration tables are
+truth; every method's failure mode is "recompile from them", which is why the
+patch history can be lossy without hedging.
 
 ## The version is durable
 
 `environments.snapshot_version`, bumped in the same transaction as a config
-change — **not** a Redis counter.
+change, in a logged table — **not** in the snapshot cache.
 
-Redis is explicitly allowed to be lost (§8). A counter that reset on a restart
+The cache is explicitly allowed to be lost. A counter that reset when it was emptied
 would make the version go *backwards*, and the SDK's version guard would then
 reject every subsequent patch as stale: an environment frozen on its last good
 snapshot, with nothing in the logs to say why. That failure is silent, total, and
@@ -95,7 +104,7 @@ spelled differently in two implementations:
 | :-- | :-- |
 | ≥ oldest retained version | Replay from there, then stream live |
 | < oldest retained version | Full `put` — more than `depth` changes were missed |
-| History empty | Full `put` — Redis restarted |
+| History empty | Full `put` — the cache was emptied |
 | Ahead of current version | Full `put` — indicates a rolled-back database |
 
 The three `put` cases return `null` from `patchesSince` rather than being

@@ -9,7 +9,7 @@ and the benchmarks and design contracts of Featurekit.
 | :-- | :-- | :-- |
 | **M1** | Evaluation core — `src/sdk/evaluation/` | **built** |
 | **M2** | Drizzle schema, migrations, snapshot compiler | **built** |
-| **M3** | Control plane — config, Redis, auth, HTTP, propagation | **built** |
+| **M3** | Control plane — config, auth, HTTP, propagation | **built** |
 | **M4** | Server-tier delivery, SSE, SDK client, chaos suite | **built** |
 | **M5** | Client tier, secure mode, fan-out, React | **built** |
 | **M6–M8** | Analytics, dashboard & management | **built** |
@@ -85,8 +85,8 @@ src/                    the `featurekit` package
   secure-mode.ts        featurekit-server/secure-mode -- signing, node:crypto only
   migrate.ts            featurekit-server/migrate -- the deploy step, as a function
   db/ repositories/     schema, migrations, row loading
-  snapshot/             the compiler (pure) and the propagation service
-  redis/                SnapshotStore port + memory and Redis implementations
+  snapshot/             the compiler (pure), the propagation service, and the
+                        SnapshotStore port with its memory and Postgres stores
   http/ routes/         node:http router, SSE, SDK and client-tier routes
   auth/ config/         SDK keys, secure mode, the §17 schema
   evaluation-service/   client-tier evaluation and fingerprint fan-out

@@ -3,11 +3,11 @@
 `src/config/index.ts` · §17
 
 **The defaults are for laptops, never for prod.** Development binds to localhost
-and points at a local Postgres and Redis. Production start fails loudly.
+and points at a local Postgres. Production start fails loudly.
 
 ## Production hard-fails
 
-Missing `DATABASE_URL`, `REDIS_URL` or `ADMIN_TOKEN` under `NODE_ENV=production`
+Missing `DATABASE_URL` or `ADMIN_TOKEN` under `NODE_ENV=production`
 is a startup error, not a warning — the development defaults must never silently
 apply. A control plane pointed at a localhost database is a control plane with no
 data, and it will look healthy.
@@ -45,6 +45,22 @@ ALTER ROLE featurekit SET search_path = featurekit;
 configured schema and that it is migrated, and refuses to start otherwise with
 an error naming the cause. A bare `createApp` still boots and reports it through
 `/ready` (`schema missing`, `schema unmigrated` or `schema mismatch`).
+
+## Behind pgbouncer
+
+Nodes tell each other about changes with Postgres `LISTEN/NOTIFY`. `LISTEN`
+needs a session that stays on one server connection, which pgbouncer in
+transaction mode cannot give. Everything else works through it. Set
+`DATABASE_LISTEN_URL` to a direct Postgres address and featurekit opens its one
+listening connection per node there, while every query keeps going through
+`DATABASE_URL`.
+
+## Rate limits are per node
+
+Each node counts requests in its own memory; there is no shared counter that an
+outage could turn off. Behind a load balancer spreading traffic over N nodes, a
+caller can reach up to N times a `RATE_LIMIT_*` value in total, so set them per
+node.
 
 ## Secret rotation without a flag day
 

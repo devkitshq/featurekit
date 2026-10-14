@@ -182,7 +182,7 @@ app.get("/api/featurekit-signature", requireSession, (req, res) => {
 
 A separate entry point from `featurekit` because of what it does not load: the
 main entry is the control plane, so importing it pulls Drizzle, a Postgres
-driver, ioredis and pino into a service whose only job is signing a string.
+driver and pino into a service whose only job is signing a string.
 This one reaches `node:crypto` and nothing else, and `tools/check-package.mjs`
 fails the build if that ever stops being true.
 

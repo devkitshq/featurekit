@@ -53,7 +53,7 @@ service you rent.
 mkdir acme-flags && cd acme-flags
 npm init -y && npm pkg set type=module
 npm i featurekit-server
-npm i -D @testcontainers/postgresql @testcontainers/redis  # dev only, see below
+npm i -D @testcontainers/postgresql  # dev only, see below
 ```
 
 ```js
@@ -77,11 +77,11 @@ streams, event ingest, the rollup worker, the scheduler, and a dashboard on
 `http://127.0.0.1:3000/admin`.
 
 **It needs no database setup to start.** Outside production, featurekit brings
-up Postgres and Redis in Docker when you have not given it their addresses, and
-runs the migrations. This needs Docker running and the two `@testcontainers`
-packages above. They are dev dependencies on purpose, so production installs
-never carry them; without them, `start()` tells you to install them or pass
-`databaseUrl` and `redisUrl`. Only addresses you did *not* specify are started —
+up Postgres in Docker when you have not given it an address, and runs the
+migrations. This needs Docker running and the `@testcontainers/postgresql`
+package above. It is a dev dependency on purpose, so production installs never
+carry it; without it, `start()` tells you to install it or pass `databaseUrl`.
+Postgres is the only thing featurekit needs. Only addresses you did *not* specify are started —
 an explicit `databaseUrl` that does not answer is an error, never a silent
 redirect to a fresh empty container.
 
@@ -149,7 +149,6 @@ const server = new FeaturekitServer({
   // Optional. Everything featurekit stores goes in this one schema; `public`
   // if unset. Migrations create it.
   databaseSchema: "featurekit",
-  redisUrl: process.env.REDIS_URL,
 
   // Required in production. Generated for you in development.
   adminToken: process.env.ADMIN_TOKEN,
@@ -418,7 +417,7 @@ it lapses.
 
 A separate entry point from `featurekit` because of what it does not load: the
 main entry is the control plane, so importing it pulls Drizzle, a Postgres
-driver and ioredis into a service whose only job is signing a string —
+driver and the logger into a service whose only job is signing a string —
 `featurekit-server/secure-mode` imports in 15ms where `featurekit-server` takes 3.5s.
 
 **Pass the `attributesHash`.** A signature over the key alone authenticates

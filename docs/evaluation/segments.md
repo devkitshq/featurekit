@@ -160,7 +160,7 @@ interface SegmentCacheProvider {
 | Provider | Unresolved evaluations | Heap |
 | :-- | :-- | :-- |
 | `InMemorySegmentCache` | none, ever | 50-80 MB |
-| remote (Redis/sidecar) | first evaluation per `(segment, context)` fails closed and warms | bounded by `LruSegmentCache` |
+| remote (your own service) | first evaluation per `(segment, context)` fails closed and warms | bounded by `LruSegmentCache` |
 
 **`boolean()` stays synchronous — non-negotiable.** An async provider is
 therefore consulted out of band: a synchronous evaluation reads only the LRU,
