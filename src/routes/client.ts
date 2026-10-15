@@ -266,7 +266,10 @@ export function registerClientRoutes(router: Router, deps: ClientRouteDeps): Rou
     const hash = contextHash(body.context);
 
     const cap = deps.maxClientConnections ?? 50_000;
-    let connectionId = ctx.query.get("connection") ?? newConnectionId();
+    // Always minted here, never taken from the caller: the handle is a bearer
+    // credential for this context's values, and accepting a supplied one would
+    // let anyone holding a public key overwrite (or rebind) another browser's.
+    let connectionId = newConnectionId();
     if (connections.size >= cap) {
       // Above the cap the tier degrades to short-TTL polling rather than
       // accepting a connection it cannot serve: a curve, not a cliff.
