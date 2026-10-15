@@ -312,8 +312,12 @@ export function registerAdminRoutes(router: Router, deps: AdminRouteDeps): Route
 
       // Idempotency is opt-in and only meaningful for mutations. A GET that
       // runs twice is a GET that ran twice.
-      const key = ctx.method === "GET" ? null : idempotencyKeyOf(ctx);
-      if (key === null) return run();
+      const routeKey = ctx.method === "GET" ? null : idempotencyKeyOf(ctx);
+      if (routeKey === null) return run();
+      // Bound to the caller: a cached response can hold a freshly minted secret,
+      // and a replay skips the handler's own scope checks, so another principal
+      // presenting the same key must never be served it.
+      const key = `${principal.kind}:${principal.tokenId} ${routeKey}`;
       // The body is read inside the handler, so the fingerprint is over the
       // path and params — enough to catch the same key reused for a different
       // resource, which is the mistake that actually happens.
