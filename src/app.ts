@@ -575,6 +575,18 @@ function rateLimitRules(config: FeaturekitConfig): Map<string, RateLimitRule> {
       "/v1/admin/projects/:project/environments/:env/segments/:segment/members",
       perMinute(config.RATE_LIMIT_ADMIN_PER_MIN),
     ],
+    // Expensive routes reachable at reader or writer role: a dry run locks the
+    // flag row and compiles the whole environment, the audit list can walk a
+    // whole project history, and verify walks the chain.
+    ...[
+      "/v1/admin/projects/:project/environments/:env/flags/:flag/dry-run",
+      "/v1/admin/projects/:project/environments/:env/flags/:flag/revert",
+      "/v1/admin/projects/:project/audit",
+      "/v1/admin/projects/:project/audit/verify",
+      "/v1/admin/auth/password",
+      "/v1/admin/tokens",
+      "/v1/admin/members",
+    ].map((route): [string, RateLimitRule] => [route, perMinute(config.RATE_LIMIT_ADMIN_PER_MIN)]),
   ]);
 }
 
