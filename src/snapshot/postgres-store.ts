@@ -42,6 +42,8 @@ import {
 
 /** The NOTIFY channel. Payloads carry the schema, so installs can share a database. */
 export const CHANGE_CHANNEL = "featurekit_changes";
+/** Largest watermark jump one notification may cause (see onNotification). */
+const MAX_ANNOUNCED_STEP = 1_000;
 
 export interface PostgresSnapshotStoreOptions {
   /** Queries run on this pool. Its `search_path` selects the schema. */
@@ -301,7 +303,15 @@ export class PostgresSnapshotStore implements SnapshotStore {
     }
     if (notification.s !== this.options.schema || typeof notification.e !== "string") return;
 
-    const { e: environmentId, v: version } = notification;
+    // NOTIFY is not authenticated: any role connected to the database can send
+    // on this channel. Content is always re-read from the database, so the
+    // only thing a forged message can move is the announced watermark; keep it
+    // a sane integer and bounded relative to what this node already knows, so
+    // a forged huge version cannot disable caching for the environment.
+    if (!Number.isSafeInteger(notification.v) || notification.v <= 0) return;
+    const environmentId = notification.e;
+    const known = Math.max(this.announced.get(environmentId) ?? 0, this.cache.get(environmentId)?.version ?? 0);
+    const version = known > 0 ? Math.min(notification.v, known + MAX_ANNOUNCED_STEP) : notification.v;
     if (version > (this.announced.get(environmentId) ?? 0)) this.announced.set(environmentId, version);
     const cached = this.cache.get(environmentId);
     if (cached !== undefined && version > cached.version) this.cache.delete(environmentId);
