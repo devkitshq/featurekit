@@ -258,7 +258,6 @@ export function createApp(config: FeaturekitConfig, options: CreateAppOptions = 
   const sse = new SseRegistry();
   const router = new ServiceRouter(services);
   /** Filled inside the rolled-back dry-run transaction below. */
-  let dryRunSnapshot: Snapshot | null = null;
 
   registerSdkRoutes(router, {
     snapshots,
@@ -318,6 +317,10 @@ export function createApp(config: FeaturekitConfig, options: CreateAppOptions = 
      */
     dryRun: async (target, patch) => {
       const ROLLBACK = Symbol("featurekit: dry run rollback");
+      // Per request: a shared variable would let a concurrent dry run for
+      // another flag or environment overwrite this one's result during the
+      // rollback await.
+      let dryRunSnapshot: Snapshot | null = null;
       try {
         await db.transaction(async (tx) => {
           const scoped = tx as unknown as typeof db;
