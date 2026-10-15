@@ -425,6 +425,17 @@ export function registerAdminRoutes(router: Router, deps: AdminRouteDeps): Route
     }),
   );
 
+  /**
+   * Deployment-wide and project-wide actions are refused to environment-scoped
+   * tokens: a token limited to staging must not be able to act outside it, or
+   * mint itself an unscoped identity (a dashboard session is never scoped).
+   */
+  const rejectScoped = (principal: Principal, what: string): void => {
+    if (principal.environmentIds !== null) {
+      throw new HttpError(403, "TOKEN_SCOPED", `an environment-scoped token cannot ${what}`);
+    }
+  };
+
   /* -- members and tokens -------------------------------------------- */
 
   router.get(
@@ -436,7 +447,8 @@ export function registerAdminRoutes(router: Router, deps: AdminRouteDeps): Route
 
   router.post(
     "/v1/admin/members",
-    withPrincipal("owner", async (ctx) => {
+    withPrincipal("owner", async (ctx, principal) => {
+      rejectScoped(principal, "manage members");
       const input = await body(ctx, createMemberSchema, 4 * 1024);
       const member = await withPasswordErrors(() =>
         createMember(deps.db, {
@@ -461,6 +473,7 @@ export function registerAdminRoutes(router: Router, deps: AdminRouteDeps): Route
       // own role -- is an owner's decision.
       if (!self || input.role !== undefined || input.password !== undefined) {
         requireRole(principal, "owner");
+        rejectScoped(principal, "manage members");
       }
       if (input.role !== undefined && input.role !== "owner") {
         // Demoting the last owner leaves a deployment nobody can administer.
@@ -485,6 +498,7 @@ export function registerAdminRoutes(router: Router, deps: AdminRouteDeps): Route
   router.delete(
     "/v1/admin/members/:memberId",
     withPrincipal("owner", async (ctx, principal) => {
+      rejectScoped(principal, "manage members");
       const memberId = ctx.params["memberId"] ?? "";
       if (memberId === principal.memberId) {
         throw new HttpError(409, "SELF_DELETE", "you cannot remove your own account");
