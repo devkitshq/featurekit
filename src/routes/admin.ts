@@ -573,7 +573,8 @@ export function registerAdminRoutes(router: Router, deps: AdminRouteDeps): Route
 
   router.post(
     "/v1/admin/projects",
-    withPrincipal("admin", async (ctx) => {
+    withPrincipal("admin", async (ctx, principal) => {
+      rejectScoped(principal, "create projects");
       const input = await body(ctx, createProjectSchema, BODY_LIMITS.adminWrite);
       return createProject(deps.db, input);
     }),
@@ -686,7 +687,8 @@ export function registerAdminRoutes(router: Router, deps: AdminRouteDeps): Route
 
   router.post(
     "/v1/admin/projects/:project/flags/:flag/restore",
-    withPrincipal("writer", async (ctx) => {
+    withPrincipal("writer", async (ctx, principal) => {
+      rejectScoped(principal, "restore flags, which affects every environment");
       const project = await requireProject(ctx, deps);
       await restoreFlag(deps.db, project.id, ctx.params["flag"] ?? "");
       return { archived: false };
@@ -695,7 +697,8 @@ export function registerAdminRoutes(router: Router, deps: AdminRouteDeps): Route
 
   router.post(
     "/v1/admin/projects/:project/flags",
-    withPrincipal("writer", async (ctx) => {
+    withPrincipal("writer", async (ctx, principal) => {
+      rejectScoped(principal, "create flags, which affects every environment");
       const project = await requireProject(ctx, deps);
       const input = await body(ctx, createFlagSchema, BODY_LIMITS.adminWrite);
       const flag = await createFlag(deps.db, { projectId: project.id, ...input });
@@ -705,7 +708,8 @@ export function registerAdminRoutes(router: Router, deps: AdminRouteDeps): Route
 
   router.delete(
     "/v1/admin/projects/:project/flags/:flag",
-    withPrincipal("writer", async (ctx) => {
+    withPrincipal("writer", async (ctx, principal) => {
+      rejectScoped(principal, "archive flags, which affects every environment");
       const project = await requireProject(ctx, deps);
       await archiveFlag(deps.db, project.id, ctx.params["flag"] ?? "");
       // Archiving removes the flag from every environment's next snapshot, so
