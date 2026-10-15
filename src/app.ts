@@ -257,7 +257,6 @@ export function createApp(config: FeaturekitConfig, options: CreateAppOptions = 
 
   const sse = new SseRegistry();
   const router = new ServiceRouter(services);
-  /** Filled inside the rolled-back dry-run transaction below. */
 
   registerSdkRoutes(router, {
     snapshots,
