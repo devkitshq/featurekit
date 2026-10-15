@@ -528,6 +528,7 @@ export const auditLog = pgTable(
   },
   (t) => [
     index("audit_proj_time_idx").on(t.projectId, t.createdAt),
+    index("audit_proj_entity_key_time_idx").on(t.projectId, t.entityKey, t.createdAt.desc()),
     index("audit_entity_idx").on(t.entityType, t.entityId),
   ],
 );

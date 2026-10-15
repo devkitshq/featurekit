@@ -43,6 +43,13 @@
       "when": 1788604685627,
       "tag": "0005_postgres_only",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788604685628,
+      "tag": "0006_audit_entity_key",
+      "breakpoints": true
     }
   ]
 }
