@@ -263,6 +263,19 @@ export async function readFlagConfig(
     db,
     prerequisiteRows.map((p) => p.prerequisiteFlagId),
   );
+  // A prerequisite names a variation of the prerequisite flag, so its index has
+  // to come from that flag's variations, not this flag's.
+  const requiredIds = prerequisiteRows.map((p) => p.requiredVariationId);
+  const prerequisiteIndexById = new Map(
+    requiredIds.length === 0
+      ? []
+      : (
+          await db
+            .select({ id: flagVariations.id, idx: flagVariations.idx })
+            .from(flagVariations)
+            .where(inArray(flagVariations.id, requiredIds))
+        ).map((row) => [row.id, row.idx] as const),
+  );
 
   return {
     flagKey: target.flagKey,
@@ -288,12 +301,12 @@ export async function readFlagConfig(
     })),
     prerequisites: prerequisiteRows.flatMap((p) => {
       const flagKey = flagKeysById.get(p.prerequisiteFlagId);
-      const variation = target.variationIndexById.get(p.requiredVariationId);
-      // A prerequisite on another flag's variation: resolve the index against
-      // that flag, not this one.
-      return flagKey === undefined
+      const variation = prerequisiteIndexById.get(p.requiredVariationId);
+      // Never default a missing index to 0: a client that writes this config
+      // back would silently re-point the gate at variation 0.
+      return flagKey === undefined || variation === undefined
         ? []
-        : [{ flagKey, variation: variation ?? 0 }];
+        : [{ flagKey, variation }];
     }),
   };
 }
