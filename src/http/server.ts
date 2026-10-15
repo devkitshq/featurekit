@@ -91,7 +91,16 @@ export class HttpServer {
 
   /** Exposed so tests can drive the router without binding a port. */
   async handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
-    const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
+    // Only the path and query are used, so parse against a fixed base: the Host
+    // header is client-controlled and an unparseable one must not reach new URL.
+    let url: URL;
+    try {
+      url = new URL(req.url ?? "/", "http://localhost");
+    } catch {
+      res.statusCode = 400;
+      res.end();
+      return;
+    }
     const method = req.method ?? "GET";
     const requestId = requestIdFrom(
       (Array.isArray(req.headers["x-request-id"])
@@ -209,7 +218,12 @@ export class HttpServer {
   listen(): Promise<{ port: number; host: string }> {
     const host = this.options.host ?? "127.0.0.1";
     const port = this.options.port ?? 3000;
-    this.server = createServer((req, res) => void this.handle(req, res));
+    this.server = createServer((req, res) => {
+      this.handle(req, res).catch(() => {
+        if (!res.headersSent) res.statusCode = 500;
+        res.end();
+      });
+    });
     // A slow-loris client that opens a socket and never sends a request must not
     // hold a connection slot forever.
     this.server.headersTimeout = 20_000;
