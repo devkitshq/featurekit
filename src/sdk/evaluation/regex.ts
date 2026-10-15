@@ -118,6 +118,9 @@ function firstSetOf(branch: string): FirstSet {
       // An uppercase class (\D, \W, \S) is a complement — too broad to model.
       return next === next.toLowerCase() ? new Set(sample) : null;
     }
+    // Hex, unicode, control, property and backreference escapes stand for
+    // something other than their letter, so they cannot be modelled.
+    if (/[0-9A-Za-z]/.test(next)) return null;
     return new Set([next]);
   }
 
@@ -137,10 +140,16 @@ function firstSetOf(branch: string): FirstSet {
         i++;
         continue;
       }
-      // A range: its endpoints are enough to detect an overlap.
-      if (body[i + 1] === "-" && body[i + 2] !== undefined) {
-        chars.add(ch);
-        chars.add(body[i + 2]!);
+      // A range covers every character between its endpoints, not just the
+      // endpoints: [a-z] overlaps "m". Expand small ranges; give up on large
+      // ones (or escaped endpoints) rather than under-approximate.
+      if (body[i + 1] === "-" && body[i + 2] !== undefined && body[i + 2] !== "]") {
+        const end = body[i + 2]!;
+        if (end === "\\") return null;
+        const from = ch.codePointAt(0)!;
+        const to = end.codePointAt(0)!;
+        if (to < from || to - from > 512) return null;
+        for (let code = from; code <= to; code++) chars.add(String.fromCodePoint(code));
         i += 2;
         continue;
       }
@@ -236,7 +245,10 @@ export function checkRegexPattern(pattern: unknown): RegexCheck {
   }
 
   /** Open groups: where each began, and whether its body holds a quantifier. */
-  const stack: Array<{ start: number; hasQuantifier: boolean }> = [];
+  // `alternations` collects the bodies of every group with `|` nested inside
+  // this one, so that repeating an outer group also checks them: ^((a|aa))+$
+  // repeats an inner alternation the outer body's split never sees.
+  const stack: Array<{ start: number; hasQuantifier: boolean; alternations: string[] }> = [];
   let quantifiers = 0;
   let inClass = false;
 
@@ -258,7 +270,7 @@ export function checkRegexPattern(pattern: unknown): RegexCheck {
     }
 
     if (c === "(") {
-      stack.push({ start: i, hasQuantifier: false });
+      stack.push({ start: i, hasQuantifier: false, alternations: [] });
       if (stack.length > MAX_GROUP_DEPTH) return { ok: false, reason: "TOO_COMPLEX" };
       continue;
     }
@@ -269,25 +281,30 @@ export function checkRegexPattern(pattern: unknown): RegexCheck {
 
       const next = i + 1;
       const repeated = next < pattern.length && isUnboundedQuantifier(pattern, next);
+      // Group prefixes are stripped so the body is the part that matches.
+      let body = pattern.slice(group.start + 1, i);
+      for (const prefix of ["?:", "?=", "?!", "?<=", "?<!"]) {
+        if (body.startsWith(prefix)) {
+          body = body.slice(prefix.length);
+          break;
+        }
+      }
+      if (splitAlternatives(body).length > 1) group.alternations.push(body);
+      const parent = stack[stack.length - 1];
       if (repeated) {
         // Shape 1: a quantifier inside a repeated group.
         if (group.hasQuantifier) return { ok: false, reason: "NESTED_QUANTIFIER" };
 
-        // Shape 2: a repeated group whose alternatives can match the same text.
-        // Group prefixes are stripped so the body is the part that matches.
-        let body = pattern.slice(group.start + 1, i);
-        for (const prefix of ["?:", "?=", "?!", "?<="]) {
-          if (body.startsWith(prefix)) {
-            body = body.slice(prefix.length);
-            break;
-          }
+        // Shape 2: a repeated group containing, at any depth, alternatives that
+        // can match the same text.
+        for (const alternation of group.alternations) {
+          if (alternativesOverlap(alternation)) return { ok: false, reason: "AMBIGUOUS_ALTERNATION" };
         }
-        if (alternativesOverlap(body)) return { ok: false, reason: "AMBIGUOUS_ALTERNATION" };
 
         // The group's own repetition counts toward the enclosing group's body.
-        const parent = stack[stack.length - 1];
         if (parent !== undefined) parent.hasQuantifier = true;
       }
+      if (parent !== undefined) parent.alternations.push(...group.alternations);
       continue;
     }
 

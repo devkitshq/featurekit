@@ -152,3 +152,16 @@ describe("the guard itself is fast", () => {
     expect(performance.now() - started).toBeLessThan(100);
   });
 });
+
+describe("ambiguity hidden from a top-level split", () => {
+  for (const pattern of ["^((a|aa))+$", "^(?:(a|ab))*$", "^([a-z]|m)+$", "^(\x61|a)+$"]) {
+    it(`rejects ${pattern}`, () => {
+      expect(checkRegexPattern(pattern)).toEqual({ ok: false, reason: "AMBIGUOUS_ALTERNATION" });
+    });
+  }
+
+  it("still accepts disjoint alternation in a nested group", () => {
+    expect(checkRegexPattern("^((a|b))+$").ok).toBe(true);
+    expect(checkRegexPattern("^([a-c]|x)+$").ok).toBe(true);
+  });
+});
