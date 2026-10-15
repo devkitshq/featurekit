@@ -763,7 +763,7 @@ export function registerAdminRoutes(router: Router, deps: AdminRouteDeps): Route
     withPrincipal("writer", async (ctx, principal) => {
       const target = await requireFlagTarget(ctx, deps, principal);
       const input = await body(ctx, revertSchema, 4 * 1024);
-      const historical = await readAuditDiff(deps.db, target.projectId, input.auditId);
+      const historical = await readAuditDiff(deps.db, target.projectId, target.environmentId, input.auditId);
       if (historical === null) throw new HttpError(404, "NOT_FOUND", "no such audit entry");
       if (historical.entityKey !== target.flagKey) {
         throw new HttpError(400, "AUDIT_MISMATCH", "that audit entry is for a different flag");

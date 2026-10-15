@@ -843,19 +843,33 @@ export async function listAudit(
   });
 }
 
-/** One audit row's full diff, for revert. Project-scoped, so not an IDOR. */
+/**
+ * One audit row's full diff, for revert. Scoped to the environment being
+ * reverted, not just the project: an environment-scoped token must not be able
+ * to replay (and read back) another environment's configuration.
+ */
 export async function readAuditDiff(
   db: Database,
   projectId: string,
+  environmentId: string,
   auditId: string,
 ): Promise<{ before: FlagConfig; after: FlagConfig; entityKey: string | null } | null> {
   const [row] = await db
     .select({ diff: auditLog.diff, entityKey: auditLog.entityKey })
     .from(auditLog)
-    .where(and(eq(auditLog.id, auditId), eq(auditLog.projectId, projectId)))
+    .where(
+      and(
+        eq(auditLog.id, auditId),
+        eq(auditLog.projectId, projectId),
+        eq(auditLog.environmentId, environmentId),
+      ),
+    )
     .limit(1);
   if (row === undefined) return null;
   const diff = row.diff as { before?: FlagConfig; after?: FlagConfig };
   if (diff.before === undefined || diff.after === undefined) return null;
+  // Only full config snapshots can be reverted; a kill-switch row records just
+  // {enabled} and would otherwise crash the revert with a TypeError.
+  if (!Array.isArray(diff.before.rules) || !Array.isArray(diff.before.targets)) return null;
   return { before: diff.before, after: diff.after, entityKey: row.entityKey };
 }
