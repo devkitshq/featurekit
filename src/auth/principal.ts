@@ -38,6 +38,8 @@ export interface Principal {
   role: Role;
   /** `null` = every environment. Otherwise the exact set this token may touch. */
   environmentIds: string[] | null;
+  /** For a token principal, when that token expires (null = never). */
+  tokenExpiresAt?: Date | null;
 }
 
 export function principalFromToken(token: ResolvedToken, now = new Date()): Principal | null {
@@ -50,6 +52,7 @@ export function principalFromToken(token: ResolvedToken, now = new Date()): Prin
     memberEmail: token.memberEmail,
     role: token.role,
     environmentIds: token.environmentIds,
+    tokenExpiresAt: token.expiresAt,
   };
 }
 

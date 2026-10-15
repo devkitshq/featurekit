@@ -538,11 +538,18 @@ export function registerAdminRoutes(router: Router, deps: AdminRouteDeps): Route
           if (!allowed.has(id)) throw new HttpError(403, "TOKEN_SCOPED", "outside your scope");
         }
       }
+      // Lifetime is attenuated the same way: a token minted by a token cannot
+      // outlive it, or a short-lived CI token could mint itself a permanent one.
+      let expiresAt = input.expiresAt !== undefined ? new Date(input.expiresAt) : undefined;
+      const parentExpiry = principal.kind === "token" ? (principal.tokenExpiresAt ?? null) : null;
+      if (parentExpiry !== null && (expiresAt === undefined || expiresAt > parentExpiry)) {
+        expiresAt = parentExpiry;
+      }
       const created = await createToken(deps.db, {
         memberId: principal.memberId,
         ...(input.name !== undefined ? { name: input.name } : {}),
         ...(scope !== undefined ? { environmentIds: scope } : {}),
-        ...(input.expiresAt !== undefined ? { expiresAt: new Date(input.expiresAt) } : {}),
+        ...(expiresAt !== undefined ? { expiresAt } : {}),
       });
       // The plaintext is in this response and nowhere else, ever again.
       return { id: created.id, token: created.token };
