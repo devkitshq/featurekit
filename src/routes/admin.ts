@@ -866,13 +866,14 @@ export function registerAdminRoutes(router: Router, deps: AdminRouteDeps): Route
 
   router.get(
     "/v1/admin/projects/:project/audit",
-    withPrincipal("reader", async (ctx) => {
+    withPrincipal("reader", async (ctx, principal) => {
       const project = await requireProject(ctx, deps);
       const limit = Number(ctx.query.get("limit") ?? "50");
       const entityKey = ctx.query.get("flag") ?? undefined;
       return {
         entries: await listAudit(deps.db, project.id, {
           limit: Number.isFinite(limit) ? limit : 50,
+          environmentIds: principal.environmentIds,
           ...(entityKey !== undefined ? { entityKey } : {}),
         }),
       };

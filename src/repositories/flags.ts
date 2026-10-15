@@ -22,7 +22,7 @@
  */
 
 import { createHash } from "node:crypto";
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, sql, or, isNull } from "drizzle-orm";
 import type { Rollout } from "../sdk/index.js";
 import type { Database } from "../db/client.js";
 import {
@@ -786,7 +786,12 @@ export async function verifyAuditChain(
 export async function listAudit(
   db: Database,
   projectId: string,
-  options: { limit?: number; entityKey?: string } = {},
+  options: {
+    limit?: number;
+    entityKey?: string;
+    /** An environment-scoped principal's scope; null or absent means unscoped. */
+    environmentIds?: readonly string[] | null;
+  } = {},
 ): Promise<
   Array<{
     id: string;
@@ -804,11 +809,20 @@ export async function listAudit(
     after?: unknown;
   }>
 > {
-  const limit = Math.min(options.limit ?? 50, 200);
-  const where =
-    options.entityKey === undefined
-      ? eq(auditLog.projectId, projectId)
-      : and(eq(auditLog.projectId, projectId), eq(auditLog.entityKey, options.entityKey));
+  const limit = Math.max(1, Math.min(Math.trunc(options.limit ?? 50) || 50, 200));
+  const scope = options.environmentIds ?? null;
+  // Rows carry the full before/after config of one environment, so a scoped
+  // principal sees only its own environments plus project-level rows.
+  const where = and(
+    eq(auditLog.projectId, projectId),
+    options.entityKey === undefined ? undefined : eq(auditLog.entityKey, options.entityKey),
+    scope === null
+      ? undefined
+      : or(
+          isNull(auditLog.environmentId),
+          scope.length === 0 ? sql`false` : inArray(auditLog.environmentId, [...scope]),
+        ),
+  );
 
   const rows = await db
     .select({
