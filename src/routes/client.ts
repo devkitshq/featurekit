@@ -102,6 +102,8 @@ interface Registered extends ClientConnection {
   stream?: SseStream;
   lastSentVersion: number;
   lastValues: ClientValues;
+  /** When the identify registered it; an entry that never gets a stream expires. */
+  registeredAt: number;
 }
 
 function presentedKey(ctx: RequestContext): string {
@@ -271,6 +273,15 @@ export function registerClientRoutes(router: Router, deps: ClientRouteDeps): Rou
     // let anyone holding a public key overwrite (or rebind) another browser's.
     let connectionId = newConnectionId();
     if (connections.size >= cap) {
+      // Identifies whose stream never arrived here (stream:false clients, a
+      // stream that landed on another node, or a POST loop) would otherwise
+      // hold their slot for the life of the process.
+      const cutoff = Date.now() - connectionTtl * 1000;
+      for (const [id, entry] of connections) {
+        if (entry.stream === undefined && entry.registeredAt < cutoff) connections.delete(id);
+      }
+    }
+    if (connections.size >= cap) {
       // Above the cap the tier degrades to short-TTL polling rather than
       // accepting a connection it cannot serve: a curve, not a cliff.
       connectionId = "";
@@ -281,6 +292,7 @@ export function registerClientRoutes(router: Router, deps: ClientRouteDeps): Rou
         context: body.context,
         lastSentVersion: version,
         lastValues: { ...values },
+        registeredAt: Date.now(),
       });
       // Published so that whichever node receives the stream request can take
       // it over. Awaited rather than fire-and-forget: the stream request is
@@ -337,6 +349,7 @@ export function registerClientRoutes(router: Router, deps: ClientRouteDeps): Rou
           environmentId: stored.environmentId,
           context: stored.context,
           lastSentVersion: stored.lastSentVersion,
+          registeredAt: Date.now(),
           // Recomputed rather than transported: `lastValues` exists to suppress
           // no-op pushes, and evaluating it here is cheaper than shipping every
           // flag value through the shared store on every identify.
