@@ -87,6 +87,13 @@ interface EvalState {
   maxPrerequisiteDepth: number;
   /** Allocated lazily — an evaluation with nothing unresolved allocates none. */
   unresolved: UnresolvedRule[] | null;
+  /**
+   * Prerequisite results already computed in this evaluation, keyed by flag
+   * key and depth. Without it a DAG that shares prerequisites is re-evaluated
+   * once per path — width^depth work from a writer-authored config. Keying on
+   * depth keeps the depth-cap result identical to the unmemoised walk.
+   */
+  prerequisiteMemo?: Map<string, EvaluationDetail<unknown>>;
 }
 
 /**
@@ -298,7 +305,13 @@ function evaluateFlag<T>(
     // happens to be: "off" is not "serving variation 1".
     if (prereqFlag.on !== true) return off(failed);
 
-    const prereqDetail = evaluateFlag(prereqFlag, null as unknown, state, depth + 1);
+    const memo = (state.prerequisiteMemo ??= new Map());
+    const memoKey = `${depth + 1} ${prerequisite.key}`;
+    let prereqDetail = memo.get(memoKey);
+    if (prereqDetail === undefined) {
+      prereqDetail = evaluateFlag(prereqFlag, null as unknown, state, depth + 1);
+      memo.set(memoKey, prereqDetail);
+    }
     if (prereqDetail.reason.kind === "ERROR") {
       return withUnresolved(err(prereqDetail.reason.error, defaultValue), state);
     }
