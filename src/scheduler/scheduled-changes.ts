@@ -311,18 +311,32 @@ export async function approveChangeRequest(
     throw new Error(`the requested change is no longer valid: ${parsed.error.issues[0]?.message ?? ""}`);
   }
 
-  const result = await writeFlagConfig(
-    db,
-    target,
-    { ...parsed.data, expectedVersion: target.version },
-    options.reviewer,
-    { action: "flag.change_request_approved" },
-  );
-
-  await db
+  // Claim the request with a conditional update before applying it, so two
+  // concurrent approvals (or an approval racing a rejection) cannot both act.
+  const claimed = await db
     .update(changeRequests)
     .set({ status: "approved", reviewedBy: options.reviewer.memberId })
-    .where(eq(changeRequests.id, options.requestId));
+    .where(and(eq(changeRequests.id, options.requestId), eq(changeRequests.status, "pending")))
+    .returning({ id: changeRequests.id });
+  if (claimed.length === 0) throw new Error("change request is no longer pending");
+
+  let result: Awaited<ReturnType<typeof writeFlagConfig>>;
+  try {
+    result = await writeFlagConfig(
+      db,
+      target,
+      { ...parsed.data, expectedVersion: target.version },
+      options.reviewer,
+      { action: "flag.change_request_approved" },
+    );
+  } catch (error) {
+    // The patch did not land: hand the request back so it is not left approved.
+    await db
+      .update(changeRequests)
+      .set({ status: "pending", reviewedBy: null })
+      .where(eq(changeRequests.id, options.requestId));
+    throw error;
+  }
 
   options.onApplied(request.environmentId, request.flagKey);
   return { applied: true, version: result.version };
