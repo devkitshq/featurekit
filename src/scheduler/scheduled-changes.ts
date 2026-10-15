@@ -23,7 +23,7 @@
  *    could publish a configuration the API would have rejected.
  */
 
-import { and, asc, eq, isNull, lte, sql } from "drizzle-orm";
+import { and, asc, eq, isNull, lte, sql, inArray } from "drizzle-orm";
 import type { Database } from "../db/client.js";
 import { changeRequests, flagEnvironments, flags, scheduledChanges } from "../db/schema.js";
 import { flagConfigSchema } from "../contracts/admin.js";
@@ -184,8 +184,18 @@ export class ScheduledChangeWorker {
         .limit(this.options.batchSize ?? 20)
         .for("update", { skipLocked: true });
 
-      // Marked in the same transaction as the claim, so a crash between claim
-      // and apply leaves the row visible to the next pass rather than executed.
+      // Mark the rows executed in the same transaction as the claim. Without
+      // this the SKIP LOCKED locks are released at commit and another node can
+      // claim and apply the same change again. This makes application
+      // at-most-once: a crash between claim and apply drops the change rather
+      // than repeating it, consistent with "fires late is worse than does not
+      // fire" above. finish() records the outcome afterwards.
+      if (due.length > 0) {
+        await tx
+          .update(scheduledChanges)
+          .set({ executedAt: now })
+          .where(inArray(scheduledChanges.id, due.map((row) => row.id)));
+      }
       return due;
     });
   }
