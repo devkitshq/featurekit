@@ -1078,7 +1078,7 @@ export function registerAdminRoutes(router: Router, deps: AdminRouteDeps): Route
       try {
         const result = await approveChangeRequest(deps.db, {
           requestId: ctx.params["requestId"] ?? "",
-          projectId: target.projectId,
+          flagEnvironmentId: target.flagEnvironmentId,
           reviewer: principal,
           onApplied: (environmentId, flagKey) => deps.snapshots.notifyChange(environmentId, flagKey),
         });
@@ -1099,7 +1099,7 @@ export function registerAdminRoutes(router: Router, deps: AdminRouteDeps): Route
       try {
         await rejectChangeRequest(deps.db, {
           requestId: ctx.params["requestId"] ?? "",
-          projectId: target.projectId,
+          flagEnvironmentId: target.flagEnvironmentId,
           reviewer: principal,
           ...(input.comment !== undefined ? { comment: input.comment } : {}),
         });

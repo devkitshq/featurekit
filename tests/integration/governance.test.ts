@@ -272,7 +272,7 @@ describe.skipIf(reason !== null)("governance", () => {
 
     const result = await approveChangeRequest(db, {
       requestId: id,
-      projectId,
+      flagEnvironmentId,
       reviewer,
       onApplied: () => {},
     });
@@ -291,15 +291,15 @@ describe.skipIf(reason !== null)("governance", () => {
     // The point of an approval workflow is that a second person looked.
     const id = await request({ enabled: true }, author);
     await expect(
-      approveChangeRequest(db, { requestId: id, projectId, reviewer: author, onApplied: () => {} }),
+      approveChangeRequest(db, { requestId: id, flagEnvironmentId, reviewer: author, onApplied: () => {} }),
     ).rejects.toThrow(/cannot be approved by the person who raised it/);
   }, 60_000);
 
   it("refuses to approve twice", async () => {
     const id = await request({ enabled: true }, author);
-    await approveChangeRequest(db, { requestId: id, projectId, reviewer, onApplied: () => {} });
+    await approveChangeRequest(db, { requestId: id, flagEnvironmentId, reviewer, onApplied: () => {} });
     await expect(
-      approveChangeRequest(db, { requestId: id, projectId, reviewer, onApplied: () => {} }),
+      approveChangeRequest(db, { requestId: id, flagEnvironmentId, reviewer, onApplied: () => {} }),
     ).rejects.toThrow(/already approved/);
   }, 60_000);
 
@@ -308,7 +308,7 @@ describe.skipIf(reason !== null)("governance", () => {
     await expect(
       approveChangeRequest(db, {
         requestId: id,
-        projectId: "00000000-0000-0000-0000-000000000000",
+        flagEnvironmentId: "00000000-0000-0000-0000-000000000000",
         reviewer,
         onApplied: () => {},
       }),
@@ -318,7 +318,7 @@ describe.skipIf(reason !== null)("governance", () => {
   it("rejects a request without applying it", async () => {
     const before = await currentConfig();
     const id = await request({ enabled: !before.enabled }, author);
-    await rejectChangeRequest(db, { requestId: id, projectId, reviewer, comment: "not now" });
+    await rejectChangeRequest(db, { requestId: id, flagEnvironmentId, reviewer, comment: "not now" });
 
     expect((await currentConfig()).enabled).toBe(before.enabled);
     const [row] = await db
@@ -330,9 +330,9 @@ describe.skipIf(reason !== null)("governance", () => {
 
   it("refuses to approve a rejected request", async () => {
     const id = await request({ enabled: true }, author);
-    await rejectChangeRequest(db, { requestId: id, projectId, reviewer });
+    await rejectChangeRequest(db, { requestId: id, flagEnvironmentId, reviewer });
     await expect(
-      approveChangeRequest(db, { requestId: id, projectId, reviewer, onApplied: () => {} }),
+      approveChangeRequest(db, { requestId: id, flagEnvironmentId, reviewer, onApplied: () => {} }),
     ).rejects.toThrow(/already rejected/);
   }, 60_000);
 

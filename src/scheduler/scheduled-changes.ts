@@ -254,7 +254,8 @@ export async function approveChangeRequest(
   db: Database,
   options: {
     requestId: string;
-    projectId: string;
+    /** The scope-checked flag environment from the route; the request must belong to it. */
+    flagEnvironmentId: string;
     reviewer: Principal;
     onApplied: (environmentId: string, flagKey: string) => void;
   },
@@ -276,11 +277,17 @@ export async function approveChangeRequest(
     .innerJoin(environments, eq(environments.id, flagEnvironments.environmentId))
     .innerJoin(projects, eq(projects.id, environments.projectId))
     .innerJoin(flags, eq(flags.id, flagEnvironments.flagId))
-    .where(eq(changeRequests.id, options.requestId))
+    .where(
+      and(
+        eq(changeRequests.id, options.requestId),
+        eq(changeRequests.flagEnvironmentId, options.flagEnvironmentId),
+      ),
+    )
     .limit(1);
 
-  // Scoped by project: a request id from another tenant simply is not found.
-  if (request === undefined || request.projectId !== options.projectId) {
+  // Bound to the flag environment the caller was authorized for: a request id
+  // from another environment or project simply is not found.
+  if (request === undefined) {
     throw new Error("NOT_FOUND");
   }
   if (request.status !== "pending") {
@@ -323,7 +330,7 @@ export async function approveChangeRequest(
 
 export async function rejectChangeRequest(
   db: Database,
-  options: { requestId: string; projectId: string; reviewer: Principal; comment?: string },
+  options: { requestId: string; flagEnvironmentId: string; reviewer: Principal; comment?: string },
 ): Promise<void> {
   const rows = await db
     .update(changeRequests)
@@ -332,7 +339,13 @@ export async function rejectChangeRequest(
       reviewedBy: options.reviewer.memberId,
       ...(options.comment !== undefined ? { comment: options.comment } : {}),
     })
-    .where(and(eq(changeRequests.id, options.requestId), eq(changeRequests.status, "pending")))
+    .where(
+      and(
+        eq(changeRequests.id, options.requestId),
+        eq(changeRequests.flagEnvironmentId, options.flagEnvironmentId),
+        eq(changeRequests.status, "pending"),
+      ),
+    )
     .returning({ id: changeRequests.id });
   if (rows.length === 0) throw new Error("NOT_FOUND");
 }
