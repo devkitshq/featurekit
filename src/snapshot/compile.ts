@@ -331,7 +331,9 @@ export function compileSnapshot(input: CompilerInput, options: CompileOptions): 
       targets,
       rules,
       referencedAttributes: referencedAttributes(rules, fallthrough),
-      perContext: isPerContext(rules, targets, fallthrough),
+      // A prerequisite is evaluated against the full context, and its inputs
+      // are not in this flag's fingerprint, so a gated flag cannot share one.
+      perContext: prerequisites.length > 0 || isPerContext(rules, targets, fallthrough),
       clientAvailable: flag.clientAvailable,
     });
   }
@@ -381,8 +383,11 @@ function referencedAttributes(
  * attributes — so it cannot share a fan-out fingerprint and must be
  * specialised per connection.
  *
- * Three sources: a rollout buckets on the key; an individual target is a key
- * lookup; a segment clause resolves membership by key.
+ * Sources: a rollout buckets on the key; an individual target is a key
+ * lookup; a segment clause resolves membership by key; a clause on the `key`
+ * attribute reads it directly (the fan-out fingerprint deliberately omits it).
+ * A dotted context kind is also treated as per-context, because the fingerprint
+ * encodes kind and attribute as one dot-joined path and cannot recover it.
  */
 function isPerContext(
   rules: readonly CompiledRule[],
@@ -395,6 +400,8 @@ function isPerContext(
     if (rule.rollout !== undefined) return true;
     for (const clause of rule.clauses) {
       if (clause.op === "segmentMatch") return true;
+      if (clause.attribute === "key") return true;
+      if ((clause.contextKind ?? "user").includes(".")) return true;
     }
   }
   return false;
