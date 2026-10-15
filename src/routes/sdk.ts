@@ -215,10 +215,19 @@ export function registerSdkRoutes(router: Router, deps: SdkRouteDeps): Router {
       sendPut(current.snapshot);
     }
 
+    const presented = presentedKey(ctx);
     unsubscribe = await deps.store.subscribe(env.environmentId, (message) => {
       if (stream.closed || message.version <= sent) return;
       void (async () => {
         try {
+          // The key was checked at connect; re-check it before every push so a
+          // revoked or expired key stops receiving the ruleset within the key
+          // cache bound, instead of for the life of the socket.
+          const still = checkKey(await deps.authenticate(presented), { requireKind: "server" });
+          if (!still.ok || still.record.environmentId !== env.environmentId) {
+            stream.close();
+            return;
+          }
           // Reuse the resume path rather than trusting the broadcast payload:
           // it is already correct about the three full-`put` cases, and it
           // means a node that missed a message still converges.
