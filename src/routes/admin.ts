@@ -436,6 +436,13 @@ export function registerAdminRoutes(router: Router, deps: AdminRouteDeps): Route
     }
   };
 
+  /** Recompile every environment of a project after a project-wide change. */
+  const recompileProject = async (projectId: string, flagKey: string): Promise<void> => {
+    for (const environment of await listProjectEnvironments(deps.db, projectId)) {
+      deps.snapshots.notifyChange(environment.id, flagKey);
+    }
+  };
+
   /* -- members and tokens -------------------------------------------- */
 
   router.get(
@@ -697,7 +704,9 @@ export function registerAdminRoutes(router: Router, deps: AdminRouteDeps): Route
     withPrincipal("writer", async (ctx, principal) => {
       rejectScoped(principal, "restore flags, which affects every environment");
       const project = await requireProject(ctx, deps);
-      await restoreFlag(deps.db, project.id, ctx.params["flag"] ?? "");
+      const flagKey = ctx.params["flag"] ?? "";
+      await restoreFlag(deps.db, project.id, flagKey);
+      await recompileProject(project.id, flagKey);
       return { archived: false };
     }),
   );
@@ -718,9 +727,13 @@ export function registerAdminRoutes(router: Router, deps: AdminRouteDeps): Route
     withPrincipal("writer", async (ctx, principal) => {
       rejectScoped(principal, "archive flags, which affects every environment");
       const project = await requireProject(ctx, deps);
-      await archiveFlag(deps.db, project.id, ctx.params["flag"] ?? "");
+      const flagKey = ctx.params["flag"] ?? "";
+      await archiveFlag(deps.db, project.id, flagKey);
       // Archiving removes the flag from every environment's next snapshot, so
-      // every environment has to recompile — not just one.
+      // every environment has to recompile — not just one. Without this an
+      // archived flag (and anything it gated) kept serving until an unrelated
+      // change happened to recompile.
+      await recompileProject(project.id, flagKey);
       return { archived: true };
     }),
   );
