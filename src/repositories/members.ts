@@ -121,9 +121,13 @@ export async function updateMember(
     .returning(memberColumns);
   if (row === undefined) return null;
 
-  // A password change ends every other session for that member. The ordinary
-  // reason to change one is that you think somebody else has it.
-  if (patch.password !== undefined) await deleteSessionsFor(db, memberId);
+  // A password change ends every session and revokes every access token for
+  // that member. The ordinary reason to change one is that you think somebody
+  // else has it, and a token minted with the old password is theirs too.
+  if (patch.password !== undefined) {
+    await deleteSessionsFor(db, memberId);
+    await db.delete(accessTokens).where(eq(accessTokens.memberId, memberId));
+  }
   return toMember(row);
 }
 

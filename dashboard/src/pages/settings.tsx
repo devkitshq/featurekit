@@ -624,7 +624,7 @@ function PasswordCard() {
 
   const change = useAction(async () => {
     await A.changePassword(current, next);
-    toast.push("ok", "Password updated successfully. Please sign in again.");
+    toast.push("ok", "Password updated. Your access tokens were revoked; please sign in again.");
     setCurrent("");
     setNext("");
     await session.signOut();
@@ -632,7 +632,7 @@ function PasswordCard() {
   });
 
   return (
-    <Card title="Change password" description="Update your login password. You will need to sign in again after updating.">
+    <Card title="Change password" description="Update your login password. This signs out every session and revokes all of your access tokens.">
       <div className="space-y-3">
         <Field label="Current password">
           <Input

@@ -413,8 +413,10 @@ export function registerAdminRoutes(router: Router, deps: AdminRouteDeps): Route
       await withPasswordErrors(() =>
         updateMember(deps.db, principal.memberId, { password: input.newPassword }),
       );
-      // Every session ends, including this one: a password change is what you do
-      // when you think somebody else has the old one.
+      // Every session ends, including this one, and every access token is
+      // revoked: a password change is what you do when you think somebody else
+      // has the old one. The token cache is dropped so revocation is immediate.
+      deps.tokens.invalidateAll();
       return {
         status: 200,
         headers: {
@@ -498,9 +500,9 @@ export function registerAdminRoutes(router: Router, deps: AdminRouteDeps): Route
         }),
       );
       if (updated === null) throw new HttpError(404, "NOT_FOUND", "no such member");
-      // The token cache holds the member's role; a demotion must take effect
-      // now, not when the cached entry expires.
-      if (input.role !== undefined) deps.tokens.invalidateAll();
+      // The token cache holds the member's role, and a password reset revoked
+      // their tokens; either must take effect now, not when the cache expires.
+      if (input.role !== undefined || input.password !== undefined) deps.tokens.invalidateAll();
       return publicMember(updated);
     }),
   );
