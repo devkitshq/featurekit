@@ -1,6 +1,18 @@
+<div align="center">
+
 # featurekit
 
-Feature flags with a control plane you run.
+**Feature flags with a control plane you run.**
+
+Self-hosted feature flags for Node and everything that talks HTTP. Targeting rules, percentage rollouts, segments, a kill switch, scheduled changes, change requests, an audit log and an admin dashboard, all on the Postgres you already have.
+
+[![npm version](https://img.shields.io/npm/v/featurekit-server.svg?style=flat-square&color=6366f1)](https://www.npmjs.com/package/featurekit-server) [![npm client](https://img.shields.io/npm/v/featurekit-client.svg?style=flat-square&color=6366f1&label=client)](https://www.npmjs.com/package/featurekit-client) [![TypeScript](https://img.shields.io/badge/TypeScript-5.7+-3178c6.svg?style=flat-square)](https://www.typescriptlang.org/) [![Node.js](https://img.shields.io/badge/node-%3E%3D20.0.0-339933.svg?style=flat-square)](https://nodejs.org) ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)
+
+[Documentation](docs/README.md) · [Quickstart](#quickstart) · [Examples](#examples) · [MCP server](packages/mcp/README.md)
+
+</div>
+
+### Checking a flag is easy
 
 ```ts
 if (flags.get("new-checkout", false)) {
@@ -8,49 +20,22 @@ if (flags.get("new-checkout", false)) {
 }
 ```
 
-Two packages. `featurekit-server` is the server side — the control plane, and an
-evaluator that holds the ruleset in memory. `featurekit-client` is one client
-for everything else, with no framework bindings and no per-runtime build.
+Everything behind that line is the hard part. The rules have to reach every server without a network call per check, and the browser must never see them. A rollout raised from 10% to 20% has to keep the first 10% in. The kill switch has to work during the incident it exists for, and an SDK has to keep answering when the control plane is down.
+
+featurekit is that machinery, in two packages:
 
 ```bash
 npm i featurekit-server  # runs the control plane; evaluates server-side
 npm i featurekit-client  # browsers, React Native, Node, Deno, Bun, edge
 ```
 
-Not writing JavaScript? Skip both and implement
-[two HTTP endpoints](docs/client-tier/http.md).
+`featurekit-server` is the control plane plus an evaluator that holds the ruleset in memory. `featurekit-client` is one client for everything else, with no framework bindings and no per-runtime build. Not writing JavaScript? Skip both and implement [two HTTP endpoints](docs/client-tier/http.md).
 
-Managing flags from Claude or another MCP client? [`featurekit-mcp`](packages/mcp)
-lets you ask for "cart v2 page at 20% of users" and does it through the admin API.
+## Quickstart
 
----
+You need Node 20+ and Docker running. In development featurekit starts a throwaway Postgres container for you.
 
-## The one idea worth knowing first
-
-There are two tiers, and the split is a security boundary rather than a
-deployment detail.
-
-**The server tier** gets the compiled ruleset. It evaluates any context
-synchronously, in memory, with no network call per check, and keeps working when
-the control plane is down.
-
-**The client tier** gets *evaluated values for one context* and never the rules.
-A rule reading `plan in [pro, enterprise]` tells anyone with devtools that a paid
-tier exists and what it is called. Rollout percentages disclose release plans.
-Segment definitions name your churn-risk cohort. None of that is fixed by
-minification, so it is not sent — and a flag marked `clientAvailable: false` is
-not filtered out on the client, it never leaves the server.
-
-That is why the client SDK's reads take no context argument: the connection *is*
-the context.
-
----
-
-## Running the control plane
-
-It is a class you construct, not a binary you configure. One file, and you own
-the process — which is the point of a control plane you run rather than a
-service you rent.
+**1. Install**
 
 ```bash
 mkdir acme-flags && cd acme-flags
@@ -59,6 +44,10 @@ npm i featurekit-server
 npm i -D @testcontainers/postgresql  # dev only, see below
 ```
 
+**2. Start the control plane**
+
+It is a class you construct, in one file, and you own the process.
+
 ```js
 // server.js
 import { FeaturekitServer } from "featurekit-server";
@@ -66,32 +55,104 @@ import { FeaturekitServer } from "featurekit-server";
 const server = new FeaturekitServer({
   services: ["all"],
   port: 3000,
+  env: {
+    FEATUREKIT_ADMIN_EMAIL: "you@acme.com",
+    FEATUREKIT_ADMIN_PASSWORD: process.env.FEATUREKIT_ADMIN_PASSWORD,
+  },
 });
 
 await server.start();
 ```
 
 ```bash
-node server.js
+FEATUREKIT_ADMIN_PASSWORD=choose-a-long-one node server.js
 ```
 
-That is a working control plane: the management API, the client tier, the
-streams, event ingest, the rollup worker, the scheduler, and a dashboard on
-`http://127.0.0.1:3000/admin`.
+That runs the management API, the client tier, the streams, event ingest, the rollup worker, the scheduler and a dashboard on `http://127.0.0.1:3000/admin`. The `env` block seeds your login. The account is created if it does not exist and never overwritten if it does.
 
-**It needs no database setup to start.** Outside production, featurekit brings
-up Postgres in Docker when you have not given it an address, and runs the
-migrations. This needs Docker running and the `@testcontainers/postgresql`
-package above. It is a dev dependency on purpose, so production installs never
-carry it; without it, `start()` tells you to install it or pass `databaseUrl`.
-Postgres is the only thing featurekit needs. Only addresses you did *not* specify are started —
-an explicit `databaseUrl` that does not answer is an error, never a silent
-redirect to a fresh empty container.
+**3. Create a key.** Open `/admin`, sign in, create a project and an environment, then go to **Keys → New key**. Use `server` for backend services, and `client` or `mobile` for anything a user can unzip. The plaintext is shown once.
+
+**4. Read a flag**
+
+```ts
+import { FeaturekitSDK } from "featurekit-server";
+
+const flags = new FeaturekitSDK({
+  sdkKey: process.env.FEATUREKIT_SDK_KEY!,
+  baseUrl: "http://127.0.0.1:3000",
+});
+
+await flags.ready({ timeoutMs: 5_000 });
+flags.get("new-checkout", { key: user.id, plan: user.plan }, false);
+```
+
+[`examples/basic-example`](examples/basic-example) is the whole thing running, with a website and an Expo app reading the same flags.
+
+### Development vs. production
+
+Outside production, featurekit brings up Postgres in Docker when you have not given it an address, and runs the migrations. That needs Docker and the `@testcontainers/postgresql` package above. It is a dev dependency so production installs never carry it; without it, `start()` tells you to install it or pass `databaseUrl`. Postgres is the only thing featurekit needs.
+
+Only addresses you did not specify are started. An explicit `databaseUrl` that does not answer is an error, never a silent redirect to a fresh empty container.
+
+Production requires `databaseUrl`, and a secure-mode secret once a client key exists. Set exact CORS origins and run migrations as a deploy step. See [Going to production](#going-to-production).
+
+## The one idea worth knowing first
+
+There are two tiers, and the split is a security boundary.
+
+The **server tier** gets the compiled ruleset. It evaluates any context synchronously, in memory, with no network call per check, and keeps working when the control plane is down.
+
+The **client tier** gets evaluated values for one context and never the rules. A rule reading `plan in [pro, enterprise]` tells anyone with devtools that a paid tier exists and what it is called. Rollout percentages disclose release plans. Segment definitions name your churn-risk cohort. Minification fixes none of that, so the rules are never sent. A flag marked `clientAvailable: false` never leaves the server at all.
+
+That is why the client SDK's reads take no context argument: the connection is the context.
+
+## Run it from your AI agent
+
+Connect [`featurekit-mcp`](packages/mcp/README.md) to Claude Code, Claude Desktop or any MCP client:
+
+```bash
+claude mcp add featurekit \
+  --env FEATUREKIT_URL=http://127.0.0.1:3000 \
+  --env FEATUREKIT_TOKEN=fk_pat_... \
+  --env FEATUREKIT_MCP_WRITE=1 \
+  -- npx -y featurekit-mcp
+```
+
+Then ask:
+
+```text
+You:   Roll out cart v2 page to 20% of users in production.
+
+Agent: Done. cart-v2-page in production: 20% get true, the rest get
+       false. The flag was off; it is now on.
+```
+
+```text
+You:   Kill cart v2 page in production, checkout is erroring.
+
+Agent: Done. cart-v2-page is off in production. Everyone gets false.
+```
+
+It works through the admin API with a personal access token, so it can do what that token can and nothing more. Every change lands in the audit log marked `via featurekit-mcp`.
+
+## Built in
+
+| Feature | What you get |
+| :-- | :-- |
+| Targeting | Rules on any context attribute, individual targets, prerequisites on other flags, and segments. Large segments ship as exact roaring bitmaps or cuckoo filters. |
+| Rollouts | Percentage rollouts that keep the same people in as the percentage rises. |
+| Kill switch | `POST …/off` needs no version and propagates immediately, without waiting on other edits. |
+| No lost edits | Every configuration write carries the version it read. A concurrent edit is refused with the current state. |
+| Governance | Scheduled changes, change requests with approval, dry runs against real contexts, and revert to any audited state. |
+| Audit log | Who changed what, with the before and after of every change, in a hash chain you can verify. |
+| Secure mode | Production rejects unsigned client contexts, so nobody can read the flags of an identity they cannot prove. |
+| Survives outages | The server SDK serves its persisted snapshot, then its last good one, then your default. |
+
+## Running the control plane
 
 ### Flags as data in your repository
 
-Definitions belong in version control; on/off and targeting belong to whoever is
-on call. Passing `flags` gets you both:
+Definitions belong in version control. On/off and targeting belong to whoever is on call. Passing `flags` gets you both:
 
 ```js
 // flags.js
@@ -132,12 +193,9 @@ const server = new FeaturekitServer({ services: ["all"], port: 3000, flags });
 await server.start();
 ```
 
-On restart, new flags are created and definitions kept current. **Existing
-flags keep whatever the dashboard says** — a toggle somebody flipped at 3am is
-not reverted by the next deploy. `flagsReset: true` overrides that, deliberately.
+On restart, new flags are created and definitions kept current. Existing flags keep whatever the dashboard says, so a toggle somebody flipped at 3am is not reverted by the next deploy. `flagsReset: true` overrides that, deliberately.
 
-[`examples/basic-example/server`](examples/basic-example/server) is a working
-version of this setup, with a website and an Expo app reading the same flags.
+[`examples/basic-example/server`](examples/basic-example/server) is a working version of this setup.
 
 ### Going to production
 
@@ -169,32 +227,19 @@ const server = new FeaturekitServer({
 await server.start();
 ```
 
-Four things that are wrong by default elsewhere and are not here:
+Four defaults that other tools get wrong:
 
-**`host: "0.0.0.0"`.** The default is loopback. Behind a load balancer that
-means nothing reaches you, and the symptom is a healthy process serving nobody.
+`host: "0.0.0.0"` is required behind a load balancer. The default is loopback, and the symptom of leaving it is a healthy process serving nobody.
 
-**Configuration fails on every missing variable at once**, before the port is
-bound. Three restarts to discover three mistakes is three outages.
+Configuration reports every missing variable at once, before the port is bound. Three restarts to find three mistakes would be three outages.
 
-**Draining is ordered.** `SIGTERM` makes `/ready` answer 503 *before* the socket
-stops accepting, so the load balancer stops sending work first; then every open
-stream gets an individually jittered reconnect delay, which is what stops a
-synchronised reconnect storm on every release. Point liveness at `/live`,
-readiness at `/ready`, and set your orchestrator's termination grace period
-above `SHUTDOWN_GRACE_MS` (10s default). `/health` and `/metrics` are also
-there.
+Draining is ordered. `SIGTERM` makes `/ready` answer 503 before the socket stops accepting, so the load balancer stops sending work first. Then every open stream gets its own jittered reconnect delay, which stops a synchronised reconnect storm on every release. Point liveness at `/live` and readiness at `/ready`, and set your orchestrator's termination grace period above `SHUTDOWN_GRACE_MS` (10s by default). `/health` and `/metrics` are there too.
 
-**Migrations are additive and forward-only.** Old code runs against the new
-schema for the length of a rollout, so the order is migrate → deploy new →
-drain old.
+Migrations are additive and forward-only. Old code runs against the new schema for the length of a rollout, so the order is migrate, deploy new, drain old.
 
 ### Migrations
 
-The right shape is a separate step before the new nodes start, because every
-node migrating on boot is a lock convoy: N nodes take the same locks at the same
-moment, one holding an `ACCESS EXCLUSIVE` lock on a large table while the rest
-queue behind it, during a deploy, while traffic is shifting.
+Run migrations as a separate step before the new nodes start. Every node migrating on boot is a lock convoy: N nodes take the same locks at the same moment, one holding an `ACCESS EXCLUSIVE` lock on a large table while the rest queue behind it, during a deploy, while traffic is shifting.
 
 ```js
 // migrate.js — a deploy job, run once
@@ -212,15 +257,9 @@ Or without a file at all:
 node -e 'import("featurekit-server/migrate").then(m => m.migrate())'
 ```
 
-`migrate()` reads `DATABASE_URL` and `DATABASE_SCHEMA`, or takes
-`{ databaseUrl, schema }`. It refuses to guess the database: a deploy job with a missing variable quietly migrating the wrong database
-is worse than a failed deploy by a wide margin.
+`migrate()` reads `DATABASE_URL` and `DATABASE_SCHEMA`, or takes `{ databaseUrl, schema }`. It refuses to guess the database, because a deploy job quietly migrating the wrong one is far worse than a failed deploy.
 
-Safe to run concurrently — a retried pipeline or two CI jobs racing produce one
-migration and one no-op, because it takes a Postgres advisory lock first. Safe
-to run repeatedly, because it is idempotent. And it creates partition runway as
-part of the same step, since a deploy that leaves the analytics table without
-partitions has not finished, it has just not failed yet.
+It is safe to run concurrently: it takes a Postgres advisory lock first, so a retried pipeline or two racing CI jobs produce one migration and one no-op. It is idempotent, so it is safe to run repeatedly. It also creates partition runway in the same step, since a deploy that leaves the analytics table without partitions has only postponed its failure.
 
 ```js
 import { migrationStatus } from "featurekit-server/migrate";
@@ -228,12 +267,9 @@ import { migrationStatus } from "featurekit-server/migrate";
 const { applied, partitionRunwayDays } = await migrationStatus();
 ```
 
-Worth running on a schedule rather than only at deploy time: runway shrinks on
-its own, and the failure arrives without a deploy to blame.
+Run that on a schedule as well as at deploy time. Runway shrinks on its own, and the failure arrives without a deploy to blame.
 
-`autoMigrate: true` remains available and takes the same lock — it calls the
-same function. It is the right choice for a single-node deployment and the wrong
-one for a fleet.
+`autoMigrate: true` is still available and takes the same lock, because it calls the same function. It suits a single-node deployment and is wrong for a fleet.
 
 ### In a container
 
@@ -252,9 +288,7 @@ EXPOSE 3000
 CMD ["node", "server.js"]
 ```
 
-Set `devServices: false` explicitly if your image might ever run outside
-production without a database reachable — otherwise it will try to start one in
-Docker, from inside Docker.
+Set `devServices: false` explicitly if your image might ever run outside production without a reachable database. Otherwise it will try to start one in Docker, from inside Docker.
 
 ### Scaling
 
@@ -265,29 +299,9 @@ new FeaturekitServer({ services: ["api", "stream"] });      // scale horizontall
 new FeaturekitServer({ services: ["rollup", "scheduler"] }); // keep it small
 ```
 
-Or set `FEATUREKIT_SERVICES=api,stream` and run the packaged entrypoint,
-`node node_modules/featurekit-server/dist/main.js`, if you would rather configure by
-environment than by file.
+Or set `FEATUREKIT_SERVICES=api,stream` and run the packaged entrypoint, `node node_modules/featurekit-server/dist/main.js`, if you would rather configure by environment than by file.
 
-### Your first key
-
-Open `/admin`, log in, create a project and environment, then **Keys → New
-key**. `server` for backend services, `client` or `mobile` for anything a user
-can unzip. The plaintext is shown once.
-
-To get a login without a shell, seed the first account — created if it does not
-exist, never overwriting one that does:
-
-```js
-new FeaturekitServer({
-  env: {
-    FEATUREKIT_ADMIN_EMAIL: "you@acme.com",
-    FEATUREKIT_ADMIN_PASSWORD: process.env.FEATUREKIT_ADMIN_PASSWORD,
-  },
-});
-```
-
-[Every option, and the full environment schema →](docs/ops/deployment.md)
+[Every option, and the full environment schema](docs/ops/deployment.md)
 
 ## Using it: server side
 
@@ -309,21 +323,11 @@ flags.get("loyalty-discount", context, 0);
 flags.get("checkout-flow", context, "classic");
 ```
 
-Synchronous, and it survives the control plane being gone: bootstrap →
-persisted snapshot → last-known-good in memory → your default. `ready()` never
-rejects; it times out into "serving defaults", which is a legitimate state to
-run in rather than a failed deploy.
+Reads are synchronous, and they survive the control plane being gone: bootstrap, then the persisted snapshot, then the last good snapshot in memory, then your default. `ready()` never rejects. It times out into serving defaults, which is a legitimate state to run in.
 
-**The default is a required argument.** An optional one produces `undefined`
-during an outage, and `if (undefined)` is a wrong answer that looks like a right
-one. Requiring it forces every call site to say what happens when featurekit is
-unavailable — the one decision a flag SDK must not make for you.
+The default is a required argument. An optional one produces `undefined` during an outage, and `if (undefined)` is a wrong answer that looks like a right one. Requiring it makes every call site say what happens when featurekit is unavailable, which is a decision a flag SDK must not make for you.
 
-The one difference from `featurekit-client` is the **context per call**. This
-SDK holds the ruleset, so a single instance answers for every identity your
-process serves; nothing is held per user, and there is no round trip. The client
-takes no context because the connection is the context, and holds one identity
-at a time.
+The difference from `featurekit-client` is the context per call. This SDK holds the ruleset, so a single instance answers for every identity your process serves, holds nothing per user and makes no round trip. The client takes no context, because the connection is the context, and holds one identity at a time.
 
 ## Using it: everywhere else
 
@@ -348,43 +352,25 @@ flags.on("change", () => render());     // pushed over SSE, no polling
 await flags.identify(nextUser);         // the one async operation
 ```
 
-One `get` for every type. The default is required and does two jobs: it states
-what happens when featurekit is unavailable, and its type is the expected type —
-`get("new-checkout", false)` is a `boolean` with no annotation, and a value that
-somehow is not one falls back rather than handing `"false"` to an `if`.
+One `get` covers every type. The default is required and does two jobs. It says what happens when featurekit is unavailable, and its type is the expected type: `get("new-checkout", false)` is a `boolean` with no annotation, and a value that somehow is not one falls back instead of handing `"false"` to an `if`.
 
-It is synchronous, because the values are already in memory. That is what lets
-it be called during a render, where a promise cannot. `await flags.get(…)` is
-valid if you prefer the shape, but there is nothing behind it to await.
+It is synchronous because the values are already in memory, which lets you call it during a render, where a promise cannot run. `await flags.get(…)` is valid if you prefer the shape, but there is nothing behind it to await.
 
-Build it **once**. Re-creating it resets the ordering guard that keeps a slow
-response for one user off another user's screen.
+Build it once. Re-creating it resets the ordering guard that keeps a slow response for one user off another user's screen.
 
-**One instance, one identity.** Right for a browser or a phone, where there is
-one user in front of the screen. A backend answering for many users
-concurrently needs one instance per identity — or the server SDK above, which
-takes a context per call and never goes to the network.
+One instance holds one identity. That is right for a browser or a phone, with one user in front of the screen. A backend answering for many users at once needs one instance per identity, or the server SDK above, which takes a context per call and never goes to the network.
 
-The client key is public by construction: it ships in a page, a binary, an APK
-anyone can unzip. That is safe, because it buys evaluated values for one context
-and never the ruleset.
+The client key is public by construction: it ships in a page, a binary or an APK anyone can unzip. That is safe, because the key only buys evaluated values for one context.
 
 ### Frameworks
 
-There is no React package, no Vue package, no React Native package. A binding is
-twenty lines over two methods that already exist — `detail(flagKey)` reads
-synchronously, `on("change", handler)` returns an unsubscribe function — and a
-package per framework turns those twenty lines into a version matrix owed on
-somebody else's release schedule.
+There is no React package, no Vue package and no React Native package. A binding is twenty lines over two methods that already exist: `detail(flagKey)` reads synchronously, and `on("change", handler)` returns an unsubscribe function. A package per framework would turn those twenty lines into a version matrix owed on somebody else's release schedule.
 
-[Framework adapters](docs/client-tier/adapters.md) has those twenty lines for
-React, Vue and Svelte. Copy the one you need; it is then yours.
+[Framework adapters](docs/client-tier/adapters.md) has the twenty lines for React, Vue and Svelte. Copy the one you need, and it is yours.
 
 ### React Native
 
-Same package, same adapter, one extra line. React Native's built-in `fetch`
-buffers whole bodies and exposes no `ReadableStream`, so the SSE stream cannot
-open and the SDK falls back to re-fetching on a timer. Pass a streaming fetch:
+Same package, same adapter, one extra line. React Native's built-in `fetch` buffers whole bodies and exposes no `ReadableStream`, so the SSE stream cannot open and the SDK falls back to re-fetching on a timer. Pass a streaming fetch:
 
 ```ts
 import { fetch as expoFetch } from "expo/fetch";
@@ -392,13 +378,11 @@ import { fetch as expoFetch } from "expo/fetch";
 new FeaturekitClient({ …options, fetchImpl: expoFetch as unknown as typeof fetch });
 ```
 
-[`examples/basic-example/expo-app`](examples/basic-example/expo-app) is that, in a working Expo app.
+[`examples/basic-example/expo-app`](examples/basic-example/expo-app) does exactly that in a working Expo app.
 
 ### Secure mode
 
-Production rejects unsigned contexts, because the server evaluates *as* the
-identity it is handed. Your backend mints the signature where the session is
-already trusted:
+Production rejects unsigned contexts, because the server evaluates as whatever identity it is handed. Your backend mints the signature where the session is already trusted:
 
 ```ts
 import { signContext, contextHash } from "featurekit-server/secure-mode";
@@ -413,31 +397,19 @@ app.get("/api/featurekit-signature", requireSession, (req, res) => {
 });
 ```
 
-Then hand the pair to the client, with `onSignatureExpiring` to refresh before
-it lapses.
+Then hand the pair to the client, with `onSignatureExpiring` to refresh it before it lapses.
 
-A separate entry point from `featurekit` because of what it does not load: the
-main entry is the control plane, so importing it pulls Drizzle, a Postgres
-driver and the logger into a service whose only job is signing a string —
-`featurekit-server/secure-mode` imports in 15ms where `featurekit-server` takes 3.5s.
+`featurekit-server/secure-mode` is a separate entry point so that a service whose only job is signing a string does not load the control plane. The main entry pulls in Drizzle, a Postgres driver and the logger; `featurekit-server/secure-mode` imports in 15ms where `featurekit-server` takes 3.5s.
 
-**Pass the `attributesHash`.** A signature over the key alone authenticates
-*who* the context claims to be and nothing about what it claims to be true — a
-user holding a valid signature for their own id can send
-`{ key: "u-ana", plan: "enterprise" }` and be evaluated as an enterprise
-customer. `contextHash(context)` closes that, and costs one function call.
-
----
+Pass the `attributesHash`. A signature over the key alone proves who the context claims to be and nothing about its attributes, so a user with a valid signature for their own id could send `{ key: "u-ana", plan: "enterprise" }` and be evaluated as an enterprise customer. `contextHash(context)` closes that for the cost of one function call.
 
 ## Examples
 
-The **[`examples/basic-example`](examples/basic-example)** folder contains a complete end-to-end setup demonstrating the 4 core flag types (Toggle/Boolean, Text/String, Number, and JSON/Object) across server, web, and mobile:
+[`examples/basic-example`](examples/basic-example) is a complete setup showing the four flag types (boolean, string, number and JSON) across server, web and mobile:
 
-- **`server/`**: Runs the Featurekit Control Plane and exposes `POST /api/swap` for live flag rotations.
-- **`website/`**: Interactive browser app listening to live SSE stream updates.
-- **`expo-app/`**: React Native (Expo) mobile app connecting to the same live stream.
-
-### Running the Example
+- `server/` runs the control plane and exposes `POST /api/swap` for live flag rotations.
+- `website/` is a browser app listening to live SSE updates.
+- `expo-app/` is a React Native (Expo) app on the same live stream.
 
 ```bash
 # 1. Build the packages
@@ -451,15 +423,11 @@ node examples/basic-example/server/server.js
 node examples/basic-example/server/swap.js
 ```
 
-- **Website**: `http://127.0.0.1:4000`
-- **Admin Dashboard**: `http://127.0.0.1:3000/admin` (`admin@featurekit.dev` / `password12345`)
-- **Expo Mobile App**: `cd examples/basic-example/expo-app && npm run web`
-
----
+The website is at `http://127.0.0.1:4000` and the dashboard at `http://127.0.0.1:3000/admin` (`admin@featurekit.dev` / `password12345`). For the mobile app, run `cd examples/basic-example/expo-app && npm run web`.
 
 ## Documentation
 
-| | |
+| Guide | Description |
 | :-- | :-- |
 | [Client SDK](docs/client-tier/client-sdk.md) | Values not rules, `identify` ordering, secure mode |
 | [Framework adapters](docs/client-tier/adapters.md) | The twenty lines, for React, Vue and Svelte |
@@ -471,7 +439,9 @@ node examples/basic-example/server/swap.js
 | [Evaluation](docs/evaluation/evaluator.md) | Bucketing, operators, segments, determinism |
 | [Decisions](docs/decisions.md) | Where the implementation departs from the plan, and why |
 
-## Developer Commands
+## Contributing
+
+Issues and pull requests are welcome.
 
 ```bash
 npm run build                  # Build server, evaluator, client, and dashboard
@@ -482,10 +452,10 @@ npm run migrate                # Run database migrations
 node tools/check-package.mjs   # Validate package contents & boundaries
 ```
 
-The conformance corpus is generated by an independent transcription of the
-murmur3 spec that shares no code with the evaluator, and CI checks that it still
-regenerates byte-for-byte.
+The integration tests start their own Postgres container, so Docker is the only thing you need running for the full suite.
 
-## Licence
+The conformance corpus is generated by an independent transcription of the murmur3 spec that shares no code with the evaluator, and CI checks that it still regenerates byte for byte.
+
+## License
 
 MIT
