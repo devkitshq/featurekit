@@ -96,7 +96,16 @@ describe.skipIf(reason !== null)("infrastructure chaos", () => {
         POSTGRES_DB: "featurekit",
       })
       .withExposedPorts({ container: 5432, host: POSTGRES_HOST_PORT })
-      .withWaitStrategy(Wait.forLogMessage(/database system is ready to accept connections/, 2))
+      // `restart()` reuses this strategy. A first boot logs "ready" twice (the
+      // init server, then the real one); a restart skips init and logs it once,
+      // so counting to two never finishes. The init server listens on a socket
+      // only, so a listening TCP port plus one "ready" holds for both.
+      .withWaitStrategy(
+        Wait.forAll([
+          Wait.forListeningPorts(),
+          Wait.forLogMessage(/database system is ready to accept connections/),
+        ]),
+      )
       .start();
 
     handle = createDatabase({
