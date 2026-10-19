@@ -2,6 +2,7 @@
   "files": [],
   "references": [
     { "path": "./packages/client" },
+    { "path": "./packages/mcp" },
     { "path": "./tsconfig.control.json" }
   ]
 }
