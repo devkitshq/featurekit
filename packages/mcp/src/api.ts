@@ -168,11 +168,17 @@ export class FeaturekitApi {
     if (body !== undefined) headers["content-type"] = "application/json";
     // A retried write must not apply twice; the server binds the key to this token.
     if (method !== "GET") headers["idempotency-key"] = randomUUID();
-    const response = await this.fetchImpl(`${this.baseUrl}${path}`, {
-      method,
-      headers,
-      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
-    });
+    let response: Response;
+    try {
+      response = await this.fetchImpl(`${this.baseUrl}${path}`, {
+        method,
+        headers,
+        ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+      });
+    } catch (error) {
+      const cause = error instanceof Error ? ((error.cause as Error | undefined)?.message ?? error.message) : String(error);
+      throw new Error(`could not reach featurekit at ${this.baseUrl} (${cause}). Check FEATUREKIT_URL.`);
+    }
     const text = await response.text();
     let parsed: unknown = undefined;
     try {
