@@ -152,7 +152,7 @@ export class SnapshotService {
         return { ...recheck, source: "store" };
       }
 
-      const compiled = await this.recompile(environmentId);
+      const compiled = await this.compileAndCommit(environmentId, {}, false);
       if (compiled !== undefined) return { ...compiled, source: "compiled" };
 
       // The lock was held by another node, which is compiling right now. Its
@@ -296,6 +296,21 @@ export class SnapshotService {
     environmentId: string,
     options: RecompileOptions = {},
   ): Promise<SnapshotResult | undefined> {
+    return this.compileAndCommit(environmentId, options, true);
+  }
+
+  /**
+   * `strict` is for a change: if the store fails and the fallback can only
+   * serve memory, nothing compiled the change, so the store's error is thrown
+   * rather than reporting the old snapshot as success. With Postgres as both
+   * store and truth, that is exactly what a database outage looks like. A cold
+   * read is not strict: serving memory is its whole point.
+   */
+  private async compileAndCommit(
+    environmentId: string,
+    options: RecompileOptions,
+    strict: boolean,
+  ): Promise<SnapshotResult | undefined> {
     try {
       return await this.options.store.withCompileLock(environmentId, async () => {
         const previous = await this.options.store.get(environmentId).catch(() => null);
@@ -332,7 +347,9 @@ export class SnapshotService {
       // already committed in Postgres, so the change is not lost — but this node
       // must still be able to serve it, which is what the degraded path does.
       this.options.onError?.(error, { environmentId });
-      return this.degraded(environmentId).catch(() => undefined);
+      const fallback = await this.degraded(environmentId).catch(() => undefined);
+      if (strict && (fallback === undefined || fallback.source === "memory")) throw error;
+      return fallback;
     }
   }
 
