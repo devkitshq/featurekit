@@ -56,17 +56,41 @@ npm i featurekit-server
 npm i -D @testcontainers/postgresql  # dev only, see below
 ```
 
-**2. Start the control plane**
+**2. Define a flag**
+
+```js
+// flags.js
+export default {
+  project: { key: "acme", name: "Acme" },
+  environment: { key: "development", name: "Development", isProduction: false },
+  flags: [
+    {
+      key: "new-checkout",
+      name: "New checkout flow",
+      kind: "boolean",
+      variations: [
+        { name: "off", value: false },
+        { name: "on", value: true },
+      ],
+      config: { enabled: true, offVariation: "off", fallthroughVariation: "on" },
+    },
+  ],
+};
+```
+
+**3. Start the control plane**
 
 It is a class you construct, in one file, and you own the process.
 
 ```js
 // server.js
 import { FeaturekitServer } from "featurekit-server";
+import flags from "./flags.js";
 
 const server = new FeaturekitServer({
   services: ["all"],
   port: 3000,
+  flags,
   env: {
     FEATUREKIT_ADMIN_EMAIL: "you@acme.com",
     FEATUREKIT_ADMIN_PASSWORD: process.env.FEATUREKIT_ADMIN_PASSWORD,
@@ -82,21 +106,44 @@ FEATUREKIT_ADMIN_PASSWORD=choose-a-long-one node server.js
 
 That runs the management API, the client tier, the streams, event ingest, the rollup worker, the scheduler and a dashboard on `http://127.0.0.1:3000/admin`. The `env` block seeds your login. The account is created if it does not exist and never overwritten if it does.
 
-**3. Create a key.** Open `/admin`, sign in, create a project and an environment, then go to **Keys → New key**. Use `server` for backend services, and `client` or `mobile` for anything a user can unzip. The plaintext is shown once.
+**4. Create a key.** Open `/admin` and sign in. The `acme` project, its `development` environment and the `new-checkout` flag are already there. Go to **Keys → New key** and pick `server`. The plaintext is shown once.
 
-**4. Read a flag**
+**5. Read the flag**
 
-```ts
+```js
+// app.js
 import { FeaturekitSDK } from "featurekit-server";
 
 const flags = new FeaturekitSDK({
-  sdkKey: process.env.FEATUREKIT_SDK_KEY!,
+  sdkKey: process.env.FEATUREKIT_SDK_KEY,
   baseUrl: "http://127.0.0.1:3000",
 });
 
 await flags.ready({ timeoutMs: 5_000 });
-flags.get("new-checkout", { key: user.id, plan: user.plan }, false);
+
+setInterval(() => {
+  console.log("new-checkout:", flags.get("new-checkout", { key: "user-1" }, false));
+}, 1_000);
 ```
+
+```bash
+FEATUREKIT_SDK_KEY=fk_srv_... node app.js
+```
+
+```text
+new-checkout: true
+new-checkout: true
+```
+
+**6. Flip it.** Leave `app.js` running. In `/admin`, turn `new-checkout` off.
+
+```text
+new-checkout: true
+new-checkout: false
+new-checkout: false
+```
+
+You didn't restart or redeploy anything. That is the whole point of a flag.
 
 [`examples/basic-example`](examples/basic-example) is the whole thing running, with a website and an Expo app reading the same flags.
 
