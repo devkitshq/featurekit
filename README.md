@@ -12,7 +12,13 @@ Self-hosted feature flags for Node and everything that talks HTTP. Targeting rul
 
 </div>
 
-### Checking a flag is easy
+### Why feature flags exist
+
+Deploying code and releasing a feature are two different decisions, and a flag lets you make them separately. You merge and deploy on Tuesday, then turn the feature on Thursday for your own team, then for 5% of users, then for everyone. If it breaks, you turn it off in seconds instead of reverting, rebuilding and redeploying in the middle of an incident.
+
+### Why they are hard to build
+
+Checking a flag is one line:
 
 ```ts
 if (flags.get("new-checkout", false)) {
@@ -20,7 +26,13 @@ if (flags.get("new-checkout", false)) {
 }
 ```
 
-Everything behind that line is the hard part. The rules have to reach every server without a network call per check, and the browser must never see them. A rollout raised from 10% to 20% has to keep the first 10% in. The kill switch has to work during the incident it exists for, and an SDK has to keep answering when the control plane is down.
+Everything behind that line is the hard part.
+
+- Flags sit on hot paths and get checked many times per request, so a check can't be a network call. Every server needs the rules in memory, and needs to hear about a change within seconds.
+- Browsers and mobile apps need answers too, but the rules name your customers, your segments and features you haven't announced. The browser must never see them, only the results.
+- A rollout raised from 10% to 20% has to keep the first 10% in, and a user has to get the same answer from every server.
+- The kill switch has to work during the incident it exists for, and an SDK has to keep answering from the last rules it saw when the control plane is down.
+- A flag changes production without a deploy, so changes need review, scheduling and a record of who flipped what.
 
 featurekit is that machinery, in two packages:
 
