@@ -498,6 +498,9 @@ export function registerAdminRoutes(router: Router, deps: AdminRouteDeps): Route
         }),
       );
       if (updated === null) throw new HttpError(404, "NOT_FOUND", "no such member");
+      // The token cache holds the member's role; a demotion must take effect
+      // now, not when the cached entry expires.
+      if (input.role !== undefined) deps.tokens.invalidateAll();
       return publicMember(updated);
     }),
   );
