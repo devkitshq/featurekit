@@ -20,6 +20,9 @@ npm i featurekit-client  # browsers, React Native, Node, Deno, Bun, edge
 Not writing JavaScript? Skip both and implement
 [two HTTP endpoints](docs/client-tier/http.md).
 
+Managing flags from Claude or another MCP client? [`featurekit-mcp`](packages/mcp)
+lets you ask for "cart v2 page at 20% of users" and does it through the admin API.
+
 ---
 
 ## The one idea worth knowing first
@@ -462,6 +465,7 @@ node examples/basic-example/server/swap.js
 | [Framework adapters](docs/client-tier/adapters.md) | The twenty lines, for React, Vue and Svelte |
 | [Plain HTTP](docs/client-tier/http.md) | The contract non-JavaScript apps implement |
 | [Server SDK](docs/sdk/server-sdk.md) | Snapshots, persistence, surviving an outage |
+| [MCP server](packages/mcp/README.md) | Managing flags from Claude and other MCP clients |
 | [Deployment](docs/ops/deployment.md) | Migrations, draining, backup and recovery |
 | [Runbooks](docs/ops/runbooks.md) · [Alerts](docs/ops/alerts.md) | When it is on fire |
 | [Evaluation](docs/evaluation/evaluator.md) | Bucketing, operators, segments, determinism |

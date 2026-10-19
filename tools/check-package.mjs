@@ -25,7 +25,7 @@ import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-const PACKAGES = [".", "packages/client"];
+const PACKAGES = [".", "packages/client", "packages/mcp"];
 
 /** Zero runtime dependencies, asserted rather than intended. */
 const ZERO_DEPENDENCY = new Set(["featurekit-client"]);
