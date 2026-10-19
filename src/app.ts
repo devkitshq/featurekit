@@ -31,8 +31,7 @@ import { PostgresClientConnectionStore } from "./client-tier/postgres-connection
 import { SnapshotService } from "./snapshot/service.js";
 import { loadCompilerInput } from "./repositories/snapshot-input.js";
 import { compileSnapshot } from "./snapshot/compile.js";
-import { writeFlagConfig } from "./repositories/flags.js";
-import type { Snapshot } from "./sdk/index.js";
+import { applyFlagConfigToInput } from "./repositories/flags.js";
 import {
   listEnvironments,
   nextSnapshotVersion,
@@ -307,50 +306,22 @@ export function createApp(config: FeaturekitConfig, options: CreateAppOptions = 
     snapshots,
     tokens,
     /**
-     * Compile a proposed configuration in a transaction that is rolled back.
+     * Compile a proposed configuration without writing it.
      *
      * Applying the patch for real and undoing it would be visible to every SDK
      * for the duration, and would write two audit rows for a change nobody
-     * made. A rolled-back transaction gives the compiler exactly the rows it
-     * would have seen, and leaves nothing behind.
+     * made. Even a rolled-back write locks the live row for a whole-environment
+     * compile, on a route readers can call. So the patch is applied to the
+     * compiler's input in memory, and nothing is written or locked.
      */
     dryRun: async (target, patch) => {
-      const ROLLBACK = Symbol("featurekit: dry run rollback");
-      // Per request: a shared variable would let a concurrent dry run for
-      // another flag or environment overwrite this one's result during the
-      // rollback await.
-      let dryRunSnapshot: Snapshot | null = null;
-      try {
-        await db.transaction(async (tx) => {
-          const scoped = tx as unknown as typeof db;
-          await writeFlagConfig(
-            scoped,
-            target,
-            { ...(patch as Record<string, unknown>), expectedVersion: target.version } as never,
-            {
-              kind: "token",
-              tokenId: "dry-run",
-              memberId: "00000000-0000-0000-0000-000000000000",
-              memberEmail: "dry-run@featurekit",
-              role: "owner",
-              environmentIds: null,
-            },
-            { action: "flag.dry_run" },
-          );
-          dryRunSnapshot = compileSnapshot(
-            await loadCompilerInput(scoped, target.environmentId, {
-              maxSegmentMembers: config.SEGMENT_MEMBER_CEILING,
-              memberPageSize: config.SEGMENT_MEMBER_PAGE_SIZE,
-            }),
-            { version: target.version + 1 },
-          );
-          throw ROLLBACK;
-        });
-      } catch (error) {
-        if (error !== ROLLBACK) throw error;
-      }
-      if (dryRunSnapshot === null) throw new Error("featurekit: dry run produced no snapshot");
-      return dryRunSnapshot;
+      const input = await loadCompilerInput(db, target.environmentId, {
+        maxSegmentMembers: config.SEGMENT_MEMBER_CEILING,
+        memberPageSize: config.SEGMENT_MEMBER_PAGE_SIZE,
+      });
+      return compileSnapshot(await applyFlagConfigToInput(db, input, target, patch as never), {
+        version: target.version + 1,
+      });
     },
     // A revoked key must stop working now, not when its cache entry expires.
     onKeyRevoked: () => sdkKeys.invalidateAll(),

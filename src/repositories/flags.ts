@@ -42,6 +42,7 @@ import { HttpError } from "../http/router.js";
 import type { Principal } from "../auth/principal.js";
 import { actorOf } from "../auth/principal.js";
 import type { FlagConfigBody } from "../contracts/admin.js";
+import type { CompilerInput } from "../snapshot/compile.js";
 
 /* ─────────────────────────────── shapes ─────────────────────────────── */
 
@@ -458,27 +459,7 @@ export async function writeFlagConfig(
         .delete(prerequisites)
         .where(eq(prerequisites.flagEnvironmentId, target.flagEnvironmentId));
       for (const prerequisite of body.prerequisites) {
-        // Resolved within this project only: a prerequisite pointing at another
-        // tenant's flag would otherwise be expressible.
-        const [row] = await tx
-          .select({ flagId: flags.id, variationId: flagVariations.id })
-          .from(flags)
-          .innerJoin(
-            flagVariations,
-            and(
-              eq(flagVariations.flagId, flags.id),
-              eq(flagVariations.idx, prerequisite.variation),
-            ),
-          )
-          .where(and(eq(flags.projectId, target.projectId), eq(flags.key, prerequisite.flagKey)))
-          .limit(1);
-        if (row === undefined) {
-          throw new HttpError(
-            400,
-            "UNKNOWN_PREREQUISITE",
-            `no flag ${prerequisite.flagKey} with variation ${prerequisite.variation} in this project`,
-          );
-        }
+        const row = await resolvePrerequisite(tx as unknown as Database, target, prerequisite);
         await tx.insert(prerequisites).values({
           flagEnvironmentId: target.flagEnvironmentId,
           prerequisiteFlagId: row.flagId,
@@ -506,6 +487,140 @@ export async function writeFlagConfig(
 
     return { before, after, version: current.version + 1, auditId };
   });
+}
+
+/**
+ * A prerequisite's flag and required variation, by key and index.
+ *
+ * Resolved within this project only: a prerequisite pointing at another
+ * tenant's flag would otherwise be expressible.
+ */
+async function resolvePrerequisite(
+  db: Database,
+  target: ResolvedTarget,
+  prerequisite: { flagKey: string; variation: number },
+): Promise<{ flagId: string; variationId: string }> {
+  const [row] = await db
+    .select({ flagId: flags.id, variationId: flagVariations.id })
+    .from(flags)
+    .innerJoin(
+      flagVariations,
+      and(eq(flagVariations.flagId, flags.id), eq(flagVariations.idx, prerequisite.variation)),
+    )
+    .where(and(eq(flags.projectId, target.projectId), eq(flags.key, prerequisite.flagKey)))
+    .limit(1);
+  if (row === undefined) {
+    throw new HttpError(
+      400,
+      "UNKNOWN_PREREQUISITE",
+      `no flag ${prerequisite.flagKey} with variation ${prerequisite.variation} in this project`,
+    );
+  }
+  return row;
+}
+
+/**
+ * Apply a configuration change to compiler input, in memory.
+ *
+ * What a dry run compiles. It validates the patch the way `writeFlagConfig`
+ * does, but writes nothing and takes no lock: a reader previewing a change
+ * must not be able to hold the live row, and a pooled connection, against a
+ * real save for the length of a full-environment compile.
+ */
+export async function applyFlagConfigToInput(
+  db: Database,
+  input: CompilerInput,
+  target: ResolvedTarget,
+  body: Omit<FlagConfigBody, "expectedVersion">,
+): Promise<CompilerInput> {
+  const id = target.flagEnvironmentId;
+  const current = input.flagEnvironments.find((row) => row.id === id);
+  if (current === undefined) throw new HttpError(404, "NOT_FOUND", "no such flag configuration");
+
+  const variationId = (index: number | null | undefined): string | null => {
+    if (index === null || index === undefined) return null;
+    const vid = target.variationIds[index];
+    if (vid === undefined) {
+      throw new HttpError(400, "UNKNOWN_VARIATION", `flag has no variation ${index}`);
+    }
+    return vid;
+  };
+
+  const next = { ...current, version: current.version + 1 };
+  if (body.enabled !== undefined) next.enabled = body.enabled;
+  if (body.offVariation !== undefined) next.offVariationId = variationId(body.offVariation);
+  if (body.fallthroughVariation !== undefined) {
+    next.fallthroughVariationId = variationId(body.fallthroughVariation);
+    next.fallthroughRollout = null;
+  }
+  if (body.fallthroughRollout !== undefined) {
+    next.fallthroughRollout = normalizeRollout(rolloutFromBody(body.fallthroughRollout), target);
+    next.fallthroughVariationId = null;
+  }
+  const out: CompilerInput = {
+    ...input,
+    flagEnvironments: input.flagEnvironments.map((row) => (row.id === id ? next : row)),
+  };
+
+  if (body.targets !== undefined) {
+    out.targets = [
+      ...input.targets.filter((row) => row.flagEnvironmentId !== id),
+      ...body.targets.flatMap((t) =>
+        t.keys.map((key) => ({
+          flagEnvironmentId: id,
+          variationId: variationId(t.variation)!,
+          contextKind: t.contextKind,
+          contextKey: key,
+        })),
+      ),
+    ];
+  }
+
+  if (body.rules !== undefined) {
+    const replaced = new Set(
+      input.rules.filter((row) => row.flagEnvironmentId === id).map((row) => row.id),
+    );
+    out.rules = input.rules.filter((row) => !replaced.has(row.id));
+    out.clauses = input.clauses.filter((row) => !replaced.has(row.ruleId));
+    for (const [idx, rule] of body.rules.entries()) {
+      const ruleId = `dry-run:${idx}`;
+      out.rules.push({
+        id: ruleId,
+        flagEnvironmentId: id,
+        idx,
+        variationId: rule.variation === undefined ? null : variationId(rule.variation),
+        rollout:
+          rule.rollout === undefined
+            ? null
+            : normalizeRollout(rolloutFromBody(rule.rollout), target),
+      });
+      for (const [clauseIdx, clause] of rule.clauses.entries()) {
+        out.clauses.push({
+          ruleId,
+          idx: clauseIdx,
+          contextKind: clause.contextKind,
+          attribute: clause.attribute,
+          op: clause.op,
+          values: clause.values,
+          negate: clause.negate,
+        });
+      }
+    }
+  }
+
+  if (body.prerequisites !== undefined) {
+    out.prerequisites = input.prerequisites.filter((row) => row.flagEnvironmentId !== id);
+    for (const prerequisite of body.prerequisites) {
+      const row = await resolvePrerequisite(db, target, prerequisite);
+      out.prerequisites.push({
+        flagEnvironmentId: id,
+        prerequisiteFlagId: row.flagId,
+        requiredVariationId: row.variationId,
+      });
+    }
+  }
+
+  return out;
 }
 
 /**

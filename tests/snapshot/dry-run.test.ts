@@ -11,7 +11,9 @@
 import { describe, expect, it } from "vitest";
 import { compileSnapshot, type CompilerInput } from "../../src/snapshot/compile.js";
 import { dryRunFlag, reassignmentWarning } from "../../src/snapshot/dry-run.js";
-import type { EvaluationContext } from "../../src/sdk/index.js";
+import { evaluate, type EvaluationContext } from "../../src/sdk/index.js";
+import { applyFlagConfigToInput, type ResolvedTarget } from "../../src/repositories/flags.js";
+import type { Database } from "../../src/db/client.js";
 
 const contexts: EvaluationContext[] = Array.from({ length: 2_000 }, (_, i) => ({
   key: `user-${i}`,
@@ -173,5 +175,64 @@ describe("reassignmentWarning", () => {
     );
     expect(result.changed).toBeGreaterThan(500);
     expect(reassignmentWarning(result)).toBeNull();
+  });
+});
+
+describe("applyFlagConfigToInput: the patch a dry run compiles", () => {
+  const target: ResolvedTarget = {
+    projectId: "p1",
+    environmentId: "env-1",
+    environmentKey: "production",
+    isProduction: true,
+    flagId: "f1",
+    flagKey: "checkout",
+    flagEnvironmentId: "fe1",
+    version: 1,
+    variationIds: ["v0", "v1"],
+    variationIndexById: new Map([
+      ["v0", 0],
+      ["v1", 1],
+    ]),
+  };
+  /** Any query is a failure: without prerequisites a dry run must not touch the database. */
+  const noDb = new Proxy({}, {
+    get() {
+      throw new Error("dry run touched the database");
+    },
+  }) as unknown as Database;
+
+  it("compiles the patched configuration without touching the database", async () => {
+    const base = input({ rule: true });
+    const patched = await applyFlagConfigToInput(noDb, base, target, {
+      fallthroughVariation: 0,
+      rules: [
+        {
+          clauses: [
+            { contextKind: "user", attribute: "country", op: "in", values: ["DE"], negate: false },
+          ],
+          variation: 1,
+        },
+      ],
+      targets: [{ contextKind: "user", variation: 1, keys: ["user-0"] }],
+    });
+    const after = compileSnapshot(patched, { version: 2 });
+    const value = (ctx: EvaluationContext) => evaluate("checkout", ctx, after, false).value;
+    expect(value({ key: "user-0", country: "NL" })).toBe(true); // targeted
+    expect(value({ key: "user-1", country: "DE" })).toBe(true); // new rule
+    expect(value({ key: "user-2", country: "NL" })).toBe(false); // old rule gone
+    // The loaded input is left as it was.
+    expect(base.rules.map((r) => r.id)).toEqual(["r1"]);
+    expect(base.flagEnvironments[0]!.fallthroughVariationId).toBeNull();
+  });
+
+  it("rejects what a real save would reject", async () => {
+    await expect(
+      applyFlagConfigToInput(noDb, input({}), target, { offVariation: 7 }),
+    ).rejects.toMatchObject({ code: "UNKNOWN_VARIATION" });
+    await expect(
+      applyFlagConfigToInput(noDb, input({}), target, {
+        fallthroughRollout: { variations: [{ variation: 1, weight: 10 }] },
+      }),
+    ).rejects.toMatchObject({ code: "ROLLOUT_WEIGHTS" });
   });
 });
