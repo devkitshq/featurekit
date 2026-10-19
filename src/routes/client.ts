@@ -106,6 +106,8 @@ interface Registered extends ClientConnection {
   registeredAt: number;
   /** The signature's expiry, epoch seconds; absent for an unsigned identify. */
   signatureExpiresAt?: number;
+  /** The client key the stream was opened with, re-checked before each push. */
+  key?: string;
 }
 
 /** setTimeout's ceiling; a longer signature just closes the stream early and reconnects. */
@@ -198,6 +200,34 @@ export function registerClientRoutes(router: Router, deps: ClientRouteDeps): Rou
     return Math.max(1, Math.min(connectionTtl, Math.ceil(signatureExpiresAt - Date.now() / 1000)));
   }
 
+  /**
+   * Close streams whose key was revoked or expired since they opened.
+   *
+   * The key was checked at connect; without this a revoked key keeps a stream
+   * of values flowing for as long as the socket stays up. One lookup per
+   * distinct key, through the key cache, not one per connection.
+   */
+  async function dropRevoked(environmentId: string, live: Registered[]): Promise<Registered[]> {
+    const verdicts = new Map<string, boolean>();
+    for (const connection of live) {
+      const key = connection.key;
+      if (key === undefined || verdicts.has(key)) continue;
+      try {
+        const checked = checkKey(await deps.authenticate(key), { requireKind: ["client", "mobile"] });
+        verdicts.set(key, checked.ok && checked.record.environmentId === environmentId);
+      } catch (error) {
+        // A lookup that failed is not a revocation; keep serving and report it.
+        deps.onError?.(error);
+        verdicts.set(key, true);
+      }
+    }
+    return live.filter((connection) => {
+      if (connection.key === undefined || verdicts.get(connection.key) !== false) return true;
+      connection.stream?.close();
+      return false;
+    });
+  }
+
   async function ensureSubscription(environmentId: string): Promise<void> {
     if (subscriptions.has(environmentId)) return;
     const unsubscribe = await deps.store.subscribe(environmentId, (message) => {
@@ -224,6 +254,8 @@ export function registerClientRoutes(router: Router, deps: ClientRouteDeps): Rou
       (c) => c.environmentId === environmentId && c.stream !== undefined && !c.stream.closed,
     );
     if (live.length === 0) return;
+    const authorized = await dropRevoked(environmentId, live);
+    if (authorized.length === 0) return;
 
     const { snapshot } = await deps.snapshots.get(environmentId);
     const changed =
@@ -233,9 +265,9 @@ export function registerClientRoutes(router: Router, deps: ClientRouteDeps): Rou
             .map((f) => f.key)
         : [flagKey];
 
-    const computed = fanout.fanout(environmentId, snapshot, changed, live);
+    const computed = fanout.fanout(environmentId, snapshot, changed, authorized);
 
-    for (const connection of live) {
+    for (const connection of authorized) {
       const values = computed.get(connection.id);
       if (values === undefined) continue;
 
@@ -427,6 +459,7 @@ export function registerClientRoutes(router: Router, deps: ClientRouteDeps): Rou
       expiryTimer.unref?.();
     }
     deps.onConnectionChange?.(connections.size);
+    registered.key = presentedKey(ctx);
     registered.stream = stream;
     stream.event("ready", { version: registered.lastSentVersion }, registered.lastSentVersion);
 

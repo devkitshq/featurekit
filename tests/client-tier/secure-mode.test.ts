@@ -292,3 +292,32 @@ describe("a connection handle does not outlive its signature", () => {
     expect(closed).toBe(true);
   });
 });
+
+describe("an open client stream ends when its key is revoked", () => {
+  it("closes on the next push after the key stops authenticating", async () => {
+    let revoked = false;
+    const base = await harness({
+      authenticate: async (key) => (key === "dev" && !revoked ? keys["dev"]! : null),
+    });
+    const identify = await state(base, "dev", { context: { key: "user-1" } });
+    const { connectionId } = (await identify.json()) as { connectionId: string };
+    const abort = new AbortController();
+    const response = await fetch(
+      `${base}/v1/client/stream?connection=${encodeURIComponent(connectionId)}&key=dev`,
+      { signal: abort.signal },
+    );
+    expect(response.status).toBe(200);
+    const reader = response.body!.getReader();
+    await reader.read(); // the ready event
+
+    revoked = true;
+    await services.at(-1)!.notifyChangeImmediate(DEV_ENV);
+    const ended = (async () => {
+      for (;;) if ((await reader.read()).done) return true;
+    })();
+    const timeout = new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 3_000));
+    const closed = await Promise.race([ended, timeout]);
+    abort.abort();
+    expect(closed).toBe(true);
+  });
+});
