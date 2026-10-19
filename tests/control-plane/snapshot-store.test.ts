@@ -203,6 +203,8 @@ function storeContract(name: string, create: () => Promise<SnapshotStore> | Snap
       it("delivers a published change to a subscriber", async () => {
         const seen: number[] = [];
         const unsubscribe = await store.subscribe(ENV, (message) => seen.push(message.version));
+        // A broadcast announces a version the store holds; Postgres re-reads it.
+        await store.put(ENV, snapshot(9));
         await store.publish(ENV, { version: 9 });
         await vi.waitFor(() => expect(seen).toEqual([9]));
         await unsubscribe();
@@ -211,9 +213,11 @@ function storeContract(name: string, create: () => Promise<SnapshotStore> | Snap
       it("stops delivering after unsubscribe", async () => {
         const seen: number[] = [];
         const unsubscribe = await store.subscribe(ENV, (m) => seen.push(m.version));
+        await store.put(ENV, snapshot(1));
         await store.publish(ENV, { version: 1 });
         await vi.waitFor(() => expect(seen).toHaveLength(1));
         await unsubscribe();
+        await store.put(ENV, snapshot(2));
         await store.publish(ENV, { version: 2 });
         await new Promise((r) => setTimeout(r, 50));
         expect(seen).toEqual([1]);
@@ -301,5 +305,37 @@ if (reason === null) {
     const store = new PostgresSnapshotStore({ sql: database.sql, schema: "public" });
     stores.push(store);
     return store;
+  });
+
+  describe("PostgresSnapshotStore - forged notifications", () => {
+    // Any role on the database can NOTIFY on this channel.
+    const forge = (payload: object) =>
+      database.sql`select pg_notify('featurekit_changes', ${JSON.stringify(payload)})`;
+
+    let store: PostgresSnapshotStore;
+    beforeEach(async () => {
+      await database.sql`truncate snapshot_cache, snapshot_patches, compile_locks`;
+      store = new PostgresSnapshotStore({ sql: database.sql, schema: "public" });
+      stores.push(store);
+    });
+
+    it("delivers the stored version, not the one in the payload", async () => {
+      const seen: number[] = [];
+      await store.subscribe(ENV, (m) => seen.push(m.version));
+      await store.commit(ENV, snapshot(3), [patch(3)], { version: 3 });
+      await vi.waitFor(() => expect(seen).toEqual([3]));
+      await forge({ s: "public", e: ENV, v: 2_000_000_000 });
+      await new Promise((r) => setTimeout(r, 100));
+      expect(seen).toEqual([3]);
+    });
+
+    it("drops a flag key the patch history does not record", async () => {
+      const seen: Array<{ version: number; flagKey?: string }> = [];
+      await store.subscribe(ENV, (m) => seen.push(m));
+      await store.put(ENV, snapshot(4));
+      await forge({ s: "public", e: ENV, v: 4, f: "decoy" });
+      // A full pass, not one aimed at the decoy flag.
+      await vi.waitFor(() => expect(seen).toEqual([{ version: 4 }]));
+    });
   });
 }

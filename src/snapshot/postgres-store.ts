@@ -25,7 +25,8 @@
  * bounds how stale a node can be whatever happens to its listener.
  *
  * One channel per database, shared by every install in it: each payload names
- * its schema, and other schemas' notifications are ignored.
+ * its schema, and other schemas' notifications are ignored. Any role can send
+ * on it, so a payload is only a prompt to re-read: see `onNotification`.
  */
 
 import { randomUUID } from "node:crypto";
@@ -42,8 +43,6 @@ import {
 
 /** The NOTIFY channel. Payloads carry the schema, so installs can share a database. */
 export const CHANGE_CHANNEL = "featurekit_changes";
-/** Largest watermark jump one notification may cause (see onNotification). */
-const MAX_ANNOUNCED_STEP = 1_000;
 
 export interface PostgresSnapshotStoreOptions {
   /** Queries run on this pool. Its `search_path` selects the schema. */
@@ -86,6 +85,8 @@ export class PostgresSnapshotStore implements SnapshotStore {
   private readonly handlers = new Map<string, Set<(message: ChangeMessage) => void>>();
   /** Highest version announced per environment, so a slow read cannot cache an older row. */
   private readonly announced = new Map<string, number>();
+  /** Environments with a notification being checked: null, or the hint that arrived meanwhile. */
+  private readonly verifying = new Map<string, { version: number; flagKey: string | undefined } | null>();
   private listening: Promise<void> | null = null;
   private unlisten: (() => Promise<void>) | null = null;
   private listenerConnects = 0;
@@ -294,6 +295,18 @@ export class PostgresSnapshotStore implements SnapshotStore {
     return this.listening;
   }
 
+  /**
+   * A notification is a hint, never the truth.
+   *
+   * NOTIFY is not authenticated: any role connected to the database can send
+   * on this channel. So nothing in a payload is acted on as given. The version
+   * delivered is the one `snapshot_cache` holds, and the flag key survives only
+   * when `snapshot_patches` records that key at that version — a forged key
+   * would otherwise make the client tier re-evaluate the wrong flag and mark
+   * itself current, skipping the real change for good. A forged message can at
+   * most cause one primary-key read, and only for an environment this node is
+   * already holding.
+   */
   private onNotification(raw: string): void {
     let notification: Notification;
     try {
@@ -302,24 +315,61 @@ export class PostgresSnapshotStore implements SnapshotStore {
       return;
     }
     if (notification.s !== this.options.schema || typeof notification.e !== "string") return;
-
-    // NOTIFY is not authenticated: any role connected to the database can send
-    // on this channel. Content is always re-read from the database, so the
-    // only thing a forged message can move is the announced watermark; keep it
-    // a sane integer and bounded relative to what this node already knows, so
-    // a forged huge version cannot disable caching for the environment.
     if (!Number.isSafeInteger(notification.v) || notification.v <= 0) return;
     const environmentId = notification.e;
-    const known = Math.max(this.announced.get(environmentId) ?? 0, this.cache.get(environmentId)?.version ?? 0);
-    const version = known > 0 ? Math.min(notification.v, known + MAX_ANNOUNCED_STEP) : notification.v;
-    if (version > (this.announced.get(environmentId) ?? 0)) this.announced.set(environmentId, version);
+    // Anything else would be a query per forged environment id.
+    if (!this.handlers.has(environmentId) && !this.cache.has(environmentId)) return;
+    if (notification.v <= (this.announced.get(environmentId) ?? 0)) return;
+    this.verify(environmentId, notification.v, typeof notification.f === "string" ? notification.f : undefined);
+  }
+
+  /** One read in flight per environment; hints arriving meanwhile fold into one more. */
+  private verify(environmentId: string, version: number, flagKey: string | undefined): void {
+    if (this.verifying.has(environmentId)) {
+      const pending = this.verifying.get(environmentId);
+      this.verifying.set(environmentId, {
+        version: Math.max(version, pending?.version ?? 0),
+        // Two changes folded into one check: a single flag key cannot describe both.
+        flagKey: pending === null || pending === undefined ? flagKey : undefined,
+      });
+      return;
+    }
+    this.verifying.set(environmentId, null);
+    void this.confirm(environmentId, version, flagKey)
+      .catch((error: unknown) => this.options.onError?.(error))
+      .finally(() => {
+        const pending = this.verifying.get(environmentId);
+        this.verifying.delete(environmentId);
+        if (pending != null && pending.version > (this.announced.get(environmentId) ?? 0)) {
+          this.verify(environmentId, pending.version, pending.flagKey);
+        }
+      });
+  }
+
+  private async confirm(environmentId: string, hinted: number, flagKey: string | undefined): Promise<void> {
+    const rows = await this.sql<Array<{ version: number; confirmed: boolean }>>`
+      select c.version,
+             exists (select 1 from snapshot_patches p
+                      where p.environment_id = c.environment_id
+                        and p.version = ${hinted}
+                        and p.flag_key = ${flagKey ?? ""}) as confirmed
+        from snapshot_cache c
+       where c.environment_id = ${environmentId}`;
+    const row = rows[0];
+    if (row === undefined) return;
+    // Past the hinted version, more than this one flag may have changed.
+    const keep = flagKey !== undefined && row.confirmed && row.version === hinted;
+    this.announce(environmentId, row.version, keep ? flagKey : undefined);
+  }
+
+  /** Deliver a version read from the database to this environment's subscribers. */
+  private announce(environmentId: string, version: number, flagKey: string | undefined): void {
+    if (version <= (this.announced.get(environmentId) ?? 0)) return;
+    this.announced.set(environmentId, version);
     const cached = this.cache.get(environmentId);
     if (cached !== undefined && version > cached.version) this.cache.delete(environmentId);
 
-    const message: ChangeMessage = {
-      version,
-      ...(notification.f !== undefined ? { flagKey: notification.f } : {}),
-    };
+    const message: ChangeMessage = { version, ...(flagKey !== undefined ? { flagKey } : {}) };
     for (const handler of this.handlers.get(environmentId) ?? []) handler(message);
   }
 
@@ -337,12 +387,8 @@ export class PostgresSnapshotStore implements SnapshotStore {
       select environment_id, version from snapshot_cache
        where environment_id in ${this.sql(environments)}`
       .then((rows) => {
-        for (const row of rows) {
-          if (row.version <= (this.announced.get(row.environment_id) ?? 0)) continue;
-          this.onNotification(
-            JSON.stringify({ s: this.options.schema, e: row.environment_id, v: row.version }),
-          );
-        }
+        // Read from the database, so announced directly rather than re-verified.
+        for (const row of rows) this.announce(row.environment_id, row.version, undefined);
       })
       .catch((error: unknown) => this.options.onError?.(error));
   }

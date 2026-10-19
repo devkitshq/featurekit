@@ -35,6 +35,12 @@ the change to their streams. A cached snapshot is also re-validated (one integer
 by primary key) at most every 10 seconds, which bounds how stale a node can be
 if its `LISTEN` connection dies without anyone noticing.
 
+**A notification is a hint.** NOTIFY is not authenticated, and any role on the
+database can send on the channel. So a node never acts on a payload as given:
+it re-reads the version from `snapshot_cache`, and keeps the flag key only when
+`snapshot_patches` records that key at that version. A forged notification costs
+one primary-key read, and only for an environment the node already holds.
+
 **Nothing in the cache tables is authoritative.** The configuration tables are
 truth; every method's failure mode is "recompile from them", which is why the
 patch history can be lossy without hedging.
