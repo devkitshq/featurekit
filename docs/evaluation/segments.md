@@ -24,6 +24,12 @@ r1 and contradicted both the latency claim and the outage story.
    See [the evaluator](evaluator.md#fail-closed).
 3. During an outage the segments are whatever the last snapshot held.
 
+A member is a **context kind and key together**. Inline lists, exclusion lists
+and cuckoo filters store `segmentMemberId(kind, key)` (`<kind length>:<kind>:<key>`),
+so a `user` and an `org` that share a key are different members. A roaring
+bitmap holds ordinals of the single kind it records, and answers `not-member`
+for any other kind.
+
 Order of resolution: **excluded wins over included**, in every encoding, before
 anything else. Then the membership structure. Then the segment's own rules.
 
@@ -36,7 +42,7 @@ non-match.
 | | When | 500k members | False positives |
 | :-- | :-- | --: | :-- |
 | **inline** | small segments (`SEGMENT_INLINE_MAX`, 50,000) | — | none, exact |
-| **roaring** | every member key is an integer | **117 B** for sequential ids | **none, exact** |
+| **roaring** | every member key is an integer, all of one kind | **117 B** for sequential ids | **none, exact** |
 | **cuckoo** | everything else — uuids, emails, opaque strings | 4 MB | ~1.9e-9 per lookup |
 
 Roaring where eligible is not a close call: exact, faster than a `Set`, and
@@ -187,7 +193,7 @@ would cost more than evaluating.
 ## Deltas
 
 ```ts
-index.applyDelta(segmentKey, version, { add: [...], remove: [...] });
+index.applyDelta(segmentKey, version, { contextKind: "user", add: [...], remove: [...] });
 ```
 
 A one-row membership change ships as a few hundred bytes rather than a full

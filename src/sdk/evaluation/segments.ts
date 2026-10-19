@@ -34,6 +34,18 @@ export type MembershipResult = "member" | "not-member" | "unresolved";
 export interface SegmentDelta {
   add: readonly string[];
   remove: readonly string[];
+  /** The context kind every key in this delta belongs to. Default `"user"`. */
+  contextKind?: string;
+}
+
+/**
+ * The identity a segment stores for a member: its context kind and key
+ * together, so a `user` and an `org` that share a key are different members.
+ * The kind is length-prefixed, which keeps the encoding unambiguous whatever
+ * characters either part contains.
+ */
+export function segmentMemberId(contextKind: string, contextKey: string): string {
+  return `${contextKind.length}:${contextKind}:${contextKey}`;
 }
 
 interface ResidentSegment {
@@ -92,22 +104,25 @@ export class SegmentIndex {
     return seg.members !== undefined || seg.filter !== undefined || seg.bitmap !== undefined;
   }
 
-  membership(segmentKey: string, contextKey: string): MembershipResult {
+  membership(segmentKey: string, contextKind: string, contextKey: string): MembershipResult {
     const seg = this.resident.get(segmentKey);
     // The compiler drops archived segments. A clause naming one that no longer
     // exists is a definite non-match, not an unverifiable one.
     if (seg === undefined) return "not-member";
 
+    const id = segmentMemberId(contextKind, contextKey);
     // Excluded wins over included, in every encoding, before anything else.
-    if (seg.excluded.has(contextKey)) return "not-member";
+    if (seg.excluded.has(id)) return "not-member";
 
     if (seg.compiled.kind === "inline") {
       if (seg.members === undefined) return this.unresolved();
-      return seg.members.has(contextKey) ? "member" : "not-member";
+      return seg.members.has(id) ? "member" : "not-member";
     }
 
     if (seg.compiled.kind === "roaring") {
       if (seg.bitmap === undefined) return this.unresolved();
+      // A bitmap holds ordinals of one kind only; any other kind is not in it.
+      if (contextKind !== seg.compiled.contextKind) return "not-member";
       const ordinal = ordinalOf(contextKey);
       // A non-integral key cannot be in a roaring segment by construction:
       // the compiler refuses to encode one. Exact negative, not unresolved.
@@ -116,7 +131,7 @@ export class SegmentIndex {
     }
 
     if (seg.filter === undefined) return this.unresolved();
-    return seg.filter.contains(contextKey) ? "member" : "not-member";
+    return seg.filter.contains(id) ? "member" : "not-member";
   }
 
   private unresolved(): MembershipResult {
@@ -137,23 +152,29 @@ export class SegmentIndex {
     if (seg === undefined || version <= seg.version) return;
     seg.version = version;
 
+    const kind = delta.contextKind ?? "user";
+    // Roaring ordinals are only meaningful for the bitmap's own kind.
+    const bitmap =
+      seg.compiled.kind === "roaring" && seg.compiled.contextKind === kind ? seg.bitmap : undefined;
     for (const key of delta.remove) {
-      seg.members?.delete(key);
-      seg.filter?.delete(key);
-      if (seg.bitmap !== undefined) {
+      const id = segmentMemberId(kind, key);
+      seg.members?.delete(id);
+      seg.filter?.delete(id);
+      if (bitmap !== undefined) {
         const o = ordinalOf(key);
-        if (o !== null) seg.bitmap.remove(o);
+        if (o !== null) bitmap.remove(o);
       }
     }
     for (const key of delta.add) {
-      seg.members?.add(key);
-      seg.filter?.insert(key);
-      if (seg.bitmap !== undefined) {
+      const id = segmentMemberId(kind, key);
+      seg.members?.add(id);
+      seg.filter?.insert(id);
+      if (bitmap !== undefined) {
         const o = ordinalOf(key);
-        if (o !== null) seg.bitmap.add(o);
+        if (o !== null) bitmap.add(o);
       }
       // An add must clear a prior exclusion, or the member stays pinned out.
-      seg.excluded.delete(key);
+      seg.excluded.delete(id);
     }
   }
 }

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildCuckooFilter } from "../../src/sdk/evaluation/cuckoo.js";
 import { evaluate } from "../../src/sdk/evaluation/evaluate.js";
 import { RoaringBitmap } from "../../src/sdk/evaluation/roaring.js";
-import { SegmentIndex } from "../../src/sdk/evaluation/segments.js";
+import { SegmentIndex, segmentMemberId } from "../../src/sdk/evaluation/segments.js";
 import type {
   CompiledClause,
   CompiledFlag,
@@ -367,7 +367,7 @@ describe("the evaluator never throws", () => {
 /* ───────────── segments: unresolved fails the RULE closed ─────── */
 
 describe("segmentMatch", () => {
-  const inlineSeg: CompiledSegment = { kind: "inline", version: 1, members: ["usr_1"] };
+  const inlineSeg: CompiledSegment = { kind: "inline", version: 1, members: [segmentMemberId("user", "usr_1")] };
   const segRule = (negate: boolean) =>
     rule({ clauses: [clause({ op: "segmentMatch", attribute: "key", values: ["beta"], negate })] });
 
@@ -399,7 +399,7 @@ describe("an UNRESOLVED segment fails the whole rule closed, in BOTH polarities"
   const readableSeg = (): CompiledSegment => ({
     kind: "cuckoo",
     version: 1,
-    filter: buildCuckooFilter(members).filter.encode(),
+    filter: buildCuckooFilter(members.map((key) => segmentMemberId("user", key))).filter.encode(),
     fpRate: 1.9e-9,
     loadFactor: 0.8,
   });
@@ -524,7 +524,7 @@ describe("segmentMatch recursion", () => {
           members: [],
           rules: [{ id: "sr0", clauses: [clause({ op: "segmentMatch", attribute: "key", values: ["inner"] })] }],
         },
-        inner: { kind: "inline", version: 1, members: ["usr_1"] },
+        inner: { kind: "inline", version: 1, members: [segmentMemberId("user", "usr_1")] },
       },
     );
     const index = new SegmentIndex(snap.segments);

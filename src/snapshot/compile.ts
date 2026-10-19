@@ -23,6 +23,7 @@ import {
   buildCuckooFilter,
   FINGERPRINT_BITS,
   ordinalOf,
+  segmentMemberId,
   SLOTS_PER_BUCKET,
   RoaringBitmap,
   type CompiledClause,
@@ -157,7 +158,7 @@ export interface CompileOptions {
   /** Above this member count a segment gets a membership filter. */
   segmentInlineMax?: number;
   /**
-   * `"auto"` prefers roaring when every member key is integral. The other two
+   * `"auto"` prefers roaring when every member key is integral and of one kind. The other two
    * force an encoding, for tests.
    */
   segmentFilter?: "auto" | "roaring" | "cuckoo";
@@ -167,7 +168,8 @@ export type CompileErrorCode =
   | "PREREQUISITE_CYCLE"
   | "UNKNOWN_VARIATION"
   | "MISSING_FALLTHROUGH"
-  | "ROARING_NON_INTEGRAL";
+  | "ROARING_NON_INTEGRAL"
+  | "ROARING_MIXED_KINDS";
 
 export class CompileError extends Error {
   constructor(
@@ -462,11 +464,14 @@ function compileSegments(
     if (segment.environmentId !== input.environment.id) continue;
 
     const rows = membersBySegment.get(segment.id) ?? [];
-    const included: string[] = [];
-    const excluded: string[] = [];
-    for (const row of rows) (row.excluded ? excluded : included).push(row.contextKey);
-    included.sort();
-    excluded.sort();
+    const includedRows = rows.filter((row) => !row.excluded);
+    // Members are stored kind-qualified, so a user and an org sharing a key
+    // never collide.
+    const included = includedRows.map((row) => segmentMemberId(row.contextKind, row.contextKey)).sort();
+    const excluded = rows
+      .filter((row) => row.excluded)
+      .map((row) => segmentMemberId(row.contextKind, row.contextKey))
+      .sort();
 
     const rules: CompiledSegmentRule[] = (rulesBySegment.get(segment.id) ?? [])
       .slice()
@@ -485,16 +490,26 @@ function compileSegments(
     const base = { version: segment.version, excluded, rules };
 
     // Roaring is eligible only when the ordinal IS the key — no side table, no
-    // dictionary. `ordinalOf` is the SDK's own test, imported rather than
-    // re-implemented, so the two cannot drift.
-    const allIntegral = included.length > 0 && included.every((key) => ordinalOf(key) !== null);
+    // dictionary — and every member is of one kind, which the bitmap records.
+    // `ordinalOf` is the SDK's own test, imported rather than re-implemented,
+    // so the two cannot drift.
+    const roaringKind = includedRows[0]?.contextKind ?? "user";
+    const allIntegral =
+      includedRows.length > 0 && includedRows.every((row) => ordinalOf(row.contextKey) !== null);
+    const oneKind = includedRows.every((row) => row.contextKind === roaringKind);
 
     if (filterChoice === "roaring" && !allIntegral) {
       // A wrong answer is not an acceptable response to a misconfiguration.
-      const offender = included.find((key) => ordinalOf(key) === null);
+      const offender = includedRows.find((row) => ordinalOf(row.contextKey) === null)?.contextKey;
       throw new CompileError(
         "ROARING_NON_INTEGRAL",
         `segment ${segment.key}: segmentFilter is roaring but member key ${JSON.stringify(offender)} is non-integral`,
+      );
+    }
+    if (filterChoice === "roaring" && !oneKind) {
+      throw new CompileError(
+        "ROARING_MIXED_KINDS",
+        `segment ${segment.key}: segmentFilter is roaring but members span more than one context kind`,
       );
     }
 
@@ -503,15 +518,13 @@ function compileSegments(
       continue;
     }
 
-    if (allIntegral && filterChoice !== "cuckoo") {
-      const bitmap = RoaringBitmap.from(included.map((key) => ordinalOf(key)!));
+    if (allIntegral && oneKind && filterChoice !== "cuckoo") {
+      const bitmap = RoaringBitmap.from(includedRows.map((row) => ordinalOf(row.contextKey)!));
       out[segment.key] = {
         ...base,
         kind: "roaring",
         bitmap: bitmap.serialize(),
-        // Members of a segment share one context kind for bitmap purposes; the
-        // first row's kind is the segment's kind by construction.
-        contextKind: rows[0]?.contextKind ?? "user",
+        contextKind: roaringKind,
       };
       continue;
     }

@@ -9,6 +9,7 @@ import {
   buildCuckooFilter,
   evaluate,
   RoaringBitmap,
+  segmentMemberId,
   type CompiledFlag,
   type CompiledSegment,
   type Snapshot,
@@ -406,7 +407,7 @@ describe("segment rules are evaluated on the client tier", () => {
     new ClientFanout().evaluateAll("env-1", snap, { key })["seg"]!.value;
 
   it("matches an inline segment", () => {
-    const snap = withSegment({ kind: "inline", version: 1, members: ["usr_1"] });
+    const snap = withSegment({ kind: "inline", version: 1, members: [segmentMemberId("user", "usr_1")] });
     expect(valueFor(snap, "usr_1")).toBe(true);
     expect(valueFor(snap, "usr_2")).toBe(false);
   });
@@ -424,7 +425,7 @@ describe("segment rules are evaluated on the client tier", () => {
     const snap = withSegment({
       kind: "cuckoo",
       version: 1,
-      filter: buildCuckooFilter(members).filter.encode(),
+      filter: buildCuckooFilter(members.map((key) => segmentMemberId("user", key))).filter.encode(),
       fpRate: 1.9e-9,
       loadFactor: 0.8,
     });
@@ -434,7 +435,7 @@ describe("segment rules are evaluated on the client tier", () => {
 
   it("decodes a segment once per environment and version, not per request", () => {
     const fanout = new ClientFanout();
-    const snap = withSegment({ kind: "inline", version: 1, members: ["usr_1"] });
+    const snap = withSegment({ kind: "inline", version: 1, members: [segmentMemberId("user", "usr_1")] });
     fanout.evaluateAll("env-1", snap, { key: "usr_1" });
     const first = fanout["segmentIndexes"].get("env-1")!.index;
     fanout.evaluateAll("env-1", snap, { key: "usr_2" });

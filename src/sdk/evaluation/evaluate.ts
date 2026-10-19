@@ -191,7 +191,7 @@ function evaluateSegmentClause(
   const values = Array.isArray(clause.values) ? clause.values : [];
   for (const value of values) {
     if (typeof value !== "string") continue;
-    const result = segmentMembership(value, attrs.key, state, depth);
+    const result = segmentMembership(value, contextKind, attrs.key, state, depth);
     if (result === "unresolved") {
       // Propagate the third state. Do NOT produce a boolean here.
       return { unresolved: true, segmentKey: value };
@@ -208,6 +208,7 @@ function evaluateSegmentClause(
  */
 function segmentMembership(
   segmentKey: string,
+  contextKind: string,
   contextKey: string,
   state: EvalState,
   depth: number,
@@ -219,7 +220,7 @@ function segmentMembership(
   }
   if (depth >= state.maxSegmentDepth) return "not-member";
 
-  const direct = state.segments.membership(segmentKey, contextKey);
+  const direct = state.segments.membership(segmentKey, contextKind, contextKey);
   if (direct !== "not-member") return direct;
 
   const compiled = state.segments.get(segmentKey);

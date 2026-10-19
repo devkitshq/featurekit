@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { CompileError, clientFlagKeys, compileSnapshot } from "../../src/snapshot/compile.js";
 import type { CompilerInput } from "../../src/snapshot/compile.js";
 import { CuckooFilter } from "../../src/sdk/index.js";
-import { RoaringBitmap } from "../../src/sdk/index.js";
+import { RoaringBitmap, segmentMemberId } from "../../src/sdk/index.js";
 
 const ENV = { id: "env-1", key: "production", bucketSalt: "s4lt" };
 
@@ -312,7 +312,10 @@ describe("compileSnapshot - segment encodings", () => {
     ];
     const compiled = compileSnapshot(i, { version: 1 }).segments["beta"]!;
     expect(compiled.kind).toBe("inline");
-    expect(compiled).toMatchObject({ members: ["usr_1"], excluded: ["usr_2"] });
+    expect(compiled).toMatchObject({
+      members: [segmentMemberId("user", "usr_1")],
+      excluded: [segmentMemberId("user", "usr_2")],
+    });
   });
 
   it("builds a cuckoo filter for a large segment with opaque keys", () => {
@@ -328,7 +331,7 @@ describe("compileSnapshot - segment encodings", () => {
     expect(compiled.kind).toBe("cuckoo");
     if (compiled.kind !== "cuckoo") throw new Error("unreachable");
     const filter = CuckooFilter.decode(compiled.filter);
-    for (let n = 0; n < 300; n++) expect(filter.contains(`usr_${n.toString(16)}a`)).toBe(true);
+    for (let n = 0; n < 300; n++) expect(filter.contains(segmentMemberId("user", `usr_${n.toString(16)}a`))).toBe(true);
   });
 
   it("prefers roaring when every member key is integral", () => {
@@ -393,6 +396,34 @@ describe("compileSnapshot - segment encodings", () => {
     ).toThrow(/non-integral/i);
   });
 
+  it("qualifies members by context kind, so kinds sharing a key stay apart", () => {
+    const i = booleanFlag("f");
+    i.segments = [seg("s1", "orgs")];
+    i.segmentMembers = [
+      { segmentId: "s1", contextKind: "org", contextKey: "acme", excluded: false },
+      { segmentId: "s1", contextKind: "user", contextKey: "acme", excluded: true },
+    ];
+    expect(compileSnapshot(i, { version: 1 }).segments["orgs"]).toMatchObject({
+      members: [segmentMemberId("org", "acme")],
+      excluded: [segmentMemberId("user", "acme")],
+    });
+  });
+
+  it("uses roaring only when every member is of one kind", () => {
+    const i = booleanFlag("f");
+    i.segments = [seg("s1", "accounts")];
+    i.segmentMembers = Array.from({ length: 300 }, (_, n) => ({
+      segmentId: "s1",
+      contextKind: n === 0 ? "org" : "user",
+      contextKey: String(n),
+      excluded: false,
+    }));
+    expect(compileSnapshot(i, { version: 1, segmentInlineMax: 100 }).segments["accounts"]!.kind).toBe("cuckoo");
+    expect(() =>
+      compileSnapshot(i, { version: 1, segmentInlineMax: 0, segmentFilter: "roaring" }),
+    ).toThrow(/more than one context kind/);
+  });
+
   it("honours a forced cuckoo choice even when keys are integral", () => {
     const i = booleanFlag("f");
     i.segments = [seg("s1", "accounts")];
@@ -415,9 +446,9 @@ describe("compileSnapshot - segment encodings", () => {
       { segmentId: "s1", contextKind: "user", contextKey: "usr_banned", excluded: true },
     ];
     const compiled = compileSnapshot(i, { version: 1, segmentInlineMax: 10 }).segments["enterprise"]!;
-    expect(compiled.excluded).toEqual(["usr_banned"]);
+    expect(compiled.excluded).toEqual([segmentMemberId("user", "usr_banned")]);
     if (compiled.kind !== "cuckoo") throw new Error("expected cuckoo");
-    expect(CuckooFilter.decode(compiled.filter).contains("usr_banned")).toBe(false);
+    expect(CuckooFilter.decode(compiled.filter).contains(segmentMemberId("user", "usr_banned"))).toBe(false);
   });
 
   it("compiles segment rules with their clauses", () => {

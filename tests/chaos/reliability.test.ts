@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { FeaturekitSDK, bucket, buildCuckooFilter, evaluate, SegmentIndex } from "../../src/sdk/index.js";
+import { FeaturekitSDK, bucket, buildCuckooFilter, evaluate, SegmentIndex, segmentMemberId } from "../../src/sdk/index.js";
 import type { CompiledFlag, Snapshot } from "../../src/sdk/index.js";
 import { Router } from "../../src/http/router.js";
 import { HttpServer } from "../../src/http/server.js";
@@ -348,7 +348,9 @@ describe("segment-fail-closed: the r2 leak, as a chaos test", () => {
   });
 
   it("grants it correctly when the segment is readable", () => {
-    const snapshot = snapshotWithNegatedSegment(buildCuckooFilter(members).filter.encode());
+    const snapshot = snapshotWithNegatedSegment(
+      buildCuckooFilter(members.map((key) => segmentMemberId("user", key))).filter.encode(),
+    );
     const index = new SegmentIndex(snapshot.segments);
 
     // A member of `enterprise` is excluded by the negated clause.

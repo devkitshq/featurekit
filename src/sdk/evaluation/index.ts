@@ -23,7 +23,7 @@ export { murmur3Bytes, murmur3Utf8, murmur3x86_128 } from "./murmur3.js";
 export { applyOperator, compareSemVer, parseSemVer } from "./operators.js";
 export type { SemVer } from "./operators.js";
 export { ordinalOf, RoaringBitmap, ROARING_ORDINAL_RE } from "./roaring.js";
-export { SegmentIndex } from "./segments.js";
+export { SegmentIndex, segmentMemberId } from "./segments.js";
 export type { MembershipResult, SegmentDelta } from "./segments.js";
 export type * from "./types.js";
 export {
