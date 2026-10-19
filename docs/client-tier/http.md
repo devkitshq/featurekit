@@ -127,6 +127,11 @@ nobody proved.
 `/v1/client/state` to get a new one. This is ordinary: it happens after a server
 restart, and after a handle sits unused past its TTL (900s by default).
 
+**`401 SIGNATURE_EXPIRED`** means the handle came from a signed identify whose
+`expiresAt` has passed. A handle never outlives its signature: the stream is
+refused after that point, and a stream already open is closed then. Sign a
+fresh context and re-POST.
+
 When the stream ends for any reason, re-POST and re-open. `featurekit-client`
 waits 1.5s before doing so; anything in that neighbourhood is fine, with jitter
 if you have many clients.

@@ -32,6 +32,12 @@ export interface StoredConnection {
   context: EvaluationContext;
   /** So a takeover does not re-send values the browser already has. */
   lastSentVersion: number;
+  /**
+   * When the identify's context signature expires, in epoch seconds. Absent
+   * for an unsigned identify. The handle must not outlive the signature that
+   * earned it, so a takeover after this refuses the stream.
+   */
+  signatureExpiresAt?: number;
 }
 
 export interface ClientConnectionStore {

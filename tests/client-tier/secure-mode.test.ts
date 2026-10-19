@@ -250,3 +250,45 @@ describe("client-tier input caps", () => {
     expect((await state(base, "dev", {})).status).toBe(400);
   });
 });
+
+describe("a connection handle does not outlive its signature", () => {
+  const signedIdentify = async (base: string, ttlSeconds: number) => {
+    const expiresAt = Math.floor(Date.now() / 1000) + ttlSeconds;
+    const response = await state(base, "prod", {
+      context: { key: "user-1" },
+      expiresAt,
+      signature: signContext("user-1", expiresAt, [SECRET], contextHash({ key: "user-1" })),
+    });
+    expect(response.status).toBe(200);
+    return ((await response.json()) as { connectionId: string }).connectionId;
+  };
+  const stream = (base: string, connectionId: string, signal?: AbortSignal) =>
+    fetch(`${base}/v1/client/stream?connection=${encodeURIComponent(connectionId)}&key=prod`, {
+      ...(signal !== undefined ? { signal } : {}),
+    });
+
+  it("refuses the stream once the signature has expired", async () => {
+    const base = await harness();
+    const connectionId = await signedIdentify(base, 1);
+    await new Promise((resolve) => setTimeout(resolve, 1_100));
+    const response = await stream(base, connectionId);
+    expect(response.status).toBe(401);
+    expect(((await response.json()) as { error: string }).error).toBe("SIGNATURE_EXPIRED");
+  });
+
+  it("closes an open stream when the signature expires", async () => {
+    const base = await harness();
+    const connectionId = await signedIdentify(base, 1);
+    const abort = new AbortController();
+    const response = await stream(base, connectionId, abort.signal);
+    expect(response.status).toBe(200);
+    const reader = response.body!.getReader();
+    const ended = (async () => {
+      for (;;) if ((await reader.read()).done) return true;
+    })();
+    const timeout = new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 3_000));
+    const closed = await Promise.race([ended, timeout]);
+    abort.abort();
+    expect(closed).toBe(true);
+  });
+});

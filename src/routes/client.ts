@@ -104,7 +104,12 @@ interface Registered extends ClientConnection {
   lastValues: ClientValues;
   /** When the identify registered it; an entry that never gets a stream expires. */
   registeredAt: number;
+  /** The signature's expiry, epoch seconds; absent for an unsigned identify. */
+  signatureExpiresAt?: number;
 }
+
+/** setTimeout's ceiling; a longer signature just closes the stream early and reconnects. */
+const MAX_TIMER_MS = 2 ** 31 - 1;
 
 function presentedKey(ctx: RequestContext): string {
   const header = ctx.header("authorization");
@@ -147,11 +152,12 @@ export function registerClientRoutes(router: Router, deps: ClientRouteDeps): Rou
     return env.isProduction || deps.requireSignature === true;
   }
 
+  /** Returns the verified signature's expiry, or undefined for an unsigned identify. */
   function verifySignature(
     body: ClientStateRequest,
     context: EvaluationContext,
     env: AuthenticatedEnvironment,
-  ): void {
+  ): number | undefined {
     const required = signatureRequired(env);
     const secrets = deps.secureModeSecrets ?? [];
     if (secrets.length === 0) {
@@ -161,7 +167,7 @@ export function registerClientRoutes(router: Router, deps: ClientRouteDeps): Rou
         // silently turn the boundary off.
         throw new HttpError(500, "SECURE_MODE_UNCONFIGURED", "secure mode required but no secret");
       }
-      return;
+      return undefined;
     }
     const key = (context as { key?: unknown }).key;
     const hash = contextHash(context);
@@ -174,12 +180,22 @@ export function registerClientRoutes(router: Router, deps: ClientRouteDeps): Rou
       },
       { secrets, maxTtlSeconds: deps.secureModeMaxTtlSeconds ?? 86_400 },
     );
-    if (result.ok) return;
+    if (result.ok) return body.expiresAt;
     // Never a silent downgrade to unsigned in a signed deployment.
-    if (result.reason === "SIGNATURE_MISSING" && !required) return;
+    if (result.reason === "SIGNATURE_MISSING" && !required) return undefined;
     // `SIGNATURE_EXPIRED` stays distinct: the SDK keeps serving its last values
     // and refreshes, whereas invalid drops to caller defaults.
     throw new HttpError(401, result.reason, "context signature rejected");
+  }
+
+  function signatureExpired(entry: Registered): boolean {
+    return entry.signatureExpiresAt !== undefined && entry.signatureExpiresAt * 1000 <= Date.now();
+  }
+
+  /** The shared record's lease: the connection TTL, cut short by the signature's expiry. */
+  function leaseSeconds(signatureExpiresAt: number | undefined): number {
+    if (signatureExpiresAt === undefined) return connectionTtl;
+    return Math.max(1, Math.min(connectionTtl, Math.ceil(signatureExpiresAt - Date.now() / 1000)));
   }
 
   async function ensureSubscription(environmentId: string): Promise<void> {
@@ -261,7 +277,7 @@ export function registerClientRoutes(router: Router, deps: ClientRouteDeps): Rou
       throw new HttpError(400, contextCheck.reason, "context rejected");
     }
 
-    verifySignature(body, body.context, env);
+    const signatureExpiresAt = verifySignature(body, body.context, env);
 
     const { snapshot, version } = await deps.snapshots.get(env.environmentId);
     const values = fanout.evaluateAll(env.environmentId, snapshot, body.context);
@@ -293,6 +309,7 @@ export function registerClientRoutes(router: Router, deps: ClientRouteDeps): Rou
         lastSentVersion: version,
         lastValues: { ...values },
         registeredAt: Date.now(),
+        ...(signatureExpiresAt !== undefined ? { signatureExpiresAt } : {}),
       });
       // Published so that whichever node receives the stream request can take
       // it over. Awaited rather than fire-and-forget: the stream request is
@@ -306,8 +323,13 @@ export function registerClientRoutes(router: Router, deps: ClientRouteDeps): Rou
       await shared
         .save(
           connectionId,
-          { environmentId: env.environmentId, context: body.context, lastSentVersion: version },
-          connectionTtl,
+          {
+            environmentId: env.environmentId,
+            context: body.context,
+            lastSentVersion: version,
+            ...(signatureExpiresAt !== undefined ? { signatureExpiresAt } : {}),
+          },
+          leaseSeconds(signatureExpiresAt),
         )
         .catch((error: unknown) => deps.onError?.(error));
     }
@@ -350,6 +372,9 @@ export function registerClientRoutes(router: Router, deps: ClientRouteDeps): Rou
           context: stored.context,
           lastSentVersion: stored.lastSentVersion,
           registeredAt: Date.now(),
+          ...(typeof stored.signatureExpiresAt === "number"
+            ? { signatureExpiresAt: stored.signatureExpiresAt }
+            : {}),
           // Recomputed rather than transported: `lastValues` exists to suppress
           // no-op pushes, and evaluating it here is cheaper than shipping every
           // flag value through the shared store on every identify.
@@ -365,17 +390,28 @@ export function registerClientRoutes(router: Router, deps: ClientRouteDeps): Rou
       // evaluating as an identity nobody proved.
       throw new HttpError(409, "UNKNOWN_CONNECTION", "call POST /v1/client/state first");
     }
+    // The handle was earned by a signature with an expiry, and must not outlive
+    // it: past that point the browser re-identifies with a fresh signature.
+    if (signatureExpired(registered)) {
+      connections.delete(connectionId);
+      await shared.delete(connectionId).catch((error: unknown) => deps.onError?.(error));
+      throw new HttpError(401, "SIGNATURE_EXPIRED", "context signature expired; identify again");
+    }
     // The browser is here and streaming; keep the shared record alive for a
-    // reconnect that may land somewhere else again. Best effort for the same
-    // reason as the write above.
-    await shared.touch(connectionId, connectionTtl).catch((error: unknown) => deps.onError?.(error));
+    // reconnect that may land somewhere else again, but never past the
+    // signature's expiry. Best effort for the same reason as the write above.
+    await shared
+      .touch(connectionId, leaseSeconds(registered.signatureExpiresAt))
+      .catch((error: unknown) => deps.onError?.(error));
 
     await ensureSubscription(env.environmentId);
 
+    let expiryTimer: ReturnType<typeof setTimeout> | undefined;
     const stream = openSse(ctx.res, {
       ...(deps.heartbeatMs !== undefined ? { heartbeatMs: deps.heartbeatMs } : {}),
       ...(deps.sse !== undefined ? { registry: deps.sse } : {}),
       onClose: () => {
+        if (expiryTimer !== undefined) clearTimeout(expiryTimer);
         connections.delete(registered.id);
         deps.onConnectionChange?.(connections.size);
         // The shared record is left to expire rather than deleted: a browser
@@ -383,6 +419,13 @@ export function registerClientRoutes(router: Router, deps: ClientRouteDeps): Rou
         // node, and deleting here would force a re-identify every time.
       },
     });
+    // An open stream ends when its signature does, rather than streaming this
+    // identity's values for as long as the socket stays up.
+    if (registered.signatureExpiresAt !== undefined) {
+      const remainingMs = Math.max(0, registered.signatureExpiresAt * 1000 - Date.now());
+      expiryTimer = setTimeout(() => stream.close(), Math.min(remainingMs, MAX_TIMER_MS));
+      expiryTimer.unref?.();
+    }
     deps.onConnectionChange?.(connections.size);
     registered.stream = stream;
     stream.event("ready", { version: registered.lastSentVersion }, registered.lastSentVersion);
