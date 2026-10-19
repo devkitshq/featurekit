@@ -604,8 +604,12 @@ export function registerAdminRoutes(router: Router, deps: AdminRouteDeps): Route
       if (principal.environmentIds !== null) {
         throw new HttpError(403, "TOKEN_SCOPED", "an environment-scoped token cannot delete projects");
       }
-      deps.tokens.invalidateAll();
       await deleteProject(deps.db, project.key);
+      // Its SDK keys went with it (ON DELETE CASCADE). Both caches are dropped
+      // after the delete, so a request in between cannot re-cache a key that
+      // is about to stop existing.
+      deps.tokens.invalidateAll();
+      deps.onKeyRevoked?.();
       return { deleted: true };
     }),
   );
