@@ -29,6 +29,7 @@ import { changeRequests, flagEnvironments, flags, scheduledChanges } from "../db
 import { flagConfigSchema } from "../contracts/admin.js";
 import { resolveTarget, writeFlagConfig } from "../repositories/flag-config.js";
 import type { Principal } from "../auth/principal.js";
+import { HttpError } from "../http/router.js";
 import { environments, projects } from "../db/schema.js";
 
 export interface SchedulerOptions {
@@ -298,15 +299,23 @@ export async function approveChangeRequest(
   // Bound to the flag environment the caller was authorized for: a request id
   // from another environment or project simply is not found.
   if (request === undefined) {
-    throw new Error("NOT_FOUND");
+    throw new HttpError(404, "NOT_FOUND", "no such change request");
   }
   if (request.status !== "pending") {
-    throw new Error(`change request is already ${request.status}`);
+    throw new HttpError(
+      409,
+      "CHANGE_REQUEST_REJECTED",
+      `change request is already ${request.status}`,
+    );
   }
   if (request.requestedBy !== null && request.requestedBy === options.reviewer.memberId) {
     // Four-eyes. The point of an approval workflow is that a second person
     // looked; self-approval makes it a formality with extra steps.
-    throw new Error("a change request cannot be approved by the person who raised it");
+    throw new HttpError(
+      409,
+      "CHANGE_REQUEST_REJECTED",
+      "a change request cannot be approved by the person who raised it",
+    );
   }
 
   const target = await resolveTarget(db, {
@@ -314,11 +323,21 @@ export async function approveChangeRequest(
     environmentKey: request.environmentKey,
     flagKey: request.flagKey,
   });
-  if (target === null) throw new Error("the flag this request targets no longer exists");
+  if (target === null) {
+    throw new HttpError(
+      409,
+      "CHANGE_REQUEST_REJECTED",
+      "the flag this request targets no longer exists",
+    );
+  }
 
   const parsed = flagConfigSchema.omit({ expectedVersion: true }).safeParse(request.patch ?? {});
   if (!parsed.success) {
-    throw new Error(`the requested change is no longer valid: ${parsed.error.issues[0]?.message ?? ""}`);
+    throw new HttpError(
+      409,
+      "CHANGE_REQUEST_REJECTED",
+      `the requested change is no longer valid: ${parsed.error.issues[0]?.message ?? ""}`,
+    );
   }
 
   // Claim the request with a conditional update before applying it, so two
@@ -328,7 +347,13 @@ export async function approveChangeRequest(
     .set({ status: "approved", reviewedBy: options.reviewer.memberId })
     .where(and(eq(changeRequests.id, options.requestId), eq(changeRequests.status, "pending")))
     .returning({ id: changeRequests.id });
-  if (claimed.length === 0) throw new Error("change request is no longer pending");
+  if (claimed.length === 0) {
+    throw new HttpError(
+      409,
+      "CHANGE_REQUEST_REJECTED",
+      "change request is no longer pending",
+    );
+  }
 
   let result: Awaited<ReturnType<typeof writeFlagConfig>>;
   try {
@@ -371,7 +396,7 @@ export async function rejectChangeRequest(
       ),
     )
     .returning({ id: changeRequests.id });
-  if (rows.length === 0) throw new Error("NOT_FOUND");
+  if (rows.length === 0) throw new HttpError(404, "NOT_FOUND", "no such pending change request");
 }
 
 /** Pending and recent requests for one flag environment. */

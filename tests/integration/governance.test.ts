@@ -308,7 +308,7 @@ describe.skipIf(reason !== null)("governance", () => {
         reviewer,
         onApplied: () => {},
       }),
-    ).rejects.toThrow("NOT_FOUND");
+    ).rejects.toMatchObject({ status: 404, code: "NOT_FOUND" });
   }, 60_000);
 
   it("rejects a request without applying it", async () => {

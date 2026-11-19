@@ -120,19 +120,12 @@ export function registerChangesRoutes(router: Router, deps: AdminRouteDeps, admi
     "/v1/admin/projects/:project/environments/:env/flags/:flag/requests/:requestId/approve",
     withPrincipal("writer", async (ctx, principal) => {
       const target = await requireFlagTarget(ctx, deps, principal);
-      try {
-        const result = await approveChangeRequest(deps.db, {
-          requestId: ctx.params["requestId"] ?? "",
-          flagEnvironmentId: target.flagEnvironmentId,
-          reviewer: principal,
-          onApplied: (environmentId, flagKey) => deps.snapshots.notifyChange(environmentId, flagKey),
-        });
-        return result;
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        if (message === "NOT_FOUND") throw new HttpError(404, "NOT_FOUND", "no such change request");
-        throw new HttpError(409, "CHANGE_REQUEST_REJECTED", message);
-      }
+      return approveChangeRequest(deps.db, {
+        requestId: ctx.params["requestId"] ?? "",
+        flagEnvironmentId: target.flagEnvironmentId,
+        reviewer: principal,
+        onApplied: (environmentId, flagKey) => deps.snapshots.notifyChange(environmentId, flagKey),
+      });
     }),
   );
 
@@ -141,16 +134,12 @@ export function registerChangesRoutes(router: Router, deps: AdminRouteDeps, admi
     withPrincipal("writer", async (ctx, principal) => {
       const target = await requireFlagTarget(ctx, deps, principal);
       const input = await body(ctx, reviewSchema, 4 * 1024);
-      try {
-        await rejectChangeRequest(deps.db, {
-          requestId: ctx.params["requestId"] ?? "",
-          flagEnvironmentId: target.flagEnvironmentId,
-          reviewer: principal,
-          ...(input.comment !== undefined ? { comment: input.comment } : {}),
-        });
-      } catch {
-        throw new HttpError(404, "NOT_FOUND", "no such pending change request");
-      }
+      await rejectChangeRequest(deps.db, {
+        requestId: ctx.params["requestId"] ?? "",
+        flagEnvironmentId: target.flagEnvironmentId,
+        reviewer: principal,
+        ...(input.comment !== undefined ? { comment: input.comment } : {}),
+      });
       return { status: "rejected" };
     }),
   );
