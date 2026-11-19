@@ -6,7 +6,7 @@
 
 Self-hosted feature flags for Node and everything that talks HTTP. Targeting rules, percentage rollouts, segments, a kill switch, scheduled changes, change requests, an audit log and an admin dashboard, all on the Postgres you already have.
 
-[![npm version](https://img.shields.io/npm/v/featurekit-server.svg?style=flat-square&color=6366f1)](https://www.npmjs.com/package/featurekit-server) [![npm client](https://img.shields.io/npm/v/featurekit-client.svg?style=flat-square&color=6366f1&label=client)](https://www.npmjs.com/package/featurekit-client) [![TypeScript](https://img.shields.io/badge/TypeScript-5.7+-3178c6.svg?style=flat-square)](https://www.typescriptlang.org/) [![Node.js](https://img.shields.io/badge/node-%3E%3D20.0.0-339933.svg?style=flat-square)](https://nodejs.org) ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)
+[![npm version](https://img.shields.io/npm/v/featurekit-server.svg?style=flat-square&color=6366f1)](https://www.npmjs.com/package/featurekit-server) [![npm client](https://img.shields.io/npm/v/featurekit-client.svg?style=flat-square&color=6366f1&label=client)](https://www.npmjs.com/package/featurekit-client) [![TypeScript](https://img.shields.io/badge/TypeScript-5.7+-3178c6.svg?style=flat-square)](https://www.typescriptlang.org/) [![Node.js](https://img.shields.io/badge/node-%3E%3D22.0.0-339933.svg?style=flat-square)](https://nodejs.org) ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)
 
 [Documentation](docs/README.md) · [Quickstart](#quickstart) · [Examples](#examples) · [MCP server](packages/mcp/README.md)
 
@@ -45,7 +45,7 @@ npm i featurekit-client  # browsers, React Native, Node, Deno, Bun, edge
 
 ## Quickstart
 
-You need Node 20+ and Docker running. In development featurekit starts a throwaway Postgres container for you.
+You need Node 22+ and Docker running. In development featurekit starts a throwaway Postgres container for you.
 
 **1. Install**
 

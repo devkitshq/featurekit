@@ -39,7 +39,7 @@
     "dashboard"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "scripts": {
     "build": "tsc -b && npm run build --workspace=@featurekit/dashboard",

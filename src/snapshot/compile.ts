@@ -183,17 +183,6 @@ export class CompileError extends Error {
 
 /* ─────────────────────────────── helpers ───────────────────────────── */
 
-function groupBy<T, K>(rows: readonly T[], key: (row: T) => K): Map<K, T[]> {
-  const out = new Map<K, T[]>();
-  for (const row of rows) {
-    const k = key(row);
-    const bucket = out.get(k);
-    if (bucket === undefined) out.set(k, [row]);
-    else bucket.push(row);
-  }
-  return out;
-}
-
 const byIdx = <T extends { idx: number }>(a: T, b: T) => a.idx - b.idx;
 
 function compileClause(row: ClauseRow | SegmentRuleClauseRow): CompiledClause {
@@ -216,7 +205,7 @@ export function compileSnapshot(input: CompilerInput, options: CompileOptions): 
   const variationIndex = new Map<string, { flagId: string; idx: number }>();
   for (const v of input.variations) variationIndex.set(v.id, { flagId: v.flagId, idx: v.idx });
 
-  const variationsByFlag = groupBy(input.variations, (v) => v.flagId);
+  const variationsByFlag = Map.groupBy(input.variations, (v) => v.flagId);
   const flagById = new Map(input.flags.map((f) => [f.id, f]));
   const liveFlags = input.flags.filter((f) => f.archivedAt === null);
   const liveFlagIds = new Set(liveFlags.map((f) => f.id));
@@ -226,10 +215,10 @@ export function compileSnapshot(input: CompilerInput, options: CompileOptions): 
     if (fe.environmentId === environment.id) configByFlagId.set(fe.flagId, fe);
   }
 
-  const targetsByFe = groupBy(input.targets, (t) => t.flagEnvironmentId);
-  const rulesByFe = groupBy(input.rules, (r) => r.flagEnvironmentId);
-  const clausesByRule = groupBy(input.clauses, (c) => c.ruleId);
-  const prereqsByFe = groupBy(input.prerequisites, (p) => p.flagEnvironmentId);
+  const targetsByFe = Map.groupBy(input.targets, (t) => t.flagEnvironmentId);
+  const rulesByFe = Map.groupBy(input.rules, (r) => r.flagEnvironmentId);
+  const clausesByRule = Map.groupBy(input.clauses, (c) => c.ruleId);
+  const prereqsByFe = Map.groupBy(input.prerequisites, (p) => p.flagEnvironmentId);
 
   /** Resolve a variation id to its index, asserting it belongs to this flag. */
   function indexOf(variationId: string, flagId: string, where: string): number {
@@ -255,7 +244,7 @@ export function compileSnapshot(input: CompilerInput, options: CompileOptions): 
     const variations = (variationsByFlag.get(flag.id) ?? []).slice().sort(byIdx).map((v) => v.value);
 
     const targets: CompiledTarget[] = [];
-    const grouped = groupBy(
+    const grouped = Map.groupBy(
       targetsByFe.get(config.id) ?? [],
       (t) => `${t.contextKind}\0${t.variationId}`,
     );
@@ -454,9 +443,9 @@ function compileSegments(
   const inlineMax = options.segmentInlineMax ?? 50_000;
   const filterChoice = options.segmentFilter ?? "auto";
 
-  const membersBySegment = groupBy(input.segmentMembers, (m) => m.segmentId);
-  const rulesBySegment = groupBy(input.segmentRules, (r) => r.segmentId);
-  const clausesByRule = groupBy(input.segmentRuleClauses, (c) => c.segmentRuleId);
+  const membersBySegment = Map.groupBy(input.segmentMembers, (m) => m.segmentId);
+  const rulesBySegment = Map.groupBy(input.segmentRules, (r) => r.segmentId);
+  const clausesByRule = Map.groupBy(input.segmentRuleClauses, (c) => c.segmentRuleId);
 
   const out: Record<string, CompiledSegment> = {};
 
