@@ -315,3 +315,19 @@ describe("SnapshotService.applyRemoteChange", () => {
     await reader.close();
   });
 });
+
+describe("SnapshotService.preview", () => {
+  it("compiles the changed input the way a real compile would, and writes nothing", async () => {
+    const { service, store } = makeService({ segmentInlineMax: 0 });
+    const input = baseInput();
+    input.segments = [{ id: "s1", environmentId: ENV, key: "beta", version: 1, archivedAt: null }] as never;
+    input.segmentMembers = [{ segmentId: "s1", contextKind: "user", contextKey: "usr_1", excluded: false }];
+
+    const proposed = await service.preview(ENV, async (i) => ({ ...i, ...input }), 9);
+
+    expect(proposed.version).toBe(9);
+    // segmentInlineMax: 0 forces a filter, exactly as the service's own compiles do.
+    expect(proposed.segments["beta"]?.kind).not.toBe("inline");
+    expect(await store.get(ENV)).toBeNull();
+  });
+});

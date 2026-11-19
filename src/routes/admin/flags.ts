@@ -15,7 +15,12 @@ import {
   listFlags,
 } from "../../repositories/flags.js";
 import { findEnvironmentByKeys } from "../../repositories/environments.js";
-import { killSwitch, readFlagConfig, writeFlagConfig } from "../../repositories/flag-config.js";
+import {
+  applyFlagConfigToInput,
+  killSwitch,
+  readFlagConfig,
+  writeFlagConfig,
+} from "../../repositories/flag-config.js";
 import { readAuditDiff } from "../../repositories/audit.js";
 import { requireEnvironmentAccess } from "../../auth/principal.js";
 import {
@@ -295,10 +300,11 @@ export function registerFlagsRoutes(router: Router, deps: AdminRouteDeps, admin:
       const input = await body(ctx, dryRunSchema, BODY_LIMITS.adminWrite);
 
       const current = await deps.snapshots.get(target.environmentId);
-      const proposed = await deps.dryRun?.(target, input.patch);
-      if (proposed === undefined) {
-        throw new HttpError(501, "DRY_RUN_UNAVAILABLE", "dry run is not configured on this node");
-      }
+      const proposed = await deps.snapshots.preview(
+        target.environmentId,
+        (compilerInput) => applyFlagConfigToInput(deps.db, compilerInput, target, input.patch),
+        target.version + 1,
+      );
 
       const result = dryRunFlag(
         target.flagKey,

@@ -5,7 +5,6 @@
 
 import { HttpError, type RequestContext } from "../../http/router.js";
 import type { Database } from "../../db/client.js";
-import type { Snapshot } from "../../sdk/evaluation/index.js";
 import type { SnapshotService } from "../../snapshot/service.js";
 import type { AccessTokenRepository } from "../../repositories/access-tokens.js";
 import { resolveSession, touchSession, SESSION_TTL_MS } from "../../repositories/members.js";
@@ -50,7 +49,6 @@ export interface AdminRouteDeps {
    * Supplied by the composition root because it needs the compiler and the row
    * loader, which the route layer deliberately does not know about.
    */
-  dryRun?: (target: ResolvedTarget, patch: unknown) => Promise<Snapshot>;
   /** `Secure` on the session cookie. On wherever the dashboard is not on localhost. */
   secureCookies?: boolean;
   onError?: (error: unknown) => void;

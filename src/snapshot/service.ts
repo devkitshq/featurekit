@@ -198,13 +198,31 @@ export class SnapshotService {
     const input = await this.options.loadInput(environmentId);
     const version = await this.options.nextVersion(environmentId);
     const startedAt = Date.now();
-    const snapshot = compileSnapshot(input, {
+    const snapshot = this.compile(input, version);
+    return { snapshot, version, compileMs: Date.now() - startedAt };
+  }
+
+  /**
+   * The snapshot this environment would compile to with `change` applied to
+   * the compiler's input. Nothing is written or locked: applying a change for
+   * real and undoing it would be visible to every SDK and write two audit rows
+   * for a change nobody made.
+   */
+  async preview(
+    environmentId: string,
+    change: (input: CompilerInput) => Promise<CompilerInput>,
+    version: number,
+  ): Promise<Snapshot> {
+    return this.compile(await change(await this.options.loadInput(environmentId)), version);
+  }
+
+  private compile(input: CompilerInput, version: number): Snapshot {
+    return compileSnapshot(input, {
       version,
       ...(this.options.segmentInlineMax !== undefined
         ? { segmentInlineMax: this.options.segmentInlineMax }
         : {}),
     });
-    return { snapshot, version, compileMs: Date.now() - startedAt };
   }
 
   /**

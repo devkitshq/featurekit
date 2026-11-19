@@ -30,8 +30,6 @@ import { PostgresSnapshotStore } from "./snapshot/postgres-store.js";
 import { PostgresClientConnectionStore } from "./client-tier/postgres-connection-store.js";
 import { SnapshotService } from "./snapshot/service.js";
 import { loadCompilerInput } from "./repositories/snapshot-input.js";
-import { compileSnapshot } from "./snapshot/compile.js";
-import { applyFlagConfigToInput } from "./repositories/flag-config.js";
 import { listEnvironments, nextSnapshotVersion, partitionRunwayDays } from "./repositories/environments.js";
 import { SdkKeyRepository } from "./repositories/sdk-keys.js";
 import { AccessTokenRepository } from "./repositories/access-tokens.js";
@@ -242,24 +240,6 @@ export function createApp(config: FeaturekitConfig): App {
     db,
     snapshots,
     tokens,
-    /**
-     * Compile a proposed configuration without writing it.
-     *
-     * Applying the patch for real and undoing it would be visible to every SDK
-     * for the duration, and would write two audit rows for a change nobody
-     * made. Even a rolled-back write locks the live row for a whole-environment
-     * compile, on a route readers can call. So the patch is applied to the
-     * compiler's input in memory, and nothing is written or locked.
-     */
-    dryRun: async (target, patch) => {
-      const input = await loadCompilerInput(db, target.environmentId, {
-        maxSegmentMembers: config.SEGMENT_MEMBER_CEILING,
-        memberPageSize: config.SEGMENT_MEMBER_PAGE_SIZE,
-      });
-      return compileSnapshot(await applyFlagConfigToInput(db, input, target, patch as never), {
-        version: target.version + 1,
-      });
-    },
     // A revoked key must stop working now, not when its cache entry expires.
     onKeyRevoked: () => sdkKeys.invalidateAll(),
     // `Secure` cookies cannot be set over plain HTTP, and development is plain
