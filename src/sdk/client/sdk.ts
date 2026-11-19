@@ -54,6 +54,12 @@ export interface FeaturekitSdkOptions {
   persist?: { kind: "file"; path: string } | SnapshotPersistence;
   mode?: "streaming" | "polling" | "offline";
   pollIntervalMs?: number;
+  /**
+   * Reconnect when the stream is silent this long. The server heartbeats every
+   * `STREAM_HEARTBEAT_MS` (30s by default), so the default is three missed
+   * beats; raise it if you raised that.
+   */
+  streamReadTimeoutMs?: number;
   events?: { enabled?: boolean; flushIntervalMs?: number; maxBuckets?: number };
   /** Injectable for tests; defaults to the global `fetch`. */
   fetchImpl?: typeof fetch;
@@ -392,19 +398,36 @@ export class FeaturekitSDK {
     const decoder = new TextDecoder();
     let buffer = "";
 
-    while (!this.closed) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
+    // A half-open connection (a load balancer that dropped it without a FIN)
+    // never ends a read. Aborting rejects the pending read into a reconnect.
+    const abort = this.abort;
+    const timeoutMs = this.options.streamReadTimeoutMs ?? 90_000;
+    let watchdog: ReturnType<typeof setTimeout> | undefined;
+    const arm = () => {
+      clearTimeout(watchdog);
+      watchdog = setTimeout(() => abort?.abort(), timeoutMs);
+      watchdog.unref?.();
+    };
 
-      // SSE frames are separated by a blank line. Anything short of one is a
-      // partial frame and must stay in the buffer.
-      let split: number;
-      while ((split = buffer.indexOf("\n\n")) !== -1) {
-        const frame = buffer.slice(0, split);
-        buffer = buffer.slice(split + 2);
-        this.handleFrame(frame, deserialize);
+    try {
+      arm();
+      while (!this.closed) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        arm();
+        buffer += decoder.decode(value, { stream: true });
+
+        // SSE frames are separated by a blank line. Anything short of one is a
+        // partial frame and must stay in the buffer.
+        let split: number;
+        while ((split = buffer.indexOf("\n\n")) !== -1) {
+          const frame = buffer.slice(0, split);
+          buffer = buffer.slice(split + 2);
+          this.handleFrame(frame, deserialize);
+        }
       }
+    } finally {
+      clearTimeout(watchdog);
     }
   }
 

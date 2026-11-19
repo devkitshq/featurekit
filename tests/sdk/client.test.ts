@@ -268,6 +268,25 @@ describe("failing should be invisible to your users", () => {
     expect(sdk.state).toBe("reconnecting");
   });
 
+  it("reconnects a stream that goes silent without closing", async () => {
+    // A half-open connection: the response arrives, then nothing, ever.
+    let connects = 0;
+    const fetchImpl = (async (_url: string, init?: RequestInit) => {
+      connects++;
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          init?.signal?.addEventListener("abort", () =>
+            controller.error(new DOMException("aborted", "AbortError")),
+          );
+        },
+      });
+      return new Response(body, { status: 200 });
+    }) as unknown as typeof fetch;
+
+    makeSdk({ baseUrl: "http://127.0.0.1:1", fetchImpl, streamReadTimeoutMs: 100 });
+    await vi.waitFor(() => expect(connects).toBeGreaterThanOrEqual(2), { timeout: 3_000 });
+  });
+
   it("is usable at import time from a bootstrap snapshot", async () => {
     // The difference between a cold start serving correct flags and one
     // serving defaults.
