@@ -51,7 +51,7 @@ export function redact(url: string): string {
  * ```ts
  * import { FeaturekitServer } from "featurekit-server";
  *
- * const server = new FeaturekitServer({ services: ["all"], port: 3000 });
+ * const server = new FeaturekitServer({ port: 3000 });
  * await server.start();   // dev: Postgres starts automatically
  * ```
  *
@@ -73,7 +73,7 @@ export function redact(url: string): string {
 
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { createApp, type App, type FeaturekitService } from "./app.js";
+import { createApp, type App } from "./app.js";
 import { ConfigError, loadConfig, type FeaturekitConfig } from "./config/index.js";
 import { type Database } from "./db/client.js";
 import { createMember, findMemberByEmail, updateMember } from "./repositories/members.js";
@@ -83,11 +83,7 @@ import { migrate } from "./migrate.js";
 import { applyFlagFile, environmentOf, type FlagFile } from "./provisioning.js";
 import { createSdkKey, listSdkKeys } from "./repositories/catalog.js";
 
-export type { FeaturekitService } from "./app.js";
-
 export interface FeaturekitServerOptions {
-  /** Which parts of the system this process runs. Defaults to `["all"]`. */
-  services?: readonly FeaturekitService[];
   port?: number;
   host?: string;
   databaseUrl?: string;
@@ -337,9 +333,7 @@ export class FeaturekitServer {
 
     /* the system itself */
 
-    const app = createApp(config, {
-      ...(this.options.services !== undefined ? { services: this.options.services } : {}),
-    });
+    const app = createApp(config);
     this.#app = app;
 
     // Before seeding, so a wrong or unmigrated schema is reported as that rather
@@ -571,7 +565,6 @@ export class FeaturekitServer {
           url: this.#address?.url,
           databaseUrl: addresses.databaseUrl,
           databaseSchema: addresses.databaseSchema,
-          services: this.options.services ?? ["all"],
           startedAt: new Date().toISOString(),
         },
         null,

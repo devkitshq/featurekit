@@ -70,7 +70,6 @@ try {
     `import { FeaturekitServer } from "featurekit-server";
 
 const server = new FeaturekitServer({
-  services: ["all"],
   port: 3000,
 });
 
@@ -111,7 +110,6 @@ if (!(status.applied > 0 && status.partitionRunwayDays > 0)) throw new Error(JSO
     `import { FeaturekitServer } from "featurekit-server";
 
 const server = new FeaturekitServer({
-  services: ["all"],
   port: ${PORT},
   databaseUrl: process.env.DATABASE_URL,
   devStateFile: false,

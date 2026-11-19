@@ -88,7 +88,6 @@ import { FeaturekitServer } from "featurekit-server";
 import flags from "./flags.js";
 
 const server = new FeaturekitServer({
-  services: ["all"],
   port: 3000,
   flags,
   env: {
@@ -248,7 +247,7 @@ export default {
 ```js
 import flags from "./flags.js";
 
-const server = new FeaturekitServer({ services: ["all"], port: 3000, flags });
+const server = new FeaturekitServer({ port: 3000, flags });
 await server.start();
 ```
 
@@ -260,7 +259,6 @@ On restart, new flags are created and definitions kept current. Existing flags k
 
 ```js
 const server = new FeaturekitServer({
-  services: ["all"],
   port: 3000,
   host: "0.0.0.0",
   nodeEnv: "production",
@@ -351,14 +349,7 @@ Set `devServices: false` explicitly if your image might ever run outside product
 
 ### Scaling
 
-Split the process by service when one machine stops being enough:
-
-```js
-new FeaturekitServer({ services: ["api", "stream"] });      // scale horizontally
-new FeaturekitServer({ services: ["rollup", "scheduler"] }); // keep it small
-```
-
-Or set `FEATUREKIT_SERVICES=api,stream` and run the packaged entrypoint, `node node_modules/featurekit-server/dist/main.js`, if you would rather configure by environment than by file.
+Run more identical copies behind a load balancer. Every node serves every route and runs the rollup and scheduler workers, which are safe to run on many nodes at once.
 
 [Every option, and the full environment schema](docs/ops/deployment.md)
 

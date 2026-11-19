@@ -7,7 +7,6 @@ const port = Number(process.env.PORT ?? 3000);
 const appPort = Number(process.env.APP_PORT ?? 4000);
 
 const server = new FeaturekitServer({
-  services: ["all"],
   port,
   host,
 

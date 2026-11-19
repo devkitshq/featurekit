@@ -14,46 +14,13 @@
  * 4. **Die on an unhandled rejection rather than continuing in an unknown
  *    state.** A process that logs one and keeps serving flags is a process
  *    whose next answer nobody can reason about.
- *
- * `FEATUREKIT_SERVICES` splits a deployment: `api,stream` on one, `rollup,
- * scheduler` on another. Unset means one process running everything.
  */
 
 import { ConfigError } from "./config/index.js";
-import { FeaturekitServer, type FeaturekitService } from "./server.js";
-
-const SERVICES: readonly FeaturekitService[] = [
-  "api",
-  "stream",
-  "events",
-  "rollup",
-  "scheduler",
-  "all",
-];
-
-function servicesFromEnv(): readonly FeaturekitService[] | undefined {
-  const raw = process.env["FEATUREKIT_SERVICES"];
-  if (raw === undefined) return undefined;
-  const requested = raw
-    .split(",")
-    .map((entry) => entry.trim())
-    .filter((entry) => entry.length > 0);
-  const unknown = requested.filter((entry) => !SERVICES.includes(entry as FeaturekitService));
-  if (unknown.length > 0) {
-    // A typo here silently produces a process that serves nothing, and the
-    // symptom — every request 404s — points nowhere near the cause.
-    throw new ConfigError(
-      `featurekit: unknown FEATUREKIT_SERVICES entries: ${unknown.join(", ")}\n` +
-        `  valid: ${SERVICES.join(", ")}`,
-    );
-  }
-  return requested as FeaturekitService[];
-}
+import { FeaturekitServer } from "./server.js";
 
 async function main(): Promise<void> {
-  const services = servicesFromEnv();
   const server = new FeaturekitServer({
-    ...(services !== undefined ? { services } : {}),
     // Migrations are a deploy step here, not something a booting node does:
     // every node running them is a lock convoy during a rolling deploy.
     autoMigrate: process.env["FEATUREKIT_AUTO_MIGRATE"] === "1",

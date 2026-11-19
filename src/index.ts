@@ -4,7 +4,7 @@
  * ```ts
  * import { FeaturekitServer } from "featurekit-server";
  *
- * const server = new FeaturekitServer({ services: ["all"], port: 3000 });
+ * const server = new FeaturekitServer({ port: 3000 });
  * await server.start();
  * ```
  *
@@ -30,11 +30,10 @@ export {
 export type {
   FeaturekitServerOptions,
   FeaturekitAddress,
-  FeaturekitService,
 } from "./server.js";
 
 export { createApp } from "./app.js";
-export type { App, CreateAppOptions } from "./app.js";
+export type { App } from "./app.js";
 export { loadConfig, ConfigError, configSchema } from "./config/index.js";
 export type { FeaturekitConfig } from "./config/index.js";
 

@@ -3,8 +3,7 @@
  *
  * Two real uses, not just tests:
  *
- * - **`services: ["all"]` on a single node.** A monolith deployment with one
- *   process has nobody to fan out to.
+ * - **A single node.** One process has nobody to fan out to.
  * - **The contract fixture.** `MemorySnapshotStore` and `PostgresSnapshotStore`
  *   run the *same* suite, so the store tests use in production and the store
  *   tests run against cannot quietly diverge.

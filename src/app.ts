@@ -72,67 +72,9 @@ export interface App {
 /** Client-tier routes are the only ones CORS applies to. See `http/cors.ts`. */
 const CLIENT_ROUTES = new Set(["/v1/client/state", "/v1/client/stream"]);
 
-/**
- * The processes a deployment can be split into.
- *
- * One process running `["all"]` is the right shape until a few thousand
- * connected SDKs; past that the halves scale differently — streams are held
- * open by memory and file descriptors, rollup is bounded by Postgres write
- * throughput — and the split is how they stop competing for the same node.
- */
-export type FeaturekitService = "api" | "stream" | "events" | "rollup" | "scheduler" | "all";
 export type { FeaturekitConfig };
 
-/**
- * Which service owns which route.
- *
- * Ops routes are deliberately absent: `/live`, `/ready`, `/health` and
- * `/metrics` are registered by every process whatever it runs, because a
- * rollup-only node still has to answer its orchestrator.
- */
-const ROUTE_SERVICE: Readonly<Record<string, FeaturekitService>> = {
-  "/v1/snapshot/:envKey": "api",
-  "/v1/stream/:envKey": "stream",
-  "/v1/events": "events",
-  "/v1/client/state": "api",
-  "/v1/client/stream": "stream",
-};
-
-/**
- * A router that silently drops routes this process does not serve.
- *
- * The alternative — registering everything and answering 503 — looks tidier and
- * is worse: a load balancer health-checking a route that exists but refuses is
- * a node that stays in rotation while failing requests. An unregistered route
- * is a 404, which is the truth: this process does not serve it.
- */
-class ServiceRouter extends Router {
-  constructor(private readonly enabled: ReadonlySet<FeaturekitService>) {
-    super();
-  }
-
-  override add(method: string, pattern: string, handler: Parameters<Router["add"]>[2]): this {
-    const service = ROUTE_SERVICE[pattern];
-    if (service !== undefined && !this.enabled.has(service)) return this;
-    return super.add(method, pattern, handler);
-  }
-}
-
-export interface CreateAppOptions {
-  /** Defaults to `["all"]`: one process that does everything. */
-  services?: readonly FeaturekitService[];
-}
-
-function serviceSet(services: readonly FeaturekitService[] | undefined): Set<FeaturekitService> {
-  const requested = services === undefined || services.length === 0 ? ["all" as const] : services;
-  if (requested.includes("all")) {
-    return new Set<FeaturekitService>(["api", "stream", "events", "rollup", "scheduler"]);
-  }
-  return new Set(requested);
-}
-
-export function createApp(config: FeaturekitConfig, options: CreateAppOptions = {}): App {
-  const services = serviceSet(options.services);
+export function createApp(config: FeaturekitConfig): App {
   const logger = createLogger({
     level: config.LOG_LEVEL,
     base: { service: "featurekit", env: config.NODE_ENV },
@@ -255,7 +197,7 @@ export function createApp(config: FeaturekitConfig, options: CreateAppOptions = 
   /* ── HTTP ──────────────────────────────────────────────────────────── */
 
   const sse = new SseRegistry();
-  const router = new ServiceRouter(services);
+  const router = new Router();
 
   registerSdkRoutes(router, {
     snapshots,
@@ -300,7 +242,6 @@ export function createApp(config: FeaturekitConfig, options: CreateAppOptions = 
     onError: (error) => logger.warn({ err: error }, "client route error"),
   });
 
-  if (services.has("api")) {
   registerAdminRoutes(router, {
     db,
     snapshots,
@@ -330,7 +271,6 @@ export function createApp(config: FeaturekitConfig, options: CreateAppOptions = 
     secureCookies: config.NODE_ENV === "production",
     onError: (error) => logger.warn({ err: error }, "admin route error"),
   });
-  }
 
   const server = new HttpServer({
     router,
@@ -390,9 +330,8 @@ export function createApp(config: FeaturekitConfig, options: CreateAppOptions = 
   /* ── the dashboard ─────────────────────────────────────────────────── */
 
   // Served by the node that serves the API, so there is one URL to remember and
-  // no CORS between the UI and the endpoints it calls. A node that does not run
-  // the API has no dashboard to serve either.
-  if (services.has("api") && config.DASHBOARD !== "off") {
+  // no CORS between the UI and the endpoints it calls.
+  if (config.DASHBOARD !== "off") {
     registerDashboardRoutes(router, {
       distDir:
         config.DASHBOARD === ""
@@ -425,8 +364,10 @@ export function createApp(config: FeaturekitConfig, options: CreateAppOptions = 
     },
 
     async listen() {
-      if (services.has("rollup")) rollup.start();
-      if (services.has("scheduler")) scheduler.start();
+      // Safe on every node: rollup upserts by adding counts, and the scheduler
+      // claims each change with FOR UPDATE SKIP LOCKED.
+      rollup.start();
+      scheduler.start();
       const address = await server.listen();
       logger.info({ ...address, nodeEnv: config.NODE_ENV }, "featurekit control plane listening");
 
