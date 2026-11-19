@@ -148,6 +148,19 @@ describe("rate limit identity", () => {
       );
     expect(make("Bearer a")).not.toBe(make("Bearer b"));
   });
+
+  it("counts one key as one caller however its header is spelled", () => {
+    const make = (auth: string) =>
+      rateLimitIdentity(
+        {
+          header: () => auth,
+          query: new URLSearchParams(),
+          req: { socket: { remoteAddress: "10.0.0.1" } },
+        } as unknown as RequestContext,
+        "r",
+      );
+    expect(make("Bearer a")).toBe(make("a"));
+  });
 });
 
 describe("rate limit middleware", () => {
