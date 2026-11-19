@@ -192,6 +192,29 @@ describe("streaming", () => {
     expect(changes.length).toBeGreaterThan(0);
   });
 
+  it("parses CRLF frames split across chunks, with data over several lines", async () => {
+    const flag =
+      '{"key":"new-checkout","version":1,"kind":"boolean","on":true,"variations":[false,true],' +
+      '"offVariation":0,"fallthrough":{"variation":1},"prerequisites":[],"targets":[],"rules":[]}';
+    const chunks = [
+      'event: put\r\ndata: {"version":1,"environmentKey":"production","salt":"s4lt",\r\n',
+      `data: "flags":{"new-checkout":${flag}},"segments":{}}\r`,
+      "\n\r\n",
+    ];
+    const fetchImpl = (async () =>
+      new Response(
+        new ReadableStream({
+          start(controller) {
+            for (const chunk of chunks) controller.enqueue(new TextEncoder().encode(chunk));
+          },
+        }),
+        { status: 200 },
+      )) as unknown as typeof fetch;
+
+    const sdk = makeSdk({ baseUrl: "http://127.0.0.1:1", fetchImpl });
+    await vi.waitFor(() => expect(sdk.get("new-checkout", ctx, false)).toBe(true));
+  });
+
   it("applies a delete when a flag is archived", async () => {
     const cp = await controlPlane();
     const sdk = makeSdk({ baseUrl: cp.baseUrl });

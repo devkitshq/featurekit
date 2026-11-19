@@ -69,6 +69,9 @@ export interface FeaturekitSdkOptions {
 
 type Listener = (payload: never) => void;
 
+/** The blank line ending an SSE frame; `\r\n` too, since a proxy may rewrite line endings. */
+const FRAME_END = /\r?\n\r?\n/;
+
 export class FeaturekitSDK {
   private snapshot: Snapshot | null = null;
   private segments = new SegmentIndex({});
@@ -419,10 +422,10 @@ export class FeaturekitSDK {
 
         // SSE frames are separated by a blank line. Anything short of one is a
         // partial frame and must stay in the buffer.
-        let split: number;
-        while ((split = buffer.indexOf("\n\n")) !== -1) {
-          const frame = buffer.slice(0, split);
-          buffer = buffer.slice(split + 2);
+        let end: RegExpExecArray | null;
+        while ((end = FRAME_END.exec(buffer)) !== null) {
+          const frame = buffer.slice(0, end.index);
+          buffer = buffer.slice(end.index + end[0].length);
           this.handleFrame(frame, deserialize);
         }
       }
@@ -433,12 +436,13 @@ export class FeaturekitSDK {
 
   private handleFrame(frame: string, deserialize: (text: string) => Snapshot): void {
     let event = "message";
-    let data = "";
-    for (const line of frame.split("\n")) {
+    const lines: string[] = [];
+    for (const line of frame.split(/\r?\n/)) {
       if (line.startsWith(":")) continue; // comment / heartbeat
       if (line.startsWith("event:")) event = line.slice(6).trim();
-      else if (line.startsWith("data:")) data += line.slice(5).trim();
+      else if (line.startsWith("data:")) lines.push(line.slice(line.startsWith("data: ") ? 6 : 5));
     }
+    const data = lines.join("\n");
     if (data.length === 0) return;
 
     try {

@@ -82,6 +82,9 @@ export interface FeaturekitClientOptions {
 
 type Listener = (payload: never) => void;
 
+/** The blank line ending an SSE frame; `\r\n` too, since a proxy may rewrite line endings. */
+const FRAME_END = /\r?\n\r?\n/;
+
 export class FeaturekitClient {
   private values: Record<string, FlagValue> = {};
   private context: EvaluationContextLike;
@@ -416,10 +419,10 @@ export class FeaturekitClient {
         const { value, done } = await reader.read();
         if (done || replaced()) break;
         buffer += decoder.decode(value, { stream: true });
-        let split: number;
-        while ((split = buffer.indexOf("\n\n")) !== -1) {
-          const frame = buffer.slice(0, split);
-          buffer = buffer.slice(split + 2);
+        let end: RegExpExecArray | null;
+        while ((end = FRAME_END.exec(buffer)) !== null) {
+          const frame = buffer.slice(0, end.index);
+          buffer = buffer.slice(end.index + end[0].length);
           this.handleFrame(frame);
         }
       }
@@ -438,12 +441,13 @@ export class FeaturekitClient {
 
   private handleFrame(frame: string): void {
     let event = "message";
-    let data = "";
-    for (const line of frame.split("\n")) {
+    const lines: string[] = [];
+    for (const line of frame.split(/\r?\n/)) {
       if (line.startsWith(":")) continue;
       if (line.startsWith("event:")) event = line.slice(6).trim();
-      else if (line.startsWith("data:")) data += line.slice(5).trim();
+      else if (line.startsWith("data:")) lines.push(line.slice(line.startsWith("data: ") ? 6 : 5));
     }
+    const data = lines.join("\n");
     if (event !== "values" || data.length === 0) return;
     try {
       const payload = JSON.parse(data) as { version: number; values: Record<string, FlagValue> };
