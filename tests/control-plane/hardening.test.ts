@@ -13,7 +13,7 @@
  */
 
 import { afterEach, describe, expect, it } from "vitest";
-import { Router, type RequestContext } from "../../src/http/router.js";
+import { bearerToken, Router, type RequestContext } from "../../src/http/router.js";
 import { HttpServer } from "../../src/http/server.js";
 import { corsMiddleware } from "../../src/http/cors.js";
 import {
@@ -160,6 +160,14 @@ describe("rate limit identity", () => {
         "r",
       );
     expect(make("Bearer a")).toBe(make("a"));
+  });
+});
+
+describe("bearerToken", () => {
+  it("reads a credential with or without its prefix, in any case", () => {
+    for (const raw of ["fk_srv_a", "Bearer fk_srv_a", "bearer  fk_srv_a", " BEARER fk_srv_a "]) {
+      expect(bearerToken(raw)).toBe("fk_srv_a");
+    }
   });
 });
 

@@ -18,7 +18,7 @@
 import type { EvaluationContext } from "../sdk/evaluation/index.js";
 import { checkKey } from "../auth/keys.js";
 import { verifyContext } from "../auth/secure-mode.js";
-import { HttpError, type RequestContext, type Router } from "../http/router.js";
+import { bearerToken, HttpError, type RequestContext, type Router } from "../http/router.js";
 import { openSse, type SseStream } from "../http/server.js";
 import type { SnapshotStore } from "../snapshot/store.js";
 import type { SnapshotService } from "../snapshot/service.js";
@@ -120,7 +120,7 @@ function presentedKey(ctx: RequestContext): string {
   if (raw === undefined || raw === null || raw.length === 0) {
     throw new HttpError(401, "MISSING_SDK_KEY", "a client key is required");
   }
-  return raw.startsWith("Bearer ") ? raw.slice(7).trim() : raw.trim();
+  return bearerToken(raw);
 }
 
 export function registerClientRoutes(router: Router, deps: ClientRouteDeps): Router {

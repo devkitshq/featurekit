@@ -14,7 +14,7 @@
  */
 
 import type { Snapshot } from "../sdk/evaluation/index.js";
-import { HttpError, type RequestContext, type Router } from "../http/router.js";
+import { bearerToken, HttpError, type RequestContext, type Router } from "../http/router.js";
 import { openSse } from "../http/server.js";
 import { serializeSnapshot, type SnapshotStore } from "../snapshot/store.js";
 import type { SnapshotService } from "../snapshot/service.js";
@@ -66,7 +66,7 @@ function presentedKey(ctx: RequestContext): string {
   if (header === undefined || header.length === 0) {
     throw new HttpError(401, "MISSING_SDK_KEY", "an SDK key is required");
   }
-  return header.startsWith("Bearer ") ? header.slice(7).trim() : header.trim();
+  return bearerToken(header);
 }
 
 async function requireEnvironment(

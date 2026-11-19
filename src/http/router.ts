@@ -65,6 +65,15 @@ export class HttpError extends Error {
   }
 }
 
+/**
+ * The credential in an `Authorization` value, with or without its `Bearer`
+ * prefix: several HTTP clients make the prefix awkward, and one key must be one
+ * caller however it is written.
+ */
+export function bearerToken(raw: string): string {
+  return raw.trim().replace(/^bearer\s+/i, "");
+}
+
 interface Route {
   method: string;
   pattern: string;

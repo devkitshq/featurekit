@@ -3,7 +3,7 @@
  * checks, and the idempotent `withPrincipal` wrapper.
  */
 
-import { HttpError, type RequestContext } from "../../http/router.js";
+import { bearerToken, HttpError, type RequestContext } from "../../http/router.js";
 import type { Database } from "../../db/client.js";
 import type { SnapshotService } from "../../snapshot/service.js";
 import type { AccessTokenRepository } from "../../repositories/access-tokens.js";
@@ -61,7 +61,7 @@ export function presentedToken(ctx: RequestContext): string {
   if (header === undefined || header.length === 0) {
     throw new HttpError(401, "MISSING_TOKEN", "an access token is required");
   }
-  return header.startsWith("Bearer ") ? header.slice(7).trim() : header.trim();
+  return bearerToken(header);
 }
 
 export function sessionCookie(ctx: RequestContext): string | null {
