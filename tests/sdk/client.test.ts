@@ -281,6 +281,7 @@ describe("failing should be invisible to your users", () => {
     // Never blocks, never throws — the whole property being sold.
     expect(sdk.get("new-checkout", ctx, false)).toBe(false);
     expect(sdk.get("new-checkout", ctx, true)).toBe(true);
+    expect(sdk.detail("new-checkout", ctx, true).reason).toEqual({ kind: "ERROR", error: "NOT_READY" });
     expect(sdk.initialized).toBe(false);
   });
 

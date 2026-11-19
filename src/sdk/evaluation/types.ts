@@ -49,7 +49,9 @@ export type EvaluationErrorKind =
   | "VARIATION_OUT_OF_RANGE"
   | "WRONG_TYPE"
   | "PREREQUISITE_CYCLE"
-  | "PREREQUISITE_DEPTH_EXCEEDED";
+  | "PREREQUISITE_DEPTH_EXCEEDED"
+  /** The SDK holds no snapshot yet, from any source. */
+  | "NOT_READY";
 
 export type EvaluationReason =
   | { kind: "OFF" }

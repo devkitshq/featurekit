@@ -275,11 +275,12 @@ export class FeaturekitSDK {
     const snapshot = this.snapshot;
     if (snapshot === null) {
       // No snapshot from any source. The caller's default is the answer, and
-      // `featurekit_sdk_default_served_total` is what should page.
+      // `featurekit_sdk_default_served_total` is what should page. Not
+      // FLAG_NOT_FOUND: a cold SDK must not read like a misspelled key.
       const detail: EvaluationDetail<T> = {
         value: defaultValue,
         variationIndex: null,
-        reason: { kind: "FLAG_NOT_FOUND" },
+        reason: { kind: "ERROR", error: "NOT_READY" },
       };
       this.recordEvaluation(flagKey, detail, context);
       return detail;
