@@ -1,1017 +1,521 @@
 /**
- * The flag write path.
+ * Flag definitions: create, update, archive, restore, and the reads the
+ * dashboard lists them with.
  *
- * Three properties this file exists to guarantee, each of which is a named P0
- * in the production review:
+ * **Creating a flag creates its per-environment configuration rows in the same
+ * transaction**, one per environment, all disabled. A flag with no row in
+ * production would get its first production toggle as an INSERT, which has no
+ * `expectedVersion` to check — so the concurrent-edit protection would not apply
+ * to the single most dangerous edit anyone makes.
  *
- * 1. **Every read and write is scoped by project *in SQL*.** `resolveTarget`
- *    is the only way into a flag's configuration, and it joins
- *    project → environment → flag → flag_environment in one statement. A caller
- *    holding another tenant's flag uuid gets `null`, and the route turns that
- *    into a 404 — never a 403, which would confirm the object exists.
- * 2. **A write is one transaction, and it is version-checked.** The row is
- *    locked `FOR UPDATE`, the caller's `expectedVersion` is compared under that
- *    lock, and the configuration, the version bump and the audit row commit
- *    together. Two engineers saving the same flag is the concurrent-edit scenario: the
- *    second one now gets a 409 carrying the current state instead of silently
- *    erasing the first one's work.
- * 3. **The audit row holds the full before and after.** Not a field list —
- *    "restore this flag to exactly how it was at 14:02" is the thing you need
- *    during an incident, and it is what makes `revert` a replay rather than a
- *    reconstruction.
+ * The dashboard reads are one query per table, not one request per flag: a
+ * table of two hundred flags must not be the reason the database is busy.
  */
 
-import { createHash } from "node:crypto";
-import { and, asc, eq, inArray, sql, or, isNull } from "drizzle-orm";
-import type { Rollout } from "../sdk/evaluation/index.js";
+import { readFlagConfig } from "./flag-config.js";
+import { and, asc, eq, inArray, sql, desc, gte, isNull } from "drizzle-orm";
 import type { Database } from "../db/client.js";
 import {
-  auditLog,
   environments,
   flagEnvironments,
-  flagTargets,
   flagVariations,
   flags,
-  members,
+  evaluationSummaries,
+  flagTargets,
   prerequisites,
-  projects,
-  ruleClauses,
   targetingRules,
 } from "../db/schema.js";
 import { HttpError } from "../http/router.js";
-import type { Principal } from "../auth/principal.js";
-import { actorOf } from "../auth/principal.js";
-import type { FlagConfigBody } from "../contracts/admin.js";
-import type { CompilerInput } from "../snapshot/compile.js";
 
-/* ─────────────────────────────── shapes ─────────────────────────────── */
-
-export interface FlagTarget {
-  contextKind: string;
-  variation: number;
-  keys: string[];
-}
-
-export interface FlagClause {
-  contextKind: string;
-  attribute: string;
-  op: string;
-  values: unknown[];
-  negate: boolean;
-}
-
-export interface FlagRule {
-  description?: string;
-  clauses: FlagClause[];
-  variation?: number;
-  rollout?: Rollout;
-}
-
-export interface FlagPrerequisite {
-  flagKey: string;
-  variation: number;
-}
-
-/** The canonical configuration document: the GET body, the audit before/after. */
-export interface FlagConfig {
-  flagKey: string;
-  environmentKey: string;
-  version: number;
-  enabled: boolean;
-  offVariation: number | null;
-  fallthroughVariation?: number;
-  fallthroughRollout?: Rollout;
-  targets: FlagTarget[];
-  rules: FlagRule[];
-  prerequisites: FlagPrerequisite[];
-}
-
-export interface ResolvedTarget {
-  projectId: string;
-  environmentId: string;
-  environmentKey: string;
-  isProduction: boolean;
-  flagId: string;
-  flagKey: string;
-  flagEnvironmentId: string;
-  version: number;
-  /** Index → variation id, and the reverse. Rules speak indices; rows speak ids. */
-  variationIds: string[];
-  variationIndexById: Map<string, number>;
-}
-
-/* ────────────────────────────── resolution ──────────────────────────── */
-
-/**
- * Resolve a `(project, environment, flag)` triple to the row ids behind it.
- *
- * This is the tenant-isolation boundary. Everything downstream takes the ids it
- * returns and nothing takes ids from the request, so there is no path where a
- * caller-supplied uuid reaches a `WHERE` clause unchecked.
- */
-export async function resolveTarget(
+export async function listFlags(
   db: Database,
-  keys: { projectKey: string; environmentKey: string; flagKey: string },
-): Promise<ResolvedTarget | null> {
+  projectId: string,
+): Promise<Array<{ key: string; name: string; kind: string; archived: boolean }>> {
   const rows = await db
     .select({
-      projectId: projects.id,
-      environmentId: environments.id,
-      environmentKey: environments.key,
-      isProduction: environments.isProduction,
-      flagId: flags.id,
-      flagKey: flags.key,
-      flagEnvironmentId: flagEnvironments.id,
-      version: flagEnvironments.version,
+      key: flags.key,
+      name: flags.name,
+      kind: flags.kind,
+      archivedAt: flags.archivedAt,
     })
-    .from(projects)
-    .innerJoin(environments, eq(environments.projectId, projects.id))
-    // The flag is joined on the SAME project as the environment. Without this
-    // predicate a flag key from another project would resolve here.
-    .innerJoin(flags, eq(flags.projectId, projects.id))
-    .innerJoin(
-      flagEnvironments,
-      and(
-        eq(flagEnvironments.flagId, flags.id),
-        eq(flagEnvironments.environmentId, environments.id),
-      ),
-    )
-    .where(
-      and(
-        eq(projects.key, keys.projectKey),
-        eq(environments.key, keys.environmentKey),
-        eq(flags.key, keys.flagKey),
-      ),
-    )
-    .limit(1);
-
-  const row = rows[0];
-  if (row === undefined) return null;
-
-  const variations = await db
-    .select({ id: flagVariations.id, idx: flagVariations.idx })
-    .from(flagVariations)
-    .where(eq(flagVariations.flagId, row.flagId))
-    .orderBy(asc(flagVariations.idx));
-
-  const variationIds: string[] = [];
-  const variationIndexById = new Map<string, number>();
-  for (const variation of variations) {
-    variationIds[variation.idx] = variation.id;
-    variationIndexById.set(variation.id, variation.idx);
-  }
-
-  return { ...row, variationIds, variationIndexById };
+    .from(flags)
+    .where(eq(flags.projectId, projectId))
+    .orderBy(asc(flags.key));
+  return rows.map((r) => ({
+    key: r.key,
+    name: r.name,
+    kind: r.kind,
+    archived: r.archivedAt !== null,
+  }));
 }
 
-/* ──────────────────────────────── reads ─────────────────────────────── */
+export interface CreateFlagInput {
+  projectId: string;
+  key: string;
+  name: string;
+  description?: string | undefined;
+  kind: "boolean" | "string" | "number" | "json";
+  temporary: boolean;
+  clientAvailable: boolean;
+  tags: string[];
+  variations: Array<{ name?: string | undefined; value: unknown }>;
+}
 
-export async function readFlagConfig(
+export async function createFlag(db: Database, input: CreateFlagInput): Promise<{ id: string }> {
+  return db.transaction(async (tx) => {
+    const [flag] = await tx
+      .insert(flags)
+      .values({
+        projectId: input.projectId,
+        key: input.key,
+        name: input.name,
+        description: input.description ?? null,
+        kind: input.kind,
+        temporary: input.temporary,
+        clientAvailable: input.clientAvailable,
+        tags: input.tags,
+      })
+      .onConflictDoNothing()
+      .returning({ id: flags.id });
+    if (flag === undefined) throw new HttpError(409, "ALREADY_EXISTS", "a flag with that key exists");
+
+    const variations = await tx
+      .insert(flagVariations)
+      .values(
+        input.variations.map((variation, idx) => ({
+          flagId: flag.id,
+          idx,
+          name: variation.name ?? null,
+          value: variation.value as never,
+        })),
+      )
+      .returning({ id: flagVariations.id, idx: flagVariations.idx });
+
+    const environmentRows = await tx
+      .select({ id: environments.id })
+      .from(environments)
+      .where(eq(environments.projectId, input.projectId));
+
+    // Off by default, serving variation 0 when off. A flag that arrives enabled
+    // is a flag that shipped a feature the moment somebody created it.
+    const offVariationId = variations.find((v) => v.idx === 0)?.id ?? null;
+    const fallthroughId = variations.find((v) => v.idx === variations.length - 1)?.id ?? null;
+    if (environmentRows.length > 0) {
+      await tx.insert(flagEnvironments).values(
+        environmentRows.map((environment) => ({
+          flagId: flag.id,
+          environmentId: environment.id,
+          enabled: false,
+          offVariationId,
+          fallthroughVariationId: fallthroughId,
+        })),
+      );
+    }
+    return flag;
+  });
+}
+
+export interface UpdateFlagDefinitionInput {
+  projectId: string;
+  key: string;
+  name?: string | undefined;
+  description?: string | null | undefined;
+  temporary?: boolean | undefined;
+  clientAvailable?: boolean | undefined;
+  tags?: string[] | undefined;
+  variations?: Array<{ name?: string | undefined; value: unknown }> | undefined;
+}
+
+export async function updateFlagDefinition(
   db: Database,
-  target: ResolvedTarget,
-): Promise<FlagConfig> {
-  const [config] = await db
+  input: UpdateFlagDefinitionInput,
+): Promise<{ id: string } | null> {
+  return db.transaction(async (tx) => {
+    const [flag] = await tx
+      .select({ id: flags.id })
+      .from(flags)
+      .where(and(eq(flags.projectId, input.projectId), eq(flags.key, input.key)))
+      .limit(1);
+    if (!flag) return null;
+
+    const updates: Record<string, unknown> = { updatedAt: new Date() };
+    if (input.name !== undefined) updates["name"] = input.name;
+    if (input.description !== undefined) updates["description"] = input.description;
+    if (input.temporary !== undefined) updates["temporary"] = input.temporary;
+    if (input.clientAvailable !== undefined) updates["clientAvailable"] = input.clientAvailable;
+    if (input.tags !== undefined) updates["tags"] = input.tags;
+
+    await tx.update(flags).set(updates).where(eq(flags.id, flag.id));
+
+    if (input.variations !== undefined && input.variations.length > 0) {
+      for (let idx = 0; idx < input.variations.length; idx++) {
+        const v = input.variations[idx]!;
+        await tx
+          .insert(flagVariations)
+          .values({
+            flagId: flag.id,
+            idx,
+            name: v.name ?? null,
+            value: v.value as never,
+          })
+          .onConflictDoUpdate({
+            target: [flagVariations.flagId, flagVariations.idx],
+            set: {
+              name: v.name ?? null,
+              value: v.value as never,
+            },
+          });
+      }
+    }
+
+    return flag;
+  });
+}
+
+export async function archiveFlag(db: Database, projectId: string, flagKey: string): Promise<void> {
+  const result = await db
+    .update(flags)
+    .set({ archivedAt: new Date() })
+    .where(and(eq(flags.projectId, projectId), eq(flags.key, flagKey)))
+    .returning({ id: flags.id });
+  if (result.length === 0) throw new HttpError(404, "NOT_FOUND", "no such flag");
+}
+
+/**
+ * Undo an archive.
+ *
+ * Archiving is reversible everywhere else in this product; without this route
+ * it was the one destructive action with no way back, which makes people
+ * reluctant to tidy up and leaves dead flags in the list forever.
+ */
+export async function restoreFlag(db: Database, projectId: string, flagKey: string): Promise<void> {
+  const restored = await db
+    .update(flags)
+    .set({ archivedAt: null })
+    .where(and(eq(flags.projectId, projectId), eq(flags.key, flagKey)))
+    .returning({ id: flags.id });
+  if (restored.length === 0) throw new HttpError(404, "NOT_FOUND", "no such flag");
+}
+
+export async function flagKeysIn(db: Database, projectId: string, keys: string[]): Promise<Set<string>> {
+  if (keys.length === 0) return new Set();
+  const rows = await db
+    .select({ key: flags.key })
+    .from(flags)
+    .where(and(eq(flags.projectId, projectId), inArray(flags.key, keys)));
+  return new Set(rows.map((r) => r.key));
+}
+
+export interface FlagRow {
+  key: string;
+  name: string;
+  description: string | null;
+  kind: string;
+  tags: string[];
+  temporary: boolean;
+  clientAvailable: boolean;
+  archived: boolean;
+  createdAt: Date;
+  /** Absent when the flag predates the environment and has no row in it yet. */
+  environment: {
+    enabled: boolean;
+    version: number;
+    updatedAt: Date;
+    offVariation: number | null;
+    fallthroughVariation: number | null;
+    /** `[{ variation, weight }]` out of 100,000, or null for a single variation. */
+    fallthroughRollout: { variation: number; weight: number }[] | null;
+    ruleCount: number;
+    targetCount: number;
+    prerequisiteCount: number;
+  } | null;
+  variations: { idx: number; name: string | null; value: unknown }[];
+}
+
+/**
+ * Every flag in a project, with its state in one environment.
+ *
+ * Five queries rather than one join: the counts are three separate one-to-many
+ * relationships, and joining them all in one statement multiplies the rows by
+ * each other. Five bounded queries and a merge in memory is both faster and
+ * readable.
+ */
+export async function listFlagsForDashboard(
+  db: Database,
+  projectId: string,
+  environmentId: string | null,
+  options: { includeArchived?: boolean } = {},
+): Promise<FlagRow[]> {
+  const where =
+    options.includeArchived === true
+      ? eq(flags.projectId, projectId)
+      : and(eq(flags.projectId, projectId), isNull(flags.archivedAt));
+
+  const flagRows = await db
     .select({
-      enabled: flagEnvironments.enabled,
-      offVariationId: flagEnvironments.offVariationId,
-      fallthroughVariationId: flagEnvironments.fallthroughVariationId,
-      fallthroughRollout: flagEnvironments.fallthroughRollout,
-      version: flagEnvironments.version,
+      id: flags.id,
+      key: flags.key,
+      name: flags.name,
+      description: flags.description,
+      kind: flags.kind,
+      tags: flags.tags,
+      temporary: flags.temporary,
+      clientAvailable: flags.clientAvailable,
+      archivedAt: flags.archivedAt,
+      createdAt: flags.createdAt,
     })
-    .from(flagEnvironments)
-    .where(eq(flagEnvironments.id, target.flagEnvironmentId))
-    .limit(1);
+    .from(flags)
+    .where(where)
+    .orderBy(asc(flags.key));
 
-  if (config === undefined) throw new HttpError(404, "NOT_FOUND", "no such flag configuration");
+  if (flagRows.length === 0) return [];
+  const flagIds = flagRows.map((row) => row.id);
 
-  const [targetRows, ruleRows, prerequisiteRows] = await Promise.all([
-    db
-      .select({
-        contextKind: flagTargets.contextKind,
-        contextKey: flagTargets.contextKey,
-        variationId: flagTargets.variationId,
-      })
-      .from(flagTargets)
-      .where(eq(flagTargets.flagEnvironmentId, target.flagEnvironmentId)),
-    db
-      .select({
-        id: targetingRules.id,
-        idx: targetingRules.idx,
-        description: targetingRules.description,
-        variationId: targetingRules.variationId,
-        rollout: targetingRules.rollout,
-      })
-      .from(targetingRules)
-      .where(eq(targetingRules.flagEnvironmentId, target.flagEnvironmentId))
-      .orderBy(asc(targetingRules.idx)),
-    db
-      .select({
-        prerequisiteFlagId: prerequisites.prerequisiteFlagId,
-        requiredVariationId: prerequisites.requiredVariationId,
-      })
-      .from(prerequisites)
-      .where(eq(prerequisites.flagEnvironmentId, target.flagEnvironmentId)),
-  ]);
+  const variationRows = await db
+    .select({
+      flagId: flagVariations.flagId,
+      idx: flagVariations.idx,
+      name: flagVariations.name,
+      value: flagVariations.value,
+      id: flagVariations.id,
+    })
+    .from(flagVariations)
+    .where(inArray(flagVariations.flagId, flagIds))
+    .orderBy(asc(flagVariations.idx));
 
-  const ruleIds = ruleRows.map((r) => r.id);
-  const clauseRows =
-    ruleIds.length === 0
+  /** variation id → its index, so environment rows can speak indices. */
+  const indexById = new Map(variationRows.map((row) => [row.id, row.idx]));
+  const variationsByFlag = new Map<string, FlagRow["variations"]>();
+  for (const row of variationRows) {
+    const list = variationsByFlag.get(row.flagId) ?? [];
+    list.push({ idx: row.idx, name: row.name, value: row.value });
+    variationsByFlag.set(row.flagId, list);
+  }
+
+  const environmentRows =
+    environmentId === null
       ? []
       : await db
           .select({
-            ruleId: ruleClauses.ruleId,
-            idx: ruleClauses.idx,
-            contextKind: ruleClauses.contextKind,
-            attribute: ruleClauses.attribute,
-            op: ruleClauses.op,
-            values: ruleClauses.values,
-            negate: ruleClauses.negate,
+            id: flagEnvironments.id,
+            flagId: flagEnvironments.flagId,
+            enabled: flagEnvironments.enabled,
+            version: flagEnvironments.version,
+            updatedAt: flagEnvironments.updatedAt,
+            offVariationId: flagEnvironments.offVariationId,
+            fallthroughVariationId: flagEnvironments.fallthroughVariationId,
+            fallthroughRollout: flagEnvironments.fallthroughRollout,
           })
-          .from(ruleClauses)
-          .where(inArray(ruleClauses.ruleId, ruleIds))
-          .orderBy(asc(ruleClauses.idx));
-
-  const clausesByRule = new Map<string, FlagClause[]>();
-  for (const clause of clauseRows) {
-    const list = clausesByRule.get(clause.ruleId) ?? [];
-    list.push({
-      contextKind: clause.contextKind,
-      attribute: clause.attribute,
-      op: clause.op,
-      values: clause.values,
-      negate: clause.negate,
-    });
-    clausesByRule.set(clause.ruleId, list);
-  }
-
-  // Targets are stored one row per key and presented grouped, which is how a
-  // human reads them and how the compiler emits them.
-  const targetsByKind = new Map<string, FlagTarget>();
-  for (const row of targetRows) {
-    const variation = target.variationIndexById.get(row.variationId);
-    if (variation === undefined) continue;
-    const id = `${row.contextKind}:${variation}`;
-    const existing = targetsByKind.get(id) ?? {
-      contextKind: row.contextKind,
-      variation,
-      keys: [],
-    };
-    existing.keys.push(row.contextKey);
-    targetsByKind.set(id, existing);
-  }
-
-  const flagKeysById = await flagKeysFor(
-    db,
-    prerequisiteRows.map((p) => p.prerequisiteFlagId),
-  );
-  // A prerequisite names a variation of the prerequisite flag, so its index has
-  // to come from that flag's variations, not this flag's.
-  const requiredIds = prerequisiteRows.map((p) => p.requiredVariationId);
-  const prerequisiteIndexById = new Map(
-    requiredIds.length === 0
-      ? []
-      : (
-          await db
-            .select({ id: flagVariations.id, idx: flagVariations.idx })
-            .from(flagVariations)
-            .where(inArray(flagVariations.id, requiredIds))
-        ).map((row) => [row.id, row.idx] as const),
-  );
-
-  return {
-    flagKey: target.flagKey,
-    environmentKey: target.environmentKey,
-    version: config.version,
-    enabled: config.enabled,
-    offVariation:
-      config.offVariationId === null
-        ? null
-        : (target.variationIndexById.get(config.offVariationId) ?? null),
-    ...(config.fallthroughVariationId !== null
-      ? { fallthroughVariation: target.variationIndexById.get(config.fallthroughVariationId) ?? 0 }
-      : {}),
-    ...(config.fallthroughRollout !== null ? { fallthroughRollout: config.fallthroughRollout } : {}),
-    targets: [...targetsByKind.values()],
-    rules: ruleRows.map((rule) => ({
-      ...(rule.description !== null ? { description: rule.description } : {}),
-      clauses: clausesByRule.get(rule.id) ?? [],
-      ...(rule.variationId !== null
-        ? { variation: target.variationIndexById.get(rule.variationId) ?? 0 }
-        : {}),
-      ...(rule.rollout !== null ? { rollout: rule.rollout } : {}),
-    })),
-    prerequisites: prerequisiteRows.flatMap((p) => {
-      const flagKey = flagKeysById.get(p.prerequisiteFlagId);
-      const variation = prerequisiteIndexById.get(p.requiredVariationId);
-      // Never default a missing index to 0: a client that writes this config
-      // back would silently re-point the gate at variation 0.
-      return flagKey === undefined || variation === undefined
-        ? []
-        : [{ flagKey, variation }];
-    }),
-  };
-}
-
-async function flagKeysFor(db: Database, ids: string[]): Promise<Map<string, string>> {
-  if (ids.length === 0) return new Map();
-  const rows = await db
-    .select({ id: flags.id, key: flags.key })
-    .from(flags)
-    .where(inArray(flags.id, ids));
-  return new Map(rows.map((r) => [r.id, r.key]));
-}
-
-/* ─────────────────────────────── writes ─────────────────────────────── */
-
-export interface WriteResult {
-  before: FlagConfig;
-  after: FlagConfig;
-  version: number;
-  auditId: string;
-}
-
-/**
- * Apply a configuration change.
- *
- * The whole body is one transaction. If anything in it fails — a bad variation
- * index, a prerequisite naming a flag that does not exist, a constraint — the
- * flag is left exactly as it was, rather than half-rewritten with its rules
- * deleted and its replacements not yet inserted. That intermediate state is
- * "every user loses their targeting for 40 milliseconds", which in a flag
- * system is a production incident.
- */
-export async function writeFlagConfig(
-  db: Database,
-  target: ResolvedTarget,
-  body: FlagConfigBody,
-  principal: Principal,
-  options: { action?: string } = {},
-): Promise<WriteResult> {
-  return db.transaction(async (tx) => {
-    // Lock first. Everything after this reads a row nobody else can move.
-    const locked = await tx
-      .select({ version: flagEnvironments.version })
-      .from(flagEnvironments)
-      .where(eq(flagEnvironments.id, target.flagEnvironmentId))
-      .for("update")
-      .limit(1);
-
-    const current = locked[0];
-    if (current === undefined) throw new HttpError(404, "NOT_FOUND", "no such flag configuration");
-
-    if (current.version !== body.expectedVersion) {
-      // 409 carrying the current state: the client can show a diff rather than
-      // asking a human to guess what changed underneath them.
-      const conflict = await readFlagConfig(tx as unknown as Database, target);
-      throw new HttpError(
-        409,
-        "VERSION_CONFLICT",
-        `flag was modified concurrently: expected version ${body.expectedVersion}, found ${current.version}`,
-        { current: conflict },
-      );
-    }
-
-    const before = await readFlagConfig(tx as unknown as Database, target);
-    const variationId = (index: number | null | undefined): string | null => {
-      if (index === null || index === undefined) return null;
-      const id = target.variationIds[index];
-      if (id === undefined) {
-        throw new HttpError(400, "UNKNOWN_VARIATION", `flag has no variation ${index}`);
-      }
-      return id;
-    };
-
-    /* update the row itself */
-    const patch: Record<string, unknown> = { version: current.version + 1, updatedAt: new Date() };
-    if (body.enabled !== undefined) patch["enabled"] = body.enabled;
-    if (body.offVariation !== undefined) patch["offVariationId"] = variationId(body.offVariation);
-    if (body.fallthroughVariation !== undefined) {
-      // `fallthrough_xor` in Postgres requires exactly one to be set, so writing
-      // one always clears the other. Leaving both would be rejected by the
-      // constraint — correctly, but with an error nobody can act on.
-      patch["fallthroughVariationId"] = variationId(body.fallthroughVariation);
-      patch["fallthroughRollout"] = null;
-    }
-    if (body.fallthroughRollout !== undefined) {
-      patch["fallthroughRollout"] = normalizeRollout(rolloutFromBody(body.fallthroughRollout), target);
-      patch["fallthroughVariationId"] = null;
-    }
-    await tx
-      .update(flagEnvironments)
-      .set(patch)
-      .where(eq(flagEnvironments.id, target.flagEnvironmentId));
-
-    /* targets */
-    if (body.targets !== undefined) {
-      await tx
-        .delete(flagTargets)
-        .where(eq(flagTargets.flagEnvironmentId, target.flagEnvironmentId));
-      const rows = body.targets.flatMap((t) =>
-        t.keys.map((key) => ({
-          flagEnvironmentId: target.flagEnvironmentId,
-          variationId: variationId(t.variation)!,
-          contextKind: t.contextKind,
-          contextKey: key,
-        })),
-      );
-      if (rows.length > 0) await tx.insert(flagTargets).values(rows);
-    }
-
-    /* rules and their clauses */
-    if (body.rules !== undefined) {
-      await tx
-        .delete(targetingRules)
-        .where(eq(targetingRules.flagEnvironmentId, target.flagEnvironmentId));
-      for (const [idx, rule] of body.rules.entries()) {
-        const [inserted] = await tx
-          .insert(targetingRules)
-          .values({
-            flagEnvironmentId: target.flagEnvironmentId,
-            idx,
-            description: rule.description ?? null,
-            variationId: rule.variation === undefined ? null : variationId(rule.variation),
-            rollout:
-              rule.rollout === undefined
-                ? null
-                : normalizeRollout(rolloutFromBody(rule.rollout), target),
-          })
-          .returning({ id: targetingRules.id });
-        if (inserted === undefined) throw new Error("featurekit: rule insert returned nothing");
-        if (rule.clauses.length > 0) {
-          await tx.insert(ruleClauses).values(
-            rule.clauses.map((clause, clauseIdx) => ({
-              ruleId: inserted.id,
-              idx: clauseIdx,
-              contextKind: clause.contextKind,
-              attribute: clause.attribute,
-              op: clause.op,
-              values: clause.values,
-              negate: clause.negate,
-            })),
+          .from(flagEnvironments)
+          .where(
+            and(
+              eq(flagEnvironments.environmentId, environmentId),
+              inArray(flagEnvironments.flagId, flagIds),
+            ),
           );
-        }
-      }
-    }
 
-    /* prerequisites */
-    if (body.prerequisites !== undefined) {
-      await tx
-        .delete(prerequisites)
-        .where(eq(prerequisites.flagEnvironmentId, target.flagEnvironmentId));
-      for (const prerequisite of body.prerequisites) {
-        const row = await resolvePrerequisite(tx as unknown as Database, target, prerequisite);
-        await tx.insert(prerequisites).values({
-          flagEnvironmentId: target.flagEnvironmentId,
-          prerequisiteFlagId: row.flagId,
-          requiredVariationId: row.variationId,
-        });
-      }
-    }
+  const ids = environmentRows.map((row) => row.id);
+  const count = sql<number>`count(*)::int`;
+  const [ruleCounts, targetCounts, prerequisiteCounts] = await Promise.all([
+    tally(
+      ids.length === 0
+        ? []
+        : db
+            .select({ id: targetingRules.flagEnvironmentId, count })
+            .from(targetingRules)
+            .where(inArray(targetingRules.flagEnvironmentId, ids))
+            .groupBy(targetingRules.flagEnvironmentId),
+    ),
+    tally(
+      ids.length === 0
+        ? []
+        : db
+            .select({ id: flagTargets.flagEnvironmentId, count })
+            .from(flagTargets)
+            .where(inArray(flagTargets.flagEnvironmentId, ids))
+            .groupBy(flagTargets.flagEnvironmentId),
+    ),
+    tally(
+      ids.length === 0
+        ? []
+        : db
+            .select({ id: prerequisites.flagEnvironmentId, count })
+            .from(prerequisites)
+            .where(inArray(prerequisites.flagEnvironmentId, ids))
+            .groupBy(prerequisites.flagEnvironmentId),
+    ),
+  ]);
 
-    const after = await readFlagConfig(tx as unknown as Database, {
-      ...target,
-      version: current.version + 1,
-    });
+  const environmentByFlag = new Map(environmentRows.map((row) => [row.flagId, row]));
 
-    const auditId = await writeAudit(tx as unknown as Database, {
-      projectId: target.projectId,
-      environmentId: target.environmentId,
-      principal,
-      action: options.action ?? "flag.updated",
-      entityType: "flag_environment",
-      entityId: target.flagEnvironmentId,
-      entityKey: target.flagKey,
-      diff: { before, after },
-      ...(body.comment !== undefined ? { comment: body.comment } : {}),
-    });
-
-    return { before, after, version: current.version + 1, auditId };
-  });
-}
-
-/**
- * A prerequisite's flag and required variation, by key and index.
- *
- * Resolved within this project only: a prerequisite pointing at another
- * tenant's flag would otherwise be expressible.
- */
-async function resolvePrerequisite(
-  db: Database,
-  target: ResolvedTarget,
-  prerequisite: { flagKey: string; variation: number },
-): Promise<{ flagId: string; variationId: string }> {
-  const [row] = await db
-    .select({ flagId: flags.id, variationId: flagVariations.id })
-    .from(flags)
-    .innerJoin(
-      flagVariations,
-      and(eq(flagVariations.flagId, flags.id), eq(flagVariations.idx, prerequisite.variation)),
-    )
-    .where(and(eq(flags.projectId, target.projectId), eq(flags.key, prerequisite.flagKey)))
-    .limit(1);
-  if (row === undefined) {
-    throw new HttpError(
-      400,
-      "UNKNOWN_PREREQUISITE",
-      `no flag ${prerequisite.flagKey} with variation ${prerequisite.variation} in this project`,
-    );
-  }
-  return row;
-}
-
-/**
- * Apply a configuration change to compiler input, in memory.
- *
- * What a dry run compiles. It validates the patch the way `writeFlagConfig`
- * does, but writes nothing and takes no lock: a reader previewing a change
- * must not be able to hold the live row, and a pooled connection, against a
- * real save for the length of a full-environment compile.
- */
-export async function applyFlagConfigToInput(
-  db: Database,
-  input: CompilerInput,
-  target: ResolvedTarget,
-  body: Omit<FlagConfigBody, "expectedVersion">,
-): Promise<CompilerInput> {
-  const id = target.flagEnvironmentId;
-  const current = input.flagEnvironments.find((row) => row.id === id);
-  if (current === undefined) throw new HttpError(404, "NOT_FOUND", "no such flag configuration");
-
-  const variationId = (index: number | null | undefined): string | null => {
-    if (index === null || index === undefined) return null;
-    const vid = target.variationIds[index];
-    if (vid === undefined) {
-      throw new HttpError(400, "UNKNOWN_VARIATION", `flag has no variation ${index}`);
-    }
-    return vid;
-  };
-
-  const next = { ...current, version: current.version + 1 };
-  if (body.enabled !== undefined) next.enabled = body.enabled;
-  if (body.offVariation !== undefined) next.offVariationId = variationId(body.offVariation);
-  if (body.fallthroughVariation !== undefined) {
-    next.fallthroughVariationId = variationId(body.fallthroughVariation);
-    next.fallthroughRollout = null;
-  }
-  if (body.fallthroughRollout !== undefined) {
-    next.fallthroughRollout = normalizeRollout(rolloutFromBody(body.fallthroughRollout), target);
-    next.fallthroughVariationId = null;
-  }
-  const out: CompilerInput = {
-    ...input,
-    flagEnvironments: input.flagEnvironments.map((row) => (row.id === id ? next : row)),
-  };
-
-  if (body.targets !== undefined) {
-    out.targets = [
-      ...input.targets.filter((row) => row.flagEnvironmentId !== id),
-      ...body.targets.flatMap((t) =>
-        t.keys.map((key) => ({
-          flagEnvironmentId: id,
-          variationId: variationId(t.variation)!,
-          contextKind: t.contextKind,
-          contextKey: key,
-        })),
-      ),
-    ];
-  }
-
-  if (body.rules !== undefined) {
-    const replaced = new Set(
-      input.rules.filter((row) => row.flagEnvironmentId === id).map((row) => row.id),
-    );
-    out.rules = input.rules.filter((row) => !replaced.has(row.id));
-    out.clauses = input.clauses.filter((row) => !replaced.has(row.ruleId));
-    for (const [idx, rule] of body.rules.entries()) {
-      const ruleId = `dry-run:${idx}`;
-      out.rules.push({
-        id: ruleId,
-        flagEnvironmentId: id,
-        idx,
-        variationId: rule.variation === undefined ? null : variationId(rule.variation),
-        rollout:
-          rule.rollout === undefined
-            ? null
-            : normalizeRollout(rolloutFromBody(rule.rollout), target),
-      });
-      for (const [clauseIdx, clause] of rule.clauses.entries()) {
-        out.clauses.push({
-          ruleId,
-          idx: clauseIdx,
-          contextKind: clause.contextKind,
-          attribute: clause.attribute,
-          op: clause.op,
-          values: clause.values,
-          negate: clause.negate,
-        });
-      }
-    }
-  }
-
-  if (body.prerequisites !== undefined) {
-    out.prerequisites = input.prerequisites.filter((row) => row.flagEnvironmentId !== id);
-    for (const prerequisite of body.prerequisites) {
-      const row = await resolvePrerequisite(db, target, prerequisite);
-      out.prerequisites.push({
-        flagEnvironmentId: id,
-        prerequisiteFlagId: row.flagId,
-        requiredVariationId: row.variationId,
-      });
-    }
-  }
-
-  return out;
-}
-
-/**
- * Rollout weights must sum to `WEIGHT_SCALE`.
- *
- * Checked here rather than trusted from the caller because the evaluator treats
- * the weights as a cumulative ladder: weights summing to 90,000 leave 10% of
- * traffic falling off the end of the rollout and landing on the caller's
- * default, which shows up as a mysterious 10% error rate rather than as a
- * validation failure at the point somebody made the mistake.
- */
-function normalizeRollout(rollout: Rollout, target: ResolvedTarget): Rollout {
-  let sum = 0;
-  for (const variation of rollout.variations) {
-    if (target.variationIds[variation.variationIndex ?? -1] === undefined) {
-      throw new HttpError(
-        400,
-        "UNKNOWN_VARIATION",
-        `rollout references variation ${variation.variationIndex}, which this flag does not have`,
-      );
-    }
-    sum += variation.weight;
-  }
-  if (sum !== 100_000) {
-    throw new HttpError(
-      400,
-      "ROLLOUT_WEIGHTS",
-      `rollout weights must sum to 100000 (got ${sum}); anything less silently serves the caller's default`,
-    );
-  }
-  return rollout;
-}
-
-/** The API speaks `{variation, weight}`; the wire format speaks `variationIndex`. */
-export function rolloutFromBody(body: {
-  contextKind?: string | undefined;
-  bucketBy?: string | undefined;
-  seed?: number | undefined;
-  variations: { variation: number; weight: number }[];
-}): Rollout {
-  return {
-    ...(body.contextKind !== undefined ? { contextKind: body.contextKind } : {}),
-    ...(body.bucketBy !== undefined ? { bucketBy: body.bucketBy } : {}),
-    ...(body.seed !== undefined ? { seed: body.seed } : {}),
-    variations: body.variations.map((v) => ({ variationIndex: v.variation, weight: v.weight })),
-  };
-}
-
-/**
- * The kill switch.
- *
- * Its own function because it must work when nothing else does: no expected
- * version, no configuration body, no read-modify-write. One UPDATE, one audit
- * row, and the caller then propagates it without the debounce.
- */
-export async function killSwitch(
-  db: Database,
-  target: ResolvedTarget,
-  principal: Principal,
-  comment?: string,
-): Promise<{ version: number; auditId: string; alreadyOff: boolean }> {
-  return db.transaction(async (tx) => {
-    const [current] = await tx
-      .select({ version: flagEnvironments.version, enabled: flagEnvironments.enabled })
-      .from(flagEnvironments)
-      .where(eq(flagEnvironments.id, target.flagEnvironmentId))
-      .for("update")
-      .limit(1);
-    if (current === undefined) throw new HttpError(404, "NOT_FOUND", "no such flag configuration");
-
-    await tx
-      .update(flagEnvironments)
-      .set({ enabled: false, version: current.version + 1, updatedAt: new Date() })
-      .where(eq(flagEnvironments.id, target.flagEnvironmentId));
-
-    const auditId = await writeAudit(tx as unknown as Database, {
-      projectId: target.projectId,
-      environmentId: target.environmentId,
-      principal,
-      action: "flag.killed",
-      entityType: "flag_environment",
-      entityId: target.flagEnvironmentId,
-      entityKey: target.flagKey,
-      diff: { before: { enabled: current.enabled }, after: { enabled: false } },
-      ...(comment !== undefined ? { comment } : {}),
-    });
-
-    return { version: current.version + 1, auditId, alreadyOff: !current.enabled };
-  });
-}
-
-/* ──────────────────────────────── audit ─────────────────────────────── */
-
-export interface AuditInput {
-  projectId: string;
-  environmentId: string | null;
-  principal: Principal;
-  action: string;
-  entityType: string;
-  entityId: string | null;
-  entityKey: string | null;
-  diff: unknown;
-  comment?: string;
-}
-
-/**
- * A deterministic serialisation, with object keys sorted at every depth.
- *
- * **`jsonb` is not a byte store.** Postgres parses jsonb, discards key order and
- * duplicate keys, and re-serialises on read — so `JSON.stringify(diff)` at write
- * time and `JSON.stringify(diff)` after a round trip are different strings for
- * the same value. A hash over the raw stringification therefore fails to verify
- * on a log nobody touched, which is worse than no tamper evidence at all: it
- * cries wolf, and then people stop running it.
- *
- * Found exactly that way — the chain verified in isolation and failed the moment
- * the diff had more than one key.
- */
-function canonicalJson(value: unknown): string {
-  if (value === null || typeof value !== "object") return JSON.stringify(value) ?? "null";
-  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
-  const entries = Object.entries(value as Record<string, unknown>)
-    .filter(([, v]) => v !== undefined)
-    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
-  return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${canonicalJson(v)}`).join(",")}}`;
-}
-
-/**
- * The hash over one audit entry, chained to the previous one.
- *
- * Field order is fixed and explicit rather than `JSON.stringify(row)`: key order
- * in an object literal is not a stable contract, and a chain whose hash depends
- * on serialisation order breaks the first time somebody reorders a field.
- */
-export function auditEntryHash(input: {
-  prevHash: string | null;
-  projectId: string;
-  environmentId: string | null;
-  actorId: string | null;
-  actorKind: string;
-  action: string;
-  entityType: string;
-  entityId: string | null;
-  entityKey: string | null;
-  diff: unknown;
-  comment: string | null;
-}): string {
-  const canonical = [
-    input.prevHash ?? "",
-    input.projectId,
-    input.environmentId ?? "",
-    input.actorId ?? "",
-    input.actorKind,
-    input.action,
-    input.entityType,
-    input.entityId ?? "",
-    input.entityKey ?? "",
-    canonicalJson(input.diff ?? null),
-    input.comment ?? "",
-  ].join("\0");
-  return createHash("sha256").update(canonical, "utf8").digest("hex");
-}
-
-export async function writeAudit(db: Database, input: AuditInput): Promise<string> {
-  const actor = actorOf(input.principal);
-
-  // The chain head for this project. Read inside whatever transaction the
-  // caller is already in, so two concurrent writes to the same project cannot
-  // both chain off the same predecessor — the flag-environment row is locked
-  // `FOR UPDATE` by then, which serialises them.
-  const [previous] = await db
-    .select({ entryHash: auditLog.entryHash })
-    .from(auditLog)
-    .where(eq(auditLog.projectId, input.projectId))
-    // By `seq`, never by `created_at`: the latter is transaction-start time and
-    // ties for every row written in one transaction.
-    .orderBy(sql`${auditLog.seq} desc`)
-    .limit(1);
-
-  const prevHash = previous?.entryHash ?? null;
-  const entryHash = auditEntryHash({
-    prevHash,
-    projectId: input.projectId,
-    environmentId: input.environmentId,
-    actorId: actor.actorId,
-    actorKind: actor.actorKind,
-    action: input.action,
-    entityType: input.entityType,
-    entityId: input.entityId,
-    entityKey: input.entityKey,
-    diff: input.diff,
-    comment: input.comment ?? null,
-  });
-
-  const [row] = await db
-    .insert(auditLog)
-    .values({
-      projectId: input.projectId,
-      environmentId: input.environmentId,
-      actorId: actor.actorId,
-      actorKind: actor.actorKind,
-      action: input.action,
-      entityType: input.entityType,
-      entityId: input.entityId,
-      entityKey: input.entityKey,
-      diff: input.diff as Record<string, unknown>,
-      comment: input.comment ?? null,
-      prevHash,
-      entryHash,
-    })
-    .returning({ id: auditLog.id });
-  if (row === undefined) throw new Error("featurekit: audit insert returned nothing");
-  return row.id;
-}
-
-/**
- * Walk a project's audit chain and report the first break.
- *
- * A break means a row was edited, deleted, or inserted out of band. It does not
- * say which — only where the chain stops verifying, which is where to look.
- */
-export async function verifyAuditChain(
-  db: Database,
-  projectId: string,
-  limit = 10_000,
-): Promise<{ ok: true; checked: number } | { ok: false; checked: number; brokenAt: string }> {
-  const rows = await db
-    .select({
-      id: auditLog.id,
-      environmentId: auditLog.environmentId,
-      actorId: auditLog.actorId,
-      actorKind: auditLog.actorKind,
-      action: auditLog.action,
-      entityType: auditLog.entityType,
-      entityId: auditLog.entityId,
-      entityKey: auditLog.entityKey,
-      diff: auditLog.diff,
-      comment: auditLog.comment,
-      prevHash: auditLog.prevHash,
-      entryHash: auditLog.entryHash,
-    })
-    .from(auditLog)
-    .where(eq(auditLog.projectId, projectId))
-    .orderBy(asc(auditLog.seq))
-    .limit(limit);
-
-  let expectedPrev: string | null = null;
-  let checked = 0;
-
-  for (const row of rows) {
-    // Rows written before the chain existed carry no hashes. Skipping them is
-    // deliberate: refusing to verify anything because history predates the
-    // feature would make the tool useless on every real deployment.
-    if (row.entryHash === null) continue;
-
-    const recomputed = auditEntryHash({
-      prevHash: row.prevHash,
-      projectId,
-      environmentId: row.environmentId,
-      actorId: row.actorId,
-      actorKind: row.actorKind,
-      action: row.action,
-      entityType: row.entityType,
-      entityId: row.entityId,
-      entityKey: row.entityKey,
-      diff: row.diff,
-      comment: row.comment,
-    });
-
-    if (recomputed !== row.entryHash) return { ok: false, checked, brokenAt: row.id };
-    if (expectedPrev !== null && row.prevHash !== expectedPrev) {
-      // The content is intact but the link is not: a row was removed from the
-      // middle, or one was inserted.
-      return { ok: false, checked, brokenAt: row.id };
-    }
-
-    expectedPrev = row.entryHash;
-    checked++;
-  }
-
-  return { ok: true, checked };
-}
-
-/**
- * The audit trail for one project, newest first.
- *
- * Scoped by project id from a resolved path, never by a caller-supplied id, and
- * indexed by `audit_proj_time_idx` so this stays a range scan rather than a
- * sequential read of every tenant's history.
- */
-export async function listAudit(
-  db: Database,
-  projectId: string,
-  options: {
-    limit?: number;
-    entityKey?: string;
-    /** An environment-scoped principal's scope; null or absent means unscoped. */
-    environmentIds?: readonly string[] | null;
-  } = {},
-): Promise<
-  Array<{
-    id: string;
-    action: string;
-    entityType: string;
-    entityKey: string | null;
-    actorId: string | null;
-    actorKind: string;
-    /** Null when the member has no display name, or no longer exists. */
-    actorName: string | null;
-    actorEmail: string | null;
-    createdAt: Date;
-    comment: string | null;
-    before?: unknown;
-    after?: unknown;
-  }>
-> {
-  const limit = Math.max(1, Math.min(Math.trunc(options.limit ?? 50) || 50, 200));
-  const scope = options.environmentIds ?? null;
-  // Rows carry the full before/after config of one environment, so a scoped
-  // principal sees only its own environments plus project-level rows.
-  const where = and(
-    eq(auditLog.projectId, projectId),
-    options.entityKey === undefined ? undefined : eq(auditLog.entityKey, options.entityKey),
-    scope === null
-      ? undefined
-      : or(
-          isNull(auditLog.environmentId),
-          scope.length === 0 ? sql`false` : inArray(auditLog.environmentId, [...scope]),
-        ),
-  );
-
-  const rows = await db
-    .select({
-      id: auditLog.id,
-      action: auditLog.action,
-      entityType: auditLog.entityType,
-      entityKey: auditLog.entityKey,
-      actorId: auditLog.actorId,
-      actorKind: auditLog.actorKind,
-      actorName: members.name,
-      actorEmail: members.email,
-      createdAt: auditLog.createdAt,
-      comment: auditLog.comment,
-      diff: auditLog.diff,
-    })
-    .from(auditLog)
-    // Left join: a deleted member's history stays, it just loses its name.
-    // actor_id is a member id for token-driven changes too (actorOf).
-    .leftJoin(members, eq(members.id, auditLog.actorId))
-    .where(where)
-    .orderBy(sql`${auditLog.createdAt} desc`)
-    .limit(limit);
-
-  return rows.map((row) => {
-    const { diff, ...rest } = row;
-    const d = (diff as { before?: unknown; after?: unknown }) ?? {};
+  return flagRows.map((flag) => {
+    const environment = environmentByFlag.get(flag.id);
     return {
-      ...rest,
-      before: d.before,
-      after: d.after,
+      key: flag.key,
+      name: flag.name,
+      description: flag.description,
+      kind: flag.kind,
+      tags: flag.tags,
+      temporary: flag.temporary,
+      clientAvailable: flag.clientAvailable,
+      archived: flag.archivedAt !== null,
+      createdAt: flag.createdAt,
+      variations: variationsByFlag.get(flag.id) ?? [],
+      environment:
+        environment === undefined
+          ? null
+          : {
+              enabled: environment.enabled,
+              version: environment.version,
+              updatedAt: environment.updatedAt,
+              offVariation: indexOf(indexById, environment.offVariationId),
+              fallthroughVariation: indexOf(indexById, environment.fallthroughVariationId),
+              fallthroughRollout:
+                environment.fallthroughRollout === null
+                  ? null
+                  : environment.fallthroughRollout.variations.map((v) => ({
+                      variation: v.variationIndex,
+                      weight: v.weight,
+                    })),
+              ruleCount: ruleCounts.get(environment.id) ?? 0,
+              targetCount: targetCounts.get(environment.id) ?? 0,
+              prerequisiteCount: prerequisiteCounts.get(environment.id) ?? 0,
+            },
     };
   });
 }
 
+/** `[{ id, count }]` to a lookup, for the three child-table counts above. */
+async function tally(
+  rows: Promise<Array<{ id: string; count: number }>> | Array<{ id: string; count: number }>,
+): Promise<Map<string, number>> {
+  return new Map((await rows).map((row) => [row.id, row.count]));
+}
+
+function indexOf(indexById: Map<string, number>, variationId: string | null): number | null {
+  if (variationId === null) return null;
+  return indexById.get(variationId) ?? null;
+}
+
+export interface FlagDefinition {
+  key: string;
+  name: string;
+  description: string | null;
+  kind: string;
+  tags: string[];
+  temporary: boolean;
+  clientAvailable: boolean;
+  archived: boolean;
+  createdAt: Date;
+  variations: { idx: number; name: string | null; value: unknown }[];
+}
+
 /**
- * One audit row's full diff, for revert. Scoped to the environment being
- * reverted, not just the project: an environment-scoped token must not be able
- * to replay (and read back) another environment's configuration.
+ * The flag itself, variation **values** included.
+ *
+ * `readFlagConfig` speaks variation indices, which is correct for a write API
+ * and useless for a screen that has to render "25%" or "one-click". Nothing in
+ * the API returned the values until this.
  */
-export async function readAuditDiff(
+export async function readFlagDefinition(
   db: Database,
   projectId: string,
+  flagKey: string,
+): Promise<FlagDefinition | null> {
+  const [flag] = await db
+    .select({
+      id: flags.id,
+      key: flags.key,
+      name: flags.name,
+      description: flags.description,
+      kind: flags.kind,
+      tags: flags.tags,
+      temporary: flags.temporary,
+      clientAvailable: flags.clientAvailable,
+      archivedAt: flags.archivedAt,
+      createdAt: flags.createdAt,
+    })
+    .from(flags)
+    .where(and(eq(flags.projectId, projectId), eq(flags.key, flagKey)))
+    .limit(1);
+  if (flag === undefined) return null;
+
+  const variations = await db
+    .select({ idx: flagVariations.idx, name: flagVariations.name, value: flagVariations.value })
+    .from(flagVariations)
+    .where(eq(flagVariations.flagId, flag.id))
+    .orderBy(asc(flagVariations.idx));
+
+  return {
+    key: flag.key,
+    name: flag.name,
+    description: flag.description,
+    kind: flag.kind,
+    tags: flag.tags,
+    temporary: flag.temporary,
+    clientAvailable: flag.clientAvailable,
+    archived: flag.archivedAt !== null,
+    createdAt: flag.createdAt,
+    variations,
+  };
+}
+
+export interface FlagMetricPoint {
+  bucketAt: Date;
+  variationIdx: number | null;
+  reason: string;
+  count: number;
+}
+
+/**
+ * What the fleet actually evaluated, from the rollup.
+ *
+ * The question this answers is "is anything still reading this flag" — the one
+ * that decides whether a temporary flag can be deleted. Written by the rollup
+ * worker since M4 and, until now, read by nothing.
+ */
+export async function readFlagMetrics(
+  db: Database,
   environmentId: string,
-  auditId: string,
-): Promise<{ before: FlagConfig; after: FlagConfig; entityKey: string | null } | null> {
-  const [row] = await db
-    .select({ diff: auditLog.diff, entityKey: auditLog.entityKey })
-    .from(auditLog)
+  flagKey: string,
+  options: { sinceHours?: number } = {},
+): Promise<FlagMetricPoint[]> {
+  const since = new Date(Date.now() - (options.sinceHours ?? 24) * 60 * 60 * 1000);
+  return db
+    .select({
+      bucketAt: evaluationSummaries.bucketAt,
+      variationIdx: evaluationSummaries.variationIdx,
+      reason: evaluationSummaries.reason,
+      count: evaluationSummaries.count,
+    })
+    .from(evaluationSummaries)
     .where(
       and(
-        eq(auditLog.id, auditId),
-        eq(auditLog.projectId, projectId),
-        eq(auditLog.environmentId, environmentId),
+        eq(evaluationSummaries.environmentId, environmentId),
+        eq(evaluationSummaries.flagKey, flagKey),
+        gte(evaluationSummaries.bucketAt, since),
       ),
     )
-    .limit(1);
-  if (row === undefined) return null;
-  const diff = row.diff as { before?: FlagConfig; after?: FlagConfig };
-  if (diff.before === undefined || diff.after === undefined) return null;
-  // Only full config snapshots can be reverted; a kill-switch row records just
-  // {enabled} and would otherwise crash the revert with a TypeError.
-  if (!Array.isArray(diff.before.rules) || !Array.isArray(diff.before.targets)) return null;
-  return { before: diff.before, after: diff.after, entityKey: row.entityKey };
+    .orderBy(asc(evaluationSummaries.bucketAt))
+    .limit(5_000);
+}
+
+/** Most recently changed flags in an environment — the dashboard's home page. */
+export async function recentlyChangedFlags(
+  db: Database,
+  environmentId: string,
+  limit = 10,
+): Promise<Array<{ key: string; name: string; enabled: boolean; updatedAt: Date }>> {
+  return db
+    .select({
+      key: flags.key,
+      name: flags.name,
+      enabled: flagEnvironments.enabled,
+      updatedAt: flagEnvironments.updatedAt,
+    })
+    .from(flagEnvironments)
+    .innerJoin(flags, eq(flags.id, flagEnvironments.flagId))
+    .where(and(eq(flagEnvironments.environmentId, environmentId), isNull(flags.archivedAt)))
+    .orderBy(desc(flagEnvironments.updatedAt))
+    .limit(limit);
 }

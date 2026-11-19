@@ -81,7 +81,7 @@ import { PasswordError } from "./auth/passwords.js";
 import { startAppHost, toPath, type AppHost } from "./http/app-host.js";
 import { migrate } from "./migrate.js";
 import { applyFlagFile, environmentOf, type FlagFile } from "./provisioning.js";
-import { createSdkKey, listSdkKeys } from "./repositories/catalog.js";
+import { createSdkKey, listSdkKeys } from "./repositories/sdk-keys.js";
 
 export interface FeaturekitServerOptions {
   port?: number;

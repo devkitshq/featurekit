@@ -1,5 +1,5 @@
 /**
- * Resolving a presented SDK key to an environment.
+ * SDK keys: creating, listing and revoking them, and resolving a presented key.
  *
  * This is the function every SDK request runs before anything else, so it has
  * two jobs that pull against each other: be fast enough to sit in front of a
@@ -22,10 +22,82 @@
  *   against the one query every legitimate request also needs.
  */
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { Database } from "../db/client.js";
 import { environments, sdkKeys } from "../db/schema.js";
-import { claimedKind, hashKey, type SdkKeyKind } from "../auth/keys.js";
+import { HttpError } from "../http/router.js";
+import { generateSdkKey, storageFor, type SdkKeyKind, claimedKind, hashKey } from "../auth/keys.js";
+
+/**
+ * Mint an SDK key.
+ *
+ * The plaintext is returned **once**. A server key is stored hashed and is
+ * unrecoverable afterwards, which is the point: a database leak yields nothing
+ * usable. Client and mobile keys are stored public because they ship in
+ * a bundle and the dashboard has to display them.
+ */
+export async function createSdkKey(
+  db: Database,
+  input: { environmentId: string; kind: SdkKeyKind; name?: string; expiresAt?: Date },
+): Promise<{ id: string; key: string; kind: SdkKeyKind }> {
+  const key = generateSdkKey(input.kind);
+  const storage = storageFor(input.kind, key);
+  const [row] = await db
+    .insert(sdkKeys)
+    .values({
+      environmentId: input.environmentId,
+      kind: input.kind,
+      keyHash: storage.keyHash,
+      keyPublic: storage.keyPublic,
+      name: input.name ?? null,
+      expiresAt: input.expiresAt ?? null,
+    })
+    .returning({ id: sdkKeys.id });
+  if (row === undefined) throw new Error("featurekit: sdk key insert returned nothing");
+  return { id: row.id, key, kind: input.kind };
+}
+
+export async function listSdkKeys(
+  db: Database,
+  environmentId: string,
+): Promise<
+  Array<{ id: string; kind: string; name: string | null; revokedAt: Date | null; publicKey: string | null }>
+> {
+  const rows = await db
+    .select({
+      id: sdkKeys.id,
+      kind: sdkKeys.kind,
+      name: sdkKeys.name,
+      revokedAt: sdkKeys.revokedAt,
+      keyPublic: sdkKeys.keyPublic,
+    })
+    .from(sdkKeys)
+    .where(eq(sdkKeys.environmentId, environmentId));
+  // `key_hash` is never returned, by omission here and by being unrecoverable
+  // anyway. Only the public half of a client key is displayable.
+  return rows.map((r) => ({
+    id: r.id,
+    kind: r.kind,
+    name: r.name,
+    revokedAt: r.revokedAt,
+    publicKey: r.keyPublic,
+  }));
+}
+
+/** Revoked, never deleted: the audit log references the key. */
+export async function revokeSdkKey(
+  db: Database,
+  environmentId: string,
+  keyId: string,
+): Promise<void> {
+  const rows = await db
+    .update(sdkKeys)
+    .set({ revokedAt: new Date() })
+    // Scoped by environment: a key id from another tenant matches nothing.
+    .where(and(eq(sdkKeys.id, keyId), eq(sdkKeys.environmentId, environmentId)))
+    .returning({ id: sdkKeys.id });
+  if (rows.length === 0) throw new HttpError(404, "NOT_FOUND", "no such key");
+}
 
 export interface ResolvedKey {
   id: string;

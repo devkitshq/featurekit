@@ -31,12 +31,8 @@ import { PostgresClientConnectionStore } from "./client-tier/postgres-connection
 import { SnapshotService } from "./snapshot/service.js";
 import { loadCompilerInput } from "./repositories/snapshot-input.js";
 import { compileSnapshot } from "./snapshot/compile.js";
-import { applyFlagConfigToInput } from "./repositories/flags.js";
-import {
-  listEnvironments,
-  nextSnapshotVersion,
-  partitionRunwayDays,
-} from "./repositories/environments.js";
+import { applyFlagConfigToInput } from "./repositories/flag-config.js";
+import { listEnvironments, nextSnapshotVersion, partitionRunwayDays } from "./repositories/environments.js";
 import { SdkKeyRepository } from "./repositories/sdk-keys.js";
 import { AccessTokenRepository } from "./repositories/access-tokens.js";
 import { registerSdkRoutes, type AuthenticatedEnvironment } from "./routes/sdk.js";

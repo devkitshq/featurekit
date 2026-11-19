@@ -33,12 +33,8 @@ import {
   approveChangeRequest,
   rejectChangeRequest,
 } from "../../src/scheduler/scheduled-changes.js";
-import {
-  readFlagConfig,
-  resolveTarget,
-  verifyAuditChain,
-  writeFlagConfig,
-} from "../../src/repositories/flags.js";
+import { readFlagConfig, resolveTarget, writeFlagConfig } from "../../src/repositories/flag-config.js";
+import { verifyAuditChain } from "../../src/repositories/audit.js";
 import { auditLog } from "../../src/db/schema.js";
 import type { Principal } from "../../src/auth/principal.js";
 

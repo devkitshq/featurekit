@@ -27,7 +27,7 @@ import { and, asc, eq, isNull, lte, sql, inArray } from "drizzle-orm";
 import type { Database } from "../db/client.js";
 import { changeRequests, flagEnvironments, flags, scheduledChanges } from "../db/schema.js";
 import { flagConfigSchema } from "../contracts/admin.js";
-import { resolveTarget, writeFlagConfig } from "../repositories/flags.js";
+import { resolveTarget, writeFlagConfig } from "../repositories/flag-config.js";
 import type { Principal } from "../auth/principal.js";
 import { environments, projects } from "../db/schema.js";
 

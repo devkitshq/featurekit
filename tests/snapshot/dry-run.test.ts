@@ -12,7 +12,7 @@ import { describe, expect, it } from "vitest";
 import { compileSnapshot, type CompilerInput } from "../../src/snapshot/compile.js";
 import { dryRunFlag, reassignmentWarning } from "../../src/snapshot/dry-run.js";
 import { evaluate, type EvaluationContext } from "../../src/sdk/index.js";
-import { applyFlagConfigToInput, type ResolvedTarget } from "../../src/repositories/flags.js";
+import { applyFlagConfigToInput, type ResolvedTarget } from "../../src/repositories/flag-config.js";
 import type { Database } from "../../src/db/client.js";
 
 const contexts: EvaluationContext[] = Array.from({ length: 2_000 }, (_, i) => ({

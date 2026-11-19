@@ -40,15 +40,6 @@ import { dryRunFlag, reassignmentWarning } from "../snapshot/dry-run.js";
 import type { SnapshotService } from "../snapshot/service.js";
 import type { AccessTokenRepository } from "../repositories/access-tokens.js";
 import {
-  principalFromSession,
-  principalFromToken,
-  requireEnvironmentAccess,
-  requireRole,
-  type Principal,
-  type Role,
-} from "../auth/principal.js";
-import { clearCookie, parseCookies, serializeCookie } from "../http/cookies.js";
-import {
   createMember,
   createToken,
   deleteMember,
@@ -66,17 +57,54 @@ import {
   updateMember,
   SESSION_TTL_MS,
 } from "../repositories/members.js";
-import { PasswordError } from "../auth/passwords.js";
 import {
   deleteSegment,
+  readSegment,
+  applySegmentMembers,
+  createSegment,
+  findSegment,
+  listSegments,
+} from "../repositories/segments.js";
+import {
   listFlagsForDashboard,
-  listProjectEnvironments,
   readFlagDefinition,
   readFlagMetrics,
-  readSegment,
   recentlyChangedFlags,
   restoreFlag,
-} from "../repositories/dashboard.js";
+  archiveFlag,
+  createFlag,
+  listFlags,
+} from "../repositories/flags.js";
+import {
+  listProjectEnvironments,
+  createEnvironment,
+  findEnvironmentByKeys,
+} from "../repositories/environments.js";
+import {
+  killSwitch,
+  readFlagConfig,
+  resolveTarget,
+  writeFlagConfig,
+  type ResolvedTarget,
+} from "../repositories/flag-config.js";
+import { listAudit, readAuditDiff, verifyAuditChain } from "../repositories/audit.js";
+import {
+  createProject,
+  deleteProject,
+  findProject,
+  listProjects,
+} from "../repositories/projects.js";
+import { createSdkKey, listSdkKeys, revokeSdkKey } from "../repositories/sdk-keys.js";
+import {
+  principalFromSession,
+  principalFromToken,
+  requireEnvironmentAccess,
+  requireRole,
+  type Principal,
+  type Role,
+} from "../auth/principal.js";
+import { clearCookie, parseCookies, serializeCookie } from "../http/cookies.js";
+import { PasswordError } from "../auth/passwords.js";
 import {
   changePasswordSchema,
   changeRequestSchema,
@@ -106,34 +134,6 @@ import { changeRequests, scheduledChanges } from "../db/schema.js";
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { BODY_LIMITS } from "../contracts/wire.js";
 import { IdempotencyCache, idempotencyKeyOf } from "../http/idempotency.js";
-import {
-  killSwitch,
-  listAudit,
-  readAuditDiff,
-  verifyAuditChain,
-  readFlagConfig,
-  resolveTarget,
-  writeFlagConfig,
-  type ResolvedTarget,
-} from "../repositories/flags.js";
-import {
-  applySegmentMembers,
-  archiveFlag,
-  createEnvironment,
-  createFlag,
-  createProject,
-  createSdkKey,
-  createSegment,
-  deleteProject,
-  findEnvironmentByKeys,
-  findProject,
-  findSegment,
-  listFlags,
-  listProjects,
-  listSdkKeys,
-  listSegments,
-  revokeSdkKey,
-} from "../repositories/catalog.js";
 import type { z } from "zod";
 
 /** The cookie a dashboard session lives in. */

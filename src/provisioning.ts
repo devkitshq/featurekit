@@ -23,16 +23,10 @@ import { z } from "zod";
 import type { Database } from "./db/client.js";
 import type { Principal } from "./auth/principal.js";
 import { createFlagSchema, flagConfigSchema, type FlagConfigBody } from "./contracts/admin.js";
-import {
-  createEnvironment,
-  createFlag,
-  createProject,
-  findEnvironmentByKeys,
-  findProject,
-  listFlags,
-  updateFlagDefinition,
-} from "./repositories/catalog.js";
-import { readFlagConfig, resolveTarget, writeFlagConfig } from "./repositories/flags.js";
+import { createEnvironment, findEnvironmentByKeys } from "./repositories/environments.js";
+import { createFlag, listFlags, updateFlagDefinition } from "./repositories/flags.js";
+import { createProject, findProject } from "./repositories/projects.js";
+import { readFlagConfig, resolveTarget, writeFlagConfig } from "./repositories/flag-config.js";
 
 /* ─────────────────────────────── the file ───────────────────────────── */
 
