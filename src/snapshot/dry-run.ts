@@ -19,7 +19,7 @@
  * not the question.
  */
 
-import { evaluate, type EvaluationContext, type Snapshot } from "../sdk/index.js";
+import { evaluate, type EvaluationContext, type Snapshot } from "../sdk/evaluation/index.js";
 
 export interface DryRunChange {
   contextKey: string;

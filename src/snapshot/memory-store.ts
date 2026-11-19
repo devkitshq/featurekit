@@ -14,7 +14,7 @@
  * hide exactly the `Uint8Array` round-trip bug the codec exists to prevent.
  */
 
-import type { Snapshot } from "../sdk/index.js";
+import type { Snapshot } from "../sdk/evaluation/index.js";
 import {
   deserializeSnapshot,
   serializeSnapshot,

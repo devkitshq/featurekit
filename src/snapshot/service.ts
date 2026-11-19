@@ -32,7 +32,7 @@
  * @see docs/control-plane/change-propagation.md
  */
 
-import type { CompiledFlag, Snapshot } from "../sdk/index.js";
+import type { CompiledFlag, Snapshot } from "../sdk/evaluation/index.js";
 import { compileSnapshot, type CompilerInput } from "./compile.js";
 import type { SnapshotStore, StreamPatch } from "./store.js";
 

@@ -24,7 +24,7 @@
  */
 
 import { randomBytes } from "node:crypto";
-import type { EvaluationContext } from "../sdk/index.js";
+import type { EvaluationContext } from "../sdk/evaluation/index.js";
 
 /** What a second node needs in order to take over serving a connection. */
 export interface StoredConnection {

@@ -31,7 +31,7 @@
 
 import { randomUUID } from "node:crypto";
 import type { Sql, TransactionSql } from "postgres";
-import type { Snapshot } from "../sdk/index.js";
+import type { Snapshot } from "../sdk/evaluation/index.js";
 import { resumeFrom } from "./memory-store.js";
 import {
   deserializeSnapshot,

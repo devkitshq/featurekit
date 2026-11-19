@@ -37,7 +37,7 @@ import {
   type Operator,
   type Rollout,
   type Snapshot,
-} from "../sdk/index.js";
+} from "../sdk/evaluation/index.js";
 
 /* ────────────────────────────── input rows ─────────────────────────── */
 

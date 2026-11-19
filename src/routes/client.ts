@@ -15,7 +15,7 @@
  * @see docs/client-tier/protocol.md
  */
 
-import type { EvaluationContext } from "../sdk/index.js";
+import type { EvaluationContext } from "../sdk/evaluation/index.js";
 import { checkKey } from "../auth/keys.js";
 import { verifyContext } from "../auth/secure-mode.js";
 import { HttpError, type RequestContext, type Router } from "../http/router.js";

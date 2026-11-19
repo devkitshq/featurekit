@@ -35,7 +35,7 @@
 
 import { HttpError, type RequestContext, type Router } from "../http/router.js";
 import type { Database } from "../db/client.js";
-import type { EvaluationContext, Snapshot } from "../sdk/index.js";
+import type { EvaluationContext, Snapshot } from "../sdk/evaluation/index.js";
 import { dryRunFlag, reassignmentWarning } from "../snapshot/dry-run.js";
 import type { SnapshotService } from "../snapshot/service.js";
 import type { AccessTokenRepository } from "../repositories/access-tokens.js";

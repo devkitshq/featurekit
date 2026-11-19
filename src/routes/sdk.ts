@@ -13,7 +13,7 @@
  * @see docs/control-plane/delivery.md
  */
 
-import type { Snapshot } from "../sdk/index.js";
+import type { Snapshot } from "../sdk/evaluation/index.js";
 import { HttpError, type RequestContext, type Router } from "../http/router.js";
 import { openSse } from "../http/server.js";
 import { serializeSnapshot, type SnapshotStore } from "../snapshot/store.js";

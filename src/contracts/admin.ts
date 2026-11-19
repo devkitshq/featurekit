@@ -16,7 +16,7 @@
  */
 
 import { z } from "zod";
-import { checkRegexPattern } from "../sdk/index.js";
+import { checkRegexPattern } from "../sdk/evaluation/index.js";
 
 /* ── shared pieces ───────────────────────────────────────────────────── */
 

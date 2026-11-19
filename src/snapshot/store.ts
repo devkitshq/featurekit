@@ -15,7 +15,7 @@
  * @see docs/control-plane/change-propagation.md
  */
 
-import type { Snapshot } from "../sdk/index.js";
+import type { Snapshot } from "../sdk/evaluation/index.js";
 
 /** One entry in `fk:patches:{envId}`. */
 export interface StreamPatch {

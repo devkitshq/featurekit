@@ -37,7 +37,7 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import type { Rollout } from "../sdk/index.js";
+import type { Rollout } from "../sdk/evaluation/index.js";
 
 const createdAt = () => timestamp("created_at", { withTimezone: true }).defaultNow().notNull();
 const updatedAt = () => timestamp("updated_at", { withTimezone: true }).defaultNow().notNull();

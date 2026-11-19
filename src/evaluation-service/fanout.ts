@@ -43,7 +43,7 @@ import {
   type EvaluationDetail,
   SegmentIndex,
   type Snapshot,
-} from "../sdk/index.js";
+} from "../sdk/evaluation/index.js";
 
 export interface ClientValue {
   value: unknown;

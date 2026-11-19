@@ -23,7 +23,7 @@
 
 import { createHash } from "node:crypto";
 import { and, asc, eq, inArray, sql, or, isNull } from "drizzle-orm";
-import type { Rollout } from "../sdk/index.js";
+import type { Rollout } from "../sdk/evaluation/index.js";
 import type { Database } from "../db/client.js";
 import {
   auditLog,
