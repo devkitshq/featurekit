@@ -72,12 +72,6 @@ export const evaluationSummarySchema = z.object({
   reason: z.string().min(1).max(64).default("UNKNOWN"),
   count: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
   uniqueContexts: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).optional(),
-  /**
-   * Base64 HLL sketch of the distinct context keys behind `count`, when the SDK
-   * can produce one. Bounded at 8 KB — a 2^12 sketch is ~4 KB encoded, and an
-   * unbounded blob here is an allocation multiplier per summary row.
-   */
-  uniqueSketch: z.string().max(8_192).optional(),
 });
 
 /**

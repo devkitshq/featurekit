@@ -23,7 +23,6 @@ import {
   bigint,
   boolean,
   check,
-  customType,
   doublePrecision,
   foreignKey,
   index,
@@ -42,11 +41,6 @@ import type { Rollout } from "../sdk/index.js";
 
 const createdAt = () => timestamp("created_at", { withTimezone: true }).defaultNow().notNull();
 const updatedAt = () => timestamp("updated_at", { withTimezone: true }).defaultNow().notNull();
-
-/** HLL sketches are opaque bytes to the application. */
-const bytea = customType<{ data: Uint8Array; driverData: Buffer }>({
-  dataType: () => "bytea",
-});
 
 /* ───────────────────────────── 7.1 Tenancy ──────────────────────────── */
 
@@ -474,8 +468,6 @@ export const evaluationSummaries = pgTable(
     /** Start of the aggregation window, truncated to the minute. Partition key. */
     bucketAt: timestamp("bucket_at", { withTimezone: true }).notNull(),
     count: bigint("count", { mode: "number" }).notNull(),
-    /** HLL sketch of distinct context keys, merged in-process before write. */
-    uniqueSketch: bytea("unique_sketch"),
   },
   (t) => [
     primaryKey({

@@ -21,7 +21,6 @@
  */
 
 import type { SummaryBatchBody } from "../contracts/wire.js";
-import { HLL_PRECISION, HyperLogLog } from "./hll.js";
 
 export interface BufferedSummary {
   environmentId: string;
@@ -32,8 +31,6 @@ export interface BufferedSummary {
   bucketAt: number;
   count: number;
   uniqueContexts: number;
-  /** Raw HLL bytes when the SDK supplied them; see `hll.ts`. */
-  sketch?: Uint8Array;
 }
 
 export interface EventBufferOptions {
@@ -119,7 +116,6 @@ export class EventBuffer {
         this.options.onDropped?.(1, "buffer_full");
       }
 
-      const sketch = decodeSketch(summary.uniqueSketch);
       this.rows.set(id, {
         environmentId,
         flagKey: summary.flagKey,
@@ -128,7 +124,6 @@ export class EventBuffer {
         bucketAt,
         count: summary.count,
         uniqueContexts: summary.uniqueContexts ?? 0,
-        ...(sketch !== undefined ? { sketch } : {}),
       });
       if (this.oldestBucketAt === null || bucketAt < this.oldestBucketAt) {
         this.oldestBucketAt = bucketAt;
@@ -177,21 +172,5 @@ export class EventBuffer {
         existing.count += row.count;
       }
     }
-  }
-}
-
-function decodeSketch(encoded: string | undefined): Uint8Array | undefined {
-  if (encoded === undefined) return undefined;
-  try {
-    const bytes = Buffer.from(encoded, "base64");
-    // A sketch that does not decode is dropped silently: it is analytics
-    // detail, and throwing here would fail a batch that is otherwise fine.
-    if (bytes.length === 0 || bytes.length > 8_192) return undefined;
-    // Only sketches at the server's precision can be merged; a foreign one
-    // would make the in-process union throw during rollup.
-    const sketch = HyperLogLog.fromBytes(new Uint8Array(bytes));
-    return sketch !== null && sketch.precision === HLL_PRECISION ? new Uint8Array(bytes) : undefined;
-  } catch {
-    return undefined;
   }
 }

@@ -11,7 +11,6 @@
 import { describe, expect, it } from "vitest";
 import { EventBuffer, type BufferedSummary } from "../../src/events/ingest.js";
 import { MemoryDeadLetterQueue, isMissingPartition, mergeRows } from "../../src/events/rollup.js";
-import { HyperLogLog } from "../../src/events/hll.js";
 
 const ENV = "env-1";
 
@@ -148,28 +147,6 @@ describe("mergeRows", () => {
     ]);
     expect(merged).toHaveLength(4);
   });
-
-  it("unions sketches rather than picking one", () => {
-    const a = new HyperLogLog();
-    const b = new HyperLogLog();
-    for (let i = 0; i < 500; i++) a.add(`a-${i}`);
-    for (let i = 0; i < 500; i++) b.add(`b-${i}`);
-    const row = (sketch: Uint8Array): BufferedSummary => ({
-      environmentId: ENV,
-      flagKey: "f",
-      variationIndex: 0,
-      reason: "OFF",
-      bucketAt: 60_000,
-      count: 1,
-      uniqueContexts: 500,
-      sketch,
-    });
-    const merged = mergeRows([row(a.toBytes()), row(b.toBytes())]);
-    const union = HyperLogLog.fromBytes(merged[0]?.sketch);
-    expect(union).not.toBeNull();
-    // Two disjoint sets of 500: the union is ~1000, not ~500.
-    expect(union!.count()).toBeGreaterThan(850);
-  });
 });
 
 describe("isMissingPartition", () => {
@@ -197,50 +174,5 @@ describe("MemoryDeadLetterQueue", () => {
     dlq.push([], "missing_partition");
     expect(dlq.take()).toHaveLength(1);
     expect(dlq.take()).toHaveLength(0);
-  });
-});
-
-describe("HyperLogLog", () => {
-  it("estimates cardinality within a few percent", () => {
-    const sketch = new HyperLogLog();
-    for (let i = 0; i < 10_000; i++) sketch.add(`user-${i}`);
-    const error = Math.abs(sketch.count() - 10_000) / 10_000;
-    expect(error).toBeLessThan(0.1);
-  });
-
-  it("is exact-ish for small sets, where most buckets live", () => {
-    const sketch = new HyperLogLog();
-    for (let i = 0; i < 100; i++) sketch.add(`user-${i}`);
-    expect(sketch.count()).toBeGreaterThan(90);
-    expect(sketch.count()).toBeLessThan(115);
-  });
-
-  it("merges idempotently, so a duplicated batch changes nothing", () => {
-    // This is what makes a replayed or duplicated event harmless.
-    const a = new HyperLogLog();
-    for (let i = 0; i < 1_000; i++) a.add(`u-${i}`);
-    const before = a.count();
-    const copy = HyperLogLog.fromBytes(a.toBytes())!;
-    a.merge(copy);
-    expect(a.count()).toBe(before);
-  });
-
-  it("round-trips through bytes", () => {
-    const sketch = new HyperLogLog();
-    for (let i = 0; i < 2_000; i++) sketch.add(`u-${i}`);
-    const decoded = HyperLogLog.fromBytes(sketch.toBytes());
-    expect(decoded?.count()).toBe(sketch.count());
-  });
-
-  it("returns null for corrupt bytes instead of throwing", () => {
-    // A corrupt sketch must degrade to "no unique count", never stall the drain.
-    expect(HyperLogLog.fromBytes(new Uint8Array([9, 9, 9]))).toBeNull();
-    expect(HyperLogLog.fromBytes(new Uint8Array(0))).toBeNull();
-    expect(HyperLogLog.fromBytes(null)).toBeNull();
-    expect(HyperLogLog.fromBytes(new Uint8Array([1, 12, 0, 0]))).toBeNull();
-  });
-
-  it("refuses to merge sketches of different precision", () => {
-    expect(() => new HyperLogLog(12).merge(new HyperLogLog(10))).toThrow(/precision/);
   });
 });

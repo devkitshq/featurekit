@@ -50,6 +50,13 @@
       "when": 1788604685628,
       "tag": "0006_audit_entity_key",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1788604685629,
+      "tag": "0007_drop_unique_sketch",
+      "breakpoints": true
     }
   ]
 }
