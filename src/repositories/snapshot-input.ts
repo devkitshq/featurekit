@@ -21,7 +21,6 @@ import {
   flagVariations,
   flags,
   prerequisites,
-  projects,
   ruleClauses,
   segmentMembers,
   segmentRuleClauses,
@@ -255,22 +254,6 @@ export async function loadCompilerInput(
     segmentRules: segRuleRows,
     segmentRuleClauses: segClauseRows,
   };
-}
-
-/** Resolve `project/environment` keys to an environment id. */
-export async function findEnvironment(
-  db: Database,
-  projectKey: string,
-  environmentKey: string,
-): Promise<{ id: string; projectId: string } | null> {
-  const [match] = await db
-    .select({ id: environments.id, projectId: environments.projectId })
-    .from(environments)
-    .innerJoin(projects, eq(environments.projectId, projects.id))
-    .where(and(eq(projects.key, projectKey), eq(environments.key, environmentKey)))
-    .limit(1);
-
-  return match ?? null;
 }
 
 /* ─────────────────────── paginated member loading ────────────────────── */

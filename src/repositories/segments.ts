@@ -167,15 +167,6 @@ export async function listSegments(
     .orderBy(asc(segments.key));
 }
 
-/** Used by the flag-config writer to reject rules naming a segment that is gone. */
-export async function segmentKeysIn(db: Database, environmentId: string): Promise<Set<string>> {
-  const rows = await db
-    .select({ key: segments.key })
-    .from(segments)
-    .where(eq(segments.environmentId, environmentId));
-  return new Set(rows.map((r) => r.key));
-}
-
 export interface SegmentDetail {
   id: string;
   key: string;

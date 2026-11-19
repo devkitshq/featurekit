@@ -45,25 +45,6 @@ export async function nextSnapshotVersion(db: Database, environmentId: string): 
   return version;
 }
 
-export async function getEnvironment(
-  db: Database,
-  environmentId: string,
-): Promise<EnvironmentRecord | null> {
-  const rows = await db
-    .select({
-      id: environments.id,
-      projectId: environments.projectId,
-      key: environments.key,
-      isProduction: environments.isProduction,
-      bucketSalt: environments.bucketSalt,
-      snapshotVersion: environments.snapshotVersion,
-    })
-    .from(environments)
-    .where(eq(environments.id, environmentId))
-    .limit(1);
-  return rows[0] ?? null;
-}
-
 /** Every environment, for the startup warm and the snapshot-age gauges. */
 export async function listEnvironments(db: Database): Promise<EnvironmentRecord[]> {
   return db
@@ -164,14 +145,6 @@ export async function findEnvironmentByKeys(
     .where(and(eq(projects.key, projectKey), eq(environments.key, environmentKey)))
     .limit(1);
   return row ?? null;
-}
-
-export async function environmentIdsFor(db: Database, projectId: string): Promise<string[]> {
-  const rows = await db
-    .select({ id: environments.id })
-    .from(environments)
-    .where(eq(environments.projectId, projectId));
-  return rows.map((r) => r.id);
 }
 
 export interface EnvironmentSummary {

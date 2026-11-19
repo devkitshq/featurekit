@@ -196,15 +196,6 @@ export async function restoreFlag(db: Database, projectId: string, flagKey: stri
   if (restored.length === 0) throw new HttpError(404, "NOT_FOUND", "no such flag");
 }
 
-export async function flagKeysIn(db: Database, projectId: string, keys: string[]): Promise<Set<string>> {
-  if (keys.length === 0) return new Set();
-  const rows = await db
-    .select({ key: flags.key })
-    .from(flags)
-    .where(and(eq(flags.projectId, projectId), inArray(flags.key, keys)));
-  return new Set(rows.map((r) => r.key));
-}
-
 export interface FlagRow {
   key: string;
   name: string;

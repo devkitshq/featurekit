@@ -35,16 +35,6 @@ export async function startDevContainer<T>(start: () => Promise<T>): Promise<T> 
   }
 }
 
-export function redact(url: string): string {
-  try {
-    const parsed = new URL(url);
-    if (parsed.password !== "") parsed.password = "***";
-    return parsed.toString();
-  } catch {
-    return url;
-  }
-}
-
 /**
  * `FeaturekitServer` — the control plane as an object you construct.
  *
@@ -622,4 +612,3 @@ export class FeaturekitServer {
   }
 }
 
-export { redact as redactUrl };

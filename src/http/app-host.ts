@@ -25,7 +25,7 @@
 import { createServer, type Server } from "node:http";
 import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
-import { extname, join, normalize, resolve, sep } from "node:path";
+import { extname, normalize, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export interface AppHostOptions {
@@ -184,6 +184,3 @@ function safeJoin(root: string, requested: string): string | null {
   const candidate = resolve(root, normalize(requested));
   return candidate === root || candidate.startsWith(root + sep) ? candidate : null;
 }
-
-/** Where the SDK bundle would be, for an error message worth reading. */
-export const BROWSER_SDK_HINT = join("packages", "client", "dist", "index.js");

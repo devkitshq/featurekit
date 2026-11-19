@@ -7,7 +7,7 @@
  *
  * The parameters are stored **in** the hash string, so raising them later does
  * not invalidate existing passwords: an old hash still verifies with its own
- * parameters, and `needsRehash` says when to upgrade one on next login.
+ * parameters.
  */
 
 import { randomBytes, scrypt, timingSafeEqual } from "node:crypto";
@@ -99,13 +99,6 @@ export async function verifyPassword(password: string, stored: string | null): P
   } catch {
     return false;
   }
-}
-
-/** Whether a stored hash uses weaker parameters than we now use. */
-export function needsRehash(stored: string | null, params: ScryptParams = DEFAULT_PARAMS): boolean {
-  const parsed = parse(stored);
-  if (parsed === null) return true;
-  return parsed.N < params.N || parsed.r < params.r || parsed.p < params.p;
 }
 
 interface ParsedHash extends ScryptParams {

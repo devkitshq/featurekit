@@ -87,17 +87,6 @@ export function requireRole(principal: Principal, minimum: Role): void {
   }
 }
 
-/**
- * The environment filter a repository must apply.
- *
- * `null` means unrestricted, which the repository still uses explicitly — the
- * calling convention is "you were given a scope and you used it", never "you
- * may skip the filter when it is empty".
- */
-export function environmentScope(principal: Principal): string[] | null {
-  return principal.environmentIds;
-}
-
 export function canAccessEnvironment(principal: Principal, environmentId: string): boolean {
   return principal.environmentIds === null || principal.environmentIds.includes(environmentId);
 }

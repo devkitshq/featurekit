@@ -74,17 +74,3 @@ export function corsMiddleware(options: CorsOptions) {
     return undefined;
   };
 }
-
-/**
- * Preflight needs a route to match, and the router matches on method. Without
- * this, `OPTIONS /v1/client/state` is a 405 and the browser never sends the
- * POST.
- */
-export function registerCorsPreflight(
-  add: (method: string, pattern: string, handler: () => HttpResponse) => void,
-  routes: Iterable<string>,
-): void {
-  for (const pattern of routes) {
-    add("OPTIONS", pattern, () => ({ status: 204 }));
-  }
-}

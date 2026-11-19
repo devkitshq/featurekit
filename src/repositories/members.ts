@@ -8,11 +8,11 @@
  * authorization path.
  */
 
-import { and, asc, eq, lt, ne, sql } from "drizzle-orm";
+import { and, asc, eq, ne, sql } from "drizzle-orm";
 import { createHash, randomBytes } from "node:crypto";
 import type { Database } from "../db/client.js";
 import { accessTokens, dashboardSessions, members } from "../db/schema.js";
-import { hashKey } from "../auth/keys.js";
+import { generateAccessToken, hashKey } from "../auth/keys.js";
 import { hashPassword, verifyPassword } from "../auth/passwords.js";
 import type { Role } from "../auth/principal.js";
 
@@ -249,15 +249,6 @@ export async function deleteSessionsFor(db: Database, memberId: string): Promise
   await db.delete(dashboardSessions).where(eq(dashboardSessions.memberId, memberId));
 }
 
-/** Housekeeping, safe to call whenever. */
-export async function purgeExpiredSessions(db: Database): Promise<number> {
-  const removed = await db
-    .delete(dashboardSessions)
-    .where(lt(dashboardSessions.expiresAt, new Date()))
-    .returning({ id: dashboardSessions.id });
-  return removed.length;
-}
-
 /* ─────────────────────── personal access tokens ─────────────────────── */
 
 export interface TokenRow {
@@ -290,7 +281,7 @@ export async function createToken(
     expiresAt?: Date | undefined;
   },
 ): Promise<{ id: string; token: string }> {
-  const token = `fk_pat_${randomBytes(32).toString("base64url")}`;
+  const token = generateAccessToken();
   const [row] = await db
     .insert(accessTokens)
     .values({
