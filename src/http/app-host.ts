@@ -25,8 +25,9 @@
 import { createServer, type Server } from "node:http";
 import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
-import { extname, normalize, resolve, sep } from "node:path";
+import { extname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { CONTENT_TYPES, safeJoin } from "./static.js";
 
 export interface AppHostOptions {
   /**
@@ -53,24 +54,6 @@ export interface AppHost {
   port: number;
   close(): Promise<void>;
 }
-
-const CONTENT_TYPES: Readonly<Record<string, string>> = {
-  ".html": "text/html; charset=utf-8",
-  ".js": "text/javascript; charset=utf-8",
-  ".mjs": "text/javascript; charset=utf-8",
-  ".css": "text/css; charset=utf-8",
-  ".json": "application/json; charset=utf-8",
-  ".svg": "image/svg+xml",
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".gif": "image/gif",
-  ".webp": "image/webp",
-  ".ico": "image/x-icon",
-  ".woff": "font/woff",
-  ".woff2": "font/woff2",
-  ".map": "application/json; charset=utf-8",
-};
 
 /**
  * The built browser SDK, wherever it is installed.
@@ -177,10 +160,4 @@ async function send(
 export function toPath(dir: string | URL): string {
   if (dir instanceof URL) return fileURLToPath(dir);
   return dir.startsWith("file:") ? fileURLToPath(new URL(dir)) : dir;
-}
-
-function safeJoin(root: string, requested: string): string | null {
-  if (requested.includes("\0")) return null;
-  const candidate = resolve(root, normalize(requested));
-  return candidate === root || candidate.startsWith(root + sep) ? candidate : null;
 }

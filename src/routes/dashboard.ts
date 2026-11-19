@@ -24,9 +24,10 @@
 
 import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
-import { extname, join, normalize, resolve, sep } from "node:path";
+import { extname, join, resolve } from "node:path";
 import { pipeline } from "node:stream/promises";
 import type { RequestContext, Router } from "../http/router.js";
+import { CONTENT_TYPES, safeJoin } from "../http/static.js";
 
 export interface DashboardRouteDeps {
   /** Absolute path to the built dashboard (`dashboard/dist`). */
@@ -35,26 +36,6 @@ export interface DashboardRouteDeps {
   basePath?: string;
   onError?: (error: unknown) => void;
 }
-
-const CONTENT_TYPES: Readonly<Record<string, string>> = {
-  ".html": "text/html; charset=utf-8",
-  ".js": "text/javascript; charset=utf-8",
-  ".mjs": "text/javascript; charset=utf-8",
-  ".css": "text/css; charset=utf-8",
-  ".json": "application/json; charset=utf-8",
-  ".svg": "image/svg+xml",
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".gif": "image/gif",
-  ".ico": "image/x-icon",
-  ".webp": "image/webp",
-  ".woff": "font/woff",
-  ".woff2": "font/woff2",
-  ".ttf": "font/ttf",
-  ".map": "application/json; charset=utf-8",
-  ".txt": "text/plain; charset=utf-8",
-};
 
 /**
  * Headers that apply to the dashboard and to nothing else.
@@ -179,20 +160,6 @@ async function resolveFile(root: string, requested: string): Promise<ResolvedFil
     if (found !== null) return found;
   }
   return describe(join(root, "index.html"), "index.html");
-}
-
-/**
- * Join a request path onto the root, or refuse.
- *
- * `resolve` collapses `..` first, and the result must still start with the root
- * plus a separator. Anything else — an absolute path, a traversal, a Windows
- * drive letter — lands outside and is refused here rather than read.
- */
-function safeJoin(root: string, requested: string): string | null {
-  if (requested.length === 0) return null;
-  if (requested.includes("\0")) return null;
-  const candidate = resolve(root, normalize(requested));
-  return candidate === root || candidate.startsWith(root + sep) ? candidate : null;
 }
 
 async function describe(path: string, requested: string): Promise<ResolvedFile | null> {
