@@ -68,9 +68,9 @@ increase(featurekit_snapshot_compile_failures_total[10m]) > 0
 
 ### Degraded snapshot serves
 
-The snapshot store could not be read and nodes are serving from memory or a
-fresh compile. Correct behaviour, and usually the first sign of database
-trouble.
+The snapshot store could not be read and nodes are serving the last snapshot
+they held from memory. Correct behaviour, and usually the first sign of
+database trouble.
 
 ```promql
 sum(rate(featurekit_snapshot_degraded_serves_total[5m])) > 0

@@ -17,9 +17,9 @@
  * **Two properties were added after the production review:**
  *
  * 1. **This class keeps its own last-known-good snapshot per environment.**
- *    Previously every read went to the store, so a store failure turned
- *    `GET /v1/snapshot/:env` into a 500. Now it degrades to serving from
- *    memory, and to compiling when memory is cold.
+ *    Postgres is both the store and the truth, so a store failure is a
+ *    database failure; a node that has served an environment keeps serving it
+ *    from memory rather than turning `GET /v1/snapshot/:env` into a 500.
  * 2. **A kill switch does not wait for the debounce.** Coalescing five
  *    dashboard edits into one recompile is right; making an operator's "turn it
  *    off" wait 200ms behind a lock during an incident is not.
@@ -36,12 +36,12 @@ import type { CompiledFlag, Snapshot } from "../sdk/index.js";
 import { compileSnapshot, type CompilerInput } from "./compile.js";
 import type { SnapshotStore, StreamPatch } from "./store.js";
 
-export type SnapshotSource = "store" | "compiled" | "memory" | "postgres";
+export type SnapshotSource = "store" | "compiled" | "memory";
 
 export interface SnapshotResult {
   snapshot: Snapshot;
   version: number;
-  /** Where this came from. Anything but `store`/`compiled` is degraded. */
+  /** Where this came from. `memory` is degraded. */
   source?: SnapshotSource;
 }
 
@@ -53,13 +53,6 @@ export interface SnapshotServiceOptions {
   debounceMs?: number;
   patchHistoryDepth?: number;
   segmentInlineMax?: number;
-  /**
-   * Floor between degraded compiles for one environment while the store is
-   * unavailable. Without it, every request during a store outage compiles and
-   * burns a version — a self-inflicted load spike on the database that is now
-   * the only healthy component in the system.
-   */
-  degradedCompileIntervalMs?: number;
   /**
    * How long a change waits for a compile lock another compile holds, before
    * giving up and reporting it. Longer than the store's lock lease, so a holder
@@ -81,23 +74,6 @@ export interface RecompileOptions {
   flagKey?: string;
 }
 
-/**
- * Marks a failure that came from compiling (Postgres, or a malformed ruleset)
- * rather than from the store.
- *
- * The distinction decides the failure mode, so it must not be guessed from an
- * error message. **A store failure degrades** — that is the whole point of the
- * last-known-good path. **A compile failure propagates**: the caller is usually
- * a management write that has to know its change could not be compiled, and
- * swallowing it would report success for a snapshot nobody can build.
- */
-class CompileFailure extends Error {
-  constructor(override readonly cause: unknown) {
-    super("featurekit: snapshot compile failed");
-    this.name = "CompileFailure";
-  }
-}
-
 interface CachedSnapshot {
   snapshot: Snapshot;
   version: number;
@@ -114,14 +90,13 @@ export class SnapshotService {
    * the SDK's in-memory snapshot: stale beats wrong, and both beat empty.
    */
   private readonly lastKnownGood = new Map<string, CachedSnapshot>();
-  private readonly lastDegradedCompile = new Map<string, number>();
   private closed = false;
 
   constructor(private readonly options: SnapshotServiceOptions) {}
 
   /**
    * The current snapshot: from the store if present, compiled if not, and from
-   * memory or Postgres when the store itself is unavailable.
+   * memory when the database is unavailable.
    *
    * Concurrent cold reads collapse into one compile. Ten SDKs connecting to a
    * freshly started node must not trigger ten compiles of the same rows.
@@ -133,26 +108,19 @@ export class SnapshotService {
         this.remember(environmentId, cached.snapshot, cached.version);
         return { ...cached, source: "store" };
       }
+      return await this.compileCold(environmentId);
     } catch (error) {
-      // The store failed, not merely came back empty. Everything below is the
-      // degraded path, and it must not throw into a request.
       this.options.onError?.(error, { environmentId });
-      return this.degraded(environmentId);
+      return this.fromMemory(environmentId);
     }
+  }
 
+  private compileCold(environmentId: string): Promise<SnapshotResult> {
     const existing = this.inFlight.get(environmentId);
     if (existing !== undefined) return existing;
 
     const work = (async (): Promise<SnapshotResult> => {
-      // Re-check under the in-flight guard: another caller may have populated
-      // the store between our miss and our arrival here.
-      const recheck = await this.options.store.get(environmentId).catch(() => null);
-      if (recheck !== null) {
-        this.remember(environmentId, recheck.snapshot, recheck.version);
-        return { ...recheck, source: "store" };
-      }
-
-      const compiled = await this.compileAndCommit(environmentId, {}, false);
+      const compiled = await this.recompile(environmentId);
       if (compiled !== undefined) return { ...compiled, source: "compiled" };
 
       // The lock was held by another node, which is compiling right now. Its
@@ -162,70 +130,27 @@ export class SnapshotService {
 
       // Nothing arrived. Rather than throwing — which is a 500 for an SDK that
       // would happily have taken a slightly stale answer — fall back.
-      return this.degraded(environmentId);
+      return this.fromMemory(environmentId);
     })().finally(() => this.inFlight.delete(environmentId));
 
     this.inFlight.set(environmentId, work);
     return work;
   }
 
-  /**
-   * Serve without the store: memory first, a fresh compile second.
-   *
-   * The alternative — propagating the store's error — means every SDK polling during
-   * a cache outage receives a 500 and falls back to caller defaults, which is a
-   * flag outage caused by a cache.
-   */
-  private async degraded(environmentId: string): Promise<SnapshotResult> {
+  /** Serve what this node last proved, or fail: there is nothing else to serve. */
+  private fromMemory(environmentId: string): SnapshotResult {
     const known = this.lastKnownGood.get(environmentId);
-    const now = Date.now();
-    const interval = this.options.degradedCompileIntervalMs ?? 5_000;
-    const lastCompile = this.lastDegradedCompile.get(environmentId) ?? 0;
-    const knownAge = known === undefined ? Number.POSITIVE_INFINITY : now - known.at;
-
-    // Memory wins while it is fresh, and also while it is stale but a compile
-    // has already run recently. The second clause is the rate limit: without it
-    // every request during a store outage compiles, which turns a cache failure
-    // into a load spike against the only healthy component left — and burns a
-    // snapshot version per request while doing it.
-    if (known !== undefined && (knownAge < interval || now - lastCompile < interval)) {
-      this.options.onSnapshot?.({
-        environmentId,
-        version: known.version,
-        source: "memory",
-      });
-      return { snapshot: known.snapshot, version: known.version, source: "memory" };
-    }
-
-    try {
-      this.lastDegradedCompile.set(environmentId, now);
-      const { snapshot, version, compileMs } = await this.compileOnly(environmentId);
-      this.remember(environmentId, snapshot, version);
-      // Best effort: if the store has come back, put the result where the rest of
-      // the fleet can see it. Failure here is expected and ignored.
-      void this.options.store.put(environmentId, snapshot).catch(() => undefined);
-      this.options.onSnapshot?.({ environmentId, version, source: "postgres", compileMs });
-      return { snapshot, version, source: "postgres" };
-    } catch (error) {
-      this.options.onError?.(error, { environmentId });
-      if (known !== undefined) {
-        this.options.onSnapshot?.({
-          environmentId,
-          version: known.version,
-          source: "memory",
-        });
-        return { snapshot: known.snapshot, version: known.version, source: "memory" };
-      }
-      // The store is gone, compiling failed, and this node never held a snapshot for
-      // this environment. There is genuinely nothing to serve.
+    if (known === undefined) {
       throw new Error(`featurekit: could not obtain a snapshot for ${environmentId}`);
     }
+    this.options.onSnapshot?.({ environmentId, version: known.version, source: "memory" });
+    return { snapshot: known.snapshot, version: known.version, source: "memory" };
   }
 
   private async awaitStore(environmentId: string, attempts = 20): Promise<SnapshotResult | null> {
     for (let i = 0; i < attempts; i++) {
       await new Promise((r) => setTimeout(r, 25));
-      const got = await this.options.store.get(environmentId).catch(() => null);
+      const got = await this.options.store.get(environmentId);
       if (got !== null) {
         this.remember(environmentId, got.snapshot, got.version);
         return got;
@@ -289,68 +214,34 @@ export class SnapshotService {
    * doing this work and will publish the result. Recompiling anyway would be
    * the thundering herd the lock exists to prevent.
    *
-   * A compile that throws leaves the previous snapshot in place. Stale beats
-   * wrong, and both beat empty.
+   * A compile that throws leaves the previous snapshot in place and reaches
+   * the caller: a management write that reports success for a change nobody
+   * compiled is how an operator believes a kill switch landed when it did not.
    */
   async recompile(
     environmentId: string,
     options: RecompileOptions = {},
   ): Promise<SnapshotResult | undefined> {
-    return this.compileAndCommit(environmentId, options, true);
-  }
+    return this.options.store.withCompileLock(environmentId, async () => {
+      const previous = await this.options.store.get(environmentId);
+      const { snapshot, version, compileMs } = await this.compileOnly(environmentId);
 
-  /**
-   * `strict` is for a change: if the store fails and the fallback can only
-   * serve memory, nothing compiled the change, so the store's error is thrown
-   * rather than reporting the old snapshot as success. With Postgres as both
-   * store and truth, that is exactly what a database outage looks like. A cold
-   * read is not strict: serving memory is its whole point.
-   */
-  private async compileAndCommit(
-    environmentId: string,
-    options: RecompileOptions,
-    strict: boolean,
-  ): Promise<SnapshotResult | undefined> {
-    try {
-      return await this.options.store.withCompileLock(environmentId, async () => {
-        const previous = await this.options.store.get(environmentId).catch(() => null);
-        const compiled = await this.compileOnly(environmentId).catch((error: unknown) => {
-          throw new CompileFailure(error);
-        });
-        const { snapshot, version, compileMs } = compiled;
+      // One step, not three. A subscriber that reacts to the broadcast by
+      // reading the store must never find the old snapshot under the new
+      // version, and a crash mid-sequence must not leave the patch history
+      // describing a snapshot nobody holds.
+      await this.options.store.commit(
+        environmentId,
+        snapshot,
+        diffPatches(previous?.snapshot, snapshot, options.flagKey),
+        { version, ...(options.flagKey !== undefined ? { flagKey: options.flagKey } : {}) },
+        this.options.patchHistoryDepth ?? 200,
+      );
 
-        // One step, not three. A subscriber that reacts to the broadcast by
-        // reading the store must never find the old snapshot under the new
-        // version, and a crash mid-sequence must not leave the patch history
-        // describing a snapshot nobody holds.
-        await this.options.store.commit(
-          environmentId,
-          snapshot,
-          diffPatches(previous?.snapshot, snapshot, options.flagKey),
-          { version, ...(options.flagKey !== undefined ? { flagKey: options.flagKey } : {}) },
-          this.options.patchHistoryDepth ?? 200,
-        );
-
-        this.remember(environmentId, snapshot, version);
-        this.options.onSnapshot?.({ environmentId, version, source: "compiled", compileMs });
-        return { snapshot, version, source: "compiled" as const };
-      });
-    } catch (error) {
-      if (error instanceof CompileFailure) {
-        // Postgres, or a ruleset that will not compile. The previous snapshot is
-        // untouched and keeps serving; the caller still hears about it, because a
-        // management write that reports success for an uncompilable change is how
-        // an operator believes a kill switch landed when it did not.
-        throw error.cause;
-      }
-      // The store failed somewhere in the publish sequence. The configuration is
-      // already committed in Postgres, so the change is not lost — but this node
-      // must still be able to serve it, which is what the degraded path does.
-      this.options.onError?.(error, { environmentId });
-      const fallback = await this.degraded(environmentId).catch(() => undefined);
-      if (strict && (fallback === undefined || fallback.source === "memory")) throw error;
-      return fallback;
-    }
+      this.remember(environmentId, snapshot, version);
+      this.options.onSnapshot?.({ environmentId, version, source: "compiled", compileMs });
+      return { snapshot, version, source: "compiled" as const };
+    });
   }
 
   /**

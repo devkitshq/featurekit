@@ -1,18 +1,11 @@
 /**
  * The control plane when its snapshot store fails.
  *
- * The configuration tables are truth and the snapshot store is a disposable
- * cache. Before this suite existed, that was an assertion: `SnapshotService.get`
- * read the store on every request and propagated the failure, so a store
- * outage turned `GET /v1/snapshot/:env` into a 500 for every SDK in the fleet —
- * a flag outage caused by a cache.
- *
- * What is asserted here:
+ * The store lives in the same Postgres as the configuration, so a store
+ * failure is a database failure. What is asserted here:
  *
  * - a warm node keeps serving through a total store failure;
- * - a cold node compiles straight from Postgres instead of failing;
- * - it does that at a bounded rate, so an outage does not become a compile storm
- *   against the one healthy component left;
+ * - a cold node, with nothing proven to serve, fails rather than inventing one;
  * - a snapshot version never goes backwards, even if the store hands back an
  *   older one (Scenario D);
  * - a kill switch does not wait for the debounce.
@@ -83,6 +76,10 @@ class FlakyStore implements SnapshotStore {
     this.guard();
     return this.inner.put(environmentId, snapshot);
   }
+  async commit(...args: Parameters<MemorySnapshotStore["commit"]>) {
+    this.guard();
+    return this.inner.commit(...args);
+  }
   async appendPatch(...args: Parameters<MemorySnapshotStore["appendPatch"]>) {
     this.guard();
     return this.inner.appendPatch(...args);
@@ -112,7 +109,6 @@ function service(store: SnapshotStore, over: Partial<Parameters<typeof SnapshotS
     loadInput: async () => input(),
     nextVersion: async () => ++version,
     debounceMs: 5,
-    degradedCompileIntervalMs: 50,
     ...over,
   });
   services.push(created);
@@ -134,47 +130,10 @@ describe("the store is gone", () => {
     expect(Object.keys(degraded.snapshot.flags)).toEqual(["f"]);
   });
 
-  it("compiles from Postgres when the node is cold and the store is down", async () => {
-    // Scenario C: the cache wiped, a node restarts. Postgres is truth, so there is
-    // no reason for this to fail.
+  it("fails when the node is cold and the store is down", async () => {
     const store = new FlakyStore();
     store.failing = true;
-    const snapshots = service(store);
-
-    const result = await snapshots.get(ENV);
-    expect(result.source).toBe("postgres");
-    expect(Object.keys(result.snapshot.flags)).toEqual(["f"]);
-  });
-
-  it("does not compile once per request during an outage", async () => {
-    // Otherwise a store outage becomes a compile storm against the only healthy
-    // component left, and burns a version per request besides.
-    const store = new FlakyStore();
-    store.failing = true;
-    let compiles = 0;
-    let version = 0;
-    const snapshots = service(store, {
-      loadInput: async () => {
-        compiles++;
-        return input();
-      },
-      nextVersion: async () => ++version,
-      degradedCompileIntervalMs: 60_000,
-    });
-
-    for (let i = 0; i < 25; i++) await snapshots.get(ENV);
-    expect(compiles).toBe(1);
-  });
-
-  it("throws only when the store, memory and compiling have all failed", async () => {
-    const store = new FlakyStore();
-    store.failing = true;
-    const snapshots = service(store, {
-      loadInput: async () => {
-        throw new Error("postgres unreachable");
-      },
-    });
-    await expect(snapshots.get(ENV)).rejects.toThrow(/could not obtain a snapshot/);
+    await expect(service(store).get(ENV)).rejects.toThrow(/could not obtain a snapshot/);
   });
 
   it("recovers to the store once it returns", async () => {

@@ -133,7 +133,7 @@ export function createApp(config: FeaturekitConfig): App {
       if (event.compileMs !== undefined) {
         metrics.snapshotCompileDuration.observe(event.compileMs / 1000);
       }
-      if (event.source === "memory" || event.source === "postgres") {
+      if (event.source === "memory") {
         metrics.snapshotDegradedServes.inc({ source: event.source });
       }
     },

@@ -75,7 +75,6 @@ describe.skipIf(reason !== null)("infrastructure chaos", () => {
       loadInput: (id) => loadCompilerInput(db, id),
       nextVersion: (id) => nextSnapshotVersion(db, id),
       debounceMs: 10,
-      degradedCompileIntervalMs: 100,
       onError: () => {},
     });
     stores.push(store);
