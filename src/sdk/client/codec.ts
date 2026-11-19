@@ -7,47 +7,25 @@
  * later as "the flag didn't turn on for that customer". So binary
  * fields are tagged on the wire and revived here.
  *
- * The base64 is hand-rolled rather than using `Buffer`: this file is compiled
- * into browser and edge bundles, where `Buffer` does not exist. It must stay
- * byte-identical to the server's codec in `src/snapshot/store.ts`.
+ * `btoa`/`atob` rather than `Buffer`: this file is compiled into browser and
+ * edge bundles, where `Buffer` does not exist. The server uses this codec too.
  */
 
 import type { Snapshot } from "../evaluation/types.js";
 
 const BINARY_TAG = "$fkBytes";
-const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 export function toBase64(bytes: Uint8Array): string {
-  let out = "";
-  for (let i = 0; i < bytes.length; i += 3) {
-    const b0 = bytes[i]!;
-    const b1 = bytes[i + 1];
-    const b2 = bytes[i + 2];
-    out += ALPHABET[b0 >> 2];
-    out += ALPHABET[((b0 & 0x03) << 4) | ((b1 ?? 0) >> 4)];
-    out += b1 === undefined ? "=" : ALPHABET[((b1 & 0x0f) << 2) | ((b2 ?? 0) >> 6)];
-    out += b2 === undefined ? "=" : ALPHABET[b2 & 0x3f];
+  let binary = "";
+  // Chunked: spreading a multi-megabyte filter in one call overflows the stack.
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   }
-  return out;
+  return btoa(binary);
 }
 
 export function fromBase64(text: string): Uint8Array {
-  const clean = text.replace(/=+$/, "");
-  const out = new Uint8Array((clean.length * 3) >> 2);
-  let bits = 0;
-  let acc = 0;
-  let o = 0;
-  for (const char of clean) {
-    const index = ALPHABET.indexOf(char);
-    if (index === -1) continue;
-    acc = (acc << 6) | index;
-    bits += 6;
-    if (bits >= 8) {
-      bits -= 8;
-      out[o++] = (acc >> bits) & 0xff;
-    }
-  }
-  return out.subarray(0, o);
+  return Uint8Array.from(atob(text), (char) => char.charCodeAt(0));
 }
 
 export function serialize(snapshot: Snapshot): string {

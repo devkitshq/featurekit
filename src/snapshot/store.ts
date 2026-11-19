@@ -88,39 +88,5 @@ export interface SnapshotStore {
   withCompileLock<T>(environmentId: string, work: () => Promise<T>): Promise<T | undefined>;
 }
 
-/* ─────────────── binary-safe (de)serialisation for snapshots ────────── */
-
-/**
- * Segment filters are `Uint8Array`. `JSON.stringify` turns one into
- * `{"0":1,"1":2,...}`, and `JSON.parse` gives back a plain object — a filter
- * that answers `false` for every member. Silent, and only visible weeks later
- * as "the flag didn't turn on for that customer".
- *
- * So binary fields are tagged on the way out and revived on the way in.
- */
-const BINARY_TAG = "$fkBytes";
-
-export function serializeSnapshot(snapshot: Snapshot): string {
-  return JSON.stringify(snapshot, (_key, value: unknown) => {
-    if (value instanceof Uint8Array) {
-      return { [BINARY_TAG]: Buffer.from(value).toString("base64") };
-    }
-    return value;
-  });
-}
-
-export function deserializeSnapshot(text: string): Snapshot {
-  return JSON.parse(text, (_key, value: unknown) => {
-    if (
-      typeof value === "object" &&
-      value !== null &&
-      BINARY_TAG in value &&
-      typeof (value as Record<string, unknown>)[BINARY_TAG] === "string"
-    ) {
-      return new Uint8Array(
-        Buffer.from((value as Record<string, string>)[BINARY_TAG]!, "base64"),
-      );
-    }
-    return value;
-  }) as Snapshot;
-}
+/** Binary-safe snapshot (de)serialisation, shared with every SDK. */
+export { serialize as serializeSnapshot, deserialize as deserializeSnapshot } from "../sdk/client/codec.js";
