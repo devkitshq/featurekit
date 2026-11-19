@@ -434,6 +434,21 @@ describe("client-tier failure modes", () => {
     expect(client.get("beta-banner", true)).toBe(true);
   });
 
+  it("recovers by itself after a failed request, without another identify()", async () => {
+    const cp = await controlPlane();
+    const realFetch = globalThis.fetch;
+    let failures = 1;
+    const fetchImpl = (async (url: string | URL, init?: RequestInit) => {
+      if (failures-- > 0) throw new TypeError("fetch failed");
+      return realFetch(url, init);
+    }) as unknown as typeof fetch;
+
+    const client = makeClient({ baseUrl: cp.baseUrl, context: { key: "usr_1", plan: "pro" }, fetchImpl });
+    await client.ready({ timeoutMs: 2_000 });
+    expect(client.get("beta-banner", false)).toBe(false);
+    await vi.waitFor(() => expect(client.get("beta-banner", false)).toBe(true), { timeout: 3_000 });
+  });
+
   it("does not inherit the previous user's flags when identify fails", async () => {
     const cp = await controlPlane();
     const client = makeClient({ baseUrl: cp.baseUrl, context: { key: "usr_1", plan: "pro" } });
@@ -519,7 +534,7 @@ describe("streaming value updates", () => {
     client.on("state", (state) => states.push(state));
     await client.identify({ key: "usr_2", plan: "pro" });
 
-    // Past the 1.5s recovery delay, so a spurious reconnect would have fired.
+    // Past the first retry delay, so a spurious reconnect would have fired.
     await new Promise((r) => setTimeout(r, 2_000));
     expect(states).not.toContain("offline");
     expect(errors).toEqual([]);

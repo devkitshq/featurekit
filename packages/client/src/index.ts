@@ -105,6 +105,8 @@ export class FeaturekitClient {
   private connectionId: string | null = null;
   private eventSource: { close: () => void } | null = null;
   private abort: AbortController | null = null;
+  private retryTimer: ReturnType<typeof setTimeout> | null = null;
+  private retryAttempt = 0;
   private closed = false;
 
   private signature: SignaturePair | null = null;
@@ -287,7 +289,20 @@ export class FeaturekitClient {
       // and defaults serve. A login must not inherit the previous user's flags.
       this.setState(this.currentHash === null ? "offline" : "ready");
       this.markReady(this.currentState);
+      this.scheduleRetry();
     }
+  }
+
+  private scheduleRetry(): void {
+    if (this.closed) return;
+    if (this.retryTimer !== null) clearTimeout(this.retryTimer);
+    // Full jitter, so a control-plane restart is not followed by every browser
+    // re-identifying in the same millisecond.
+    const delay = Math.random() * Math.min(1_000 * 2 ** Math.min(this.retryAttempt++, 5), 30_000);
+    this.retryTimer = setTimeout(() => {
+      this.retryTimer = null;
+      if (!this.closed) void this.refresh();
+    }, delay);
   }
 
   /**
@@ -338,6 +353,7 @@ export class FeaturekitClient {
     }
 
     this.appliedSeq = state.seq;
+    this.retryAttempt = 0;
     this.currentHash = state.contextHash;
     this.connectionId = state.connectionId;
     this.values = state.values;
@@ -385,9 +401,7 @@ export class FeaturekitClient {
         if (!this.closed) {
           // If 409 (server restarted/dropped connectionId) or error, re-identify to recover
           this.setState("offline");
-          setTimeout(() => {
-            if (!this.closed) void this.refresh();
-          }, 1500);
+          this.scheduleRetry();
         }
         return;
       }
@@ -414,9 +428,7 @@ export class FeaturekitClient {
     if (!this.closed) {
       // Stream ended or broke, automatically recover connection and reconcile state
       this.setState("offline");
-      setTimeout(() => {
-        if (!this.closed) void this.refresh();
-      }, 1500);
+      this.scheduleRetry();
     }
   }
 
@@ -457,6 +469,7 @@ export class FeaturekitClient {
 
   close(): void {
     this.closed = true;
+    if (this.retryTimer !== null) clearTimeout(this.retryTimer);
     this.abort?.abort();
     this.eventSource?.close();
   }
