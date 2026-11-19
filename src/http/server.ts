@@ -77,6 +77,15 @@ function buildContext(
   };
 }
 
+/** The ports `fetch` refuses to connect to (WHATWG Fetch, "bad port"). */
+const FETCH_BLOCKED_PORTS = new Set([
+  1, 7, 9, 11, 13, 15, 17, 19, 20, 21, 22, 23, 25, 37, 42, 43, 53, 69, 77, 79, 87, 95, 101, 102,
+  103, 104, 109, 110, 111, 113, 115, 117, 119, 123, 135, 137, 139, 143, 161, 179, 389, 427, 465,
+  512, 513, 514, 515, 526, 530, 531, 532, 540, 548, 554, 556, 563, 587, 601, 636, 989, 990, 993,
+  995, 1719, 1720, 1723, 2049, 3659, 4045, 4190, 5060, 5061, 6000, 6566, 6665, 6666, 6667, 6668,
+  6669, 6679, 6697, 10080,
+]);
+
 export class HttpServer {
   private server: Server | null = null;
   private shuttingDown = false;
@@ -215,7 +224,7 @@ export class HttpServer {
     }
   }
 
-  listen(): Promise<{ port: number; host: string }> {
+  async listen(): Promise<{ port: number; host: string }> {
     const host = this.options.host ?? "127.0.0.1";
     const port = this.options.port ?? 3000;
     this.server = createServer((req, res) => {
@@ -228,16 +237,21 @@ export class HttpServer {
     // hold a connection slot forever.
     this.server.headersTimeout = 20_000;
     this.server.requestTimeout = 60_000;
-    return new Promise((resolve, reject) => {
-      this.server!.once("error", reject);
-      this.server!.listen(port, host, () => {
-        const address = this.server!.address();
-        resolve({
-          port: typeof address === "object" && address !== null ? address.port : port,
-          host,
+    const bind = (): Promise<number> =>
+      new Promise((resolve, reject) => {
+        this.server!.once("error", reject);
+        this.server!.listen(port, host, () => {
+          const address = this.server!.address();
+          resolve(typeof address === "object" && address !== null ? address.port : port);
         });
       });
-    });
+    let bound = await bind();
+    // Port 0 lets the OS choose, and Windows can choose one `fetch` refuses.
+    while (port === 0 && FETCH_BLOCKED_PORTS.has(bound)) {
+      await new Promise<void>((resolve) => this.server!.close(() => resolve()));
+      bound = await bind();
+    }
+    return { port: bound, host };
   }
 
   /**
