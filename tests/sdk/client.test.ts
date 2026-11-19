@@ -328,6 +328,29 @@ describe("persistence", () => {
     expect(second.get("new-checkout", ctx, false)).toBe(true);
   });
 
+  it("persists a patch, so a kill switch survives a restart during the outage", async () => {
+    const saved: Snapshot[] = [];
+    const persist = {
+      load: () => saved.at(-1) ?? null,
+      save: (s: Snapshot) => void saved.push(s),
+    };
+
+    const cp = await controlPlane();
+    const first = makeSdk({ baseUrl: cp.baseUrl, persist });
+    await first.ready({ timeoutMs: 3_000 });
+    cp.state.flagOn = false;
+    cp.state.flagVersion++;
+    await cp.snapshots.recompile(ENV_ID, { flagKey: "new-checkout" });
+    await vi.waitFor(() => expect(first.get("new-checkout", ctx, true)).toBe(false));
+    await first.close();
+    await cp.server.close();
+    servers.length = 0;
+
+    const second = makeSdk({ baseUrl: cp.baseUrl, persist });
+    await second.ready({ timeoutMs: 500 });
+    expect(second.get("new-checkout", ctx, true)).toBe(false);
+  });
+
   it("treats a corrupt persisted snapshot as absent rather than fatal", async () => {
     const persist = {
       load: () => {

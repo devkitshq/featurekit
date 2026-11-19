@@ -77,6 +77,7 @@ export class FeaturekitSDK {
   private reconnectAttempt = 0;
   private closed = false;
   private persistence: SnapshotPersistence | null = null;
+  private saving: Promise<void> = Promise.resolve();
 
   private readyResolve: (() => void) | null = null;
   private readonly readyPromise: Promise<void>;
@@ -462,11 +463,25 @@ export class FeaturekitSDK {
     this.segments = new SegmentIndex(snapshot.segments);
     this.markReady();
     this.emit("change", { flagKey: null });
-    if (options.persist && this.persistence !== null) {
-      void Promise.resolve(this.persistence.save(snapshot)).catch((error: unknown) =>
-        this.options.onError?.(error),
-      );
-    }
+    if (options.persist) this.save();
+  }
+
+  /**
+   * Persist what is held now. Patches too: a kill switch that arrived as a
+   * patch must survive a restart during the outage it was flipped for.
+   * Chained, so two quick saves cannot land out of order.
+   *
+   * shortcut: segment-patch deltas live only in the SegmentIndex and are not
+   * persisted; the stream replays them on reconnect. Persist the index if
+   * restarts during outages with big segments matter.
+   */
+  private save(): void {
+    const persistence = this.persistence;
+    const snapshot = this.snapshot;
+    if (persistence === null || snapshot === null) return;
+    this.saving = this.saving
+      .then(() => persistence.save(snapshot))
+      .catch((error: unknown) => this.options.onError?.(error));
   }
 
   private applyPatch(flag: CompiledFlag): void {
@@ -482,6 +497,7 @@ export class FeaturekitSDK {
     };
     this.markReady();
     this.emit("change", { flagKey: flag.key });
+    this.save();
   }
 
   private applyDelete(payload: { key: string }): void {
@@ -490,6 +506,7 @@ export class FeaturekitSDK {
     const { [payload.key]: _removed, ...rest } = snapshot.flags;
     this.snapshot = { ...snapshot, flags: rest };
     this.emit("change", { flagKey: payload.key });
+    this.save();
   }
 
   private setState(state: SdkState): void {
