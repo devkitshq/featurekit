@@ -112,7 +112,7 @@ That runs the management API, the client tier, the streams, event ingest, the ro
 
 ```js
 // app.js
-import { FeaturekitSDK } from "featurekit-server";
+import { FeaturekitSDK } from "featurekit-server/sdk";
 
 const flags = new FeaturekitSDK({
   sdkKey: process.env.FEATUREKIT_SDK_KEY,
@@ -365,7 +365,7 @@ Or set `FEATUREKIT_SERVICES=api,stream` and run the packaged entrypoint, `node n
 ## Using it: server side
 
 ```ts
-import { FeaturekitSDK } from "featurekit-server";
+import { FeaturekitSDK } from "featurekit-server/sdk";
 
 const flags = new FeaturekitSDK({
   sdkKey: process.env.FEATUREKIT_SDK_KEY!,

@@ -17,6 +17,10 @@
       "types": "./dist/secure-mode.d.ts",
       "default": "./dist/secure-mode.js"
     },
+    "./sdk": {
+      "types": "./dist/sdk/index.d.ts",
+      "default": "./dist/sdk/index.js"
+    },
     "./evaluation": {
       "types": "./dist/sdk/evaluation/index.d.ts",
       "default": "./dist/sdk/evaluation/index.js"
