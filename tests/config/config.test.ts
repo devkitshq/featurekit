@@ -17,9 +17,9 @@ describe("defaults are for laptops, never for prod", () => {
   });
 
   it("coerces numeric env vars, which arrive as strings", () => {
-    const config = loadConfig({ PORT: "8080", ROLLUP_SHARDS: "16" });
+    const config = loadConfig({ PORT: "8080", PATCH_HISTORY_DEPTH: "16" });
     expect(config.PORT).toBe(8080);
-    expect(config.ROLLUP_SHARDS).toBe(16);
+    expect(config.PATCH_HISTORY_DEPTH).toBe(16);
   });
 
   it("rejects an out-of-range port rather than binding somewhere surprising", () => {
@@ -118,10 +118,7 @@ describe("the documented knobs", () => {
     expect(c.MAX_CLIENT_CONNECTIONS).toBe(50_000);
     expect(c.STREAM_HEARTBEAT_MS).toBe(30_000);
     expect(c.SEGMENT_INLINE_MAX).toBe(50_000);
-    expect(c.CLIENT_EVAL_CACHE_MAX).toBe(50_000);
-    expect(c.CLIENT_FANOUT_BATCH).toBe(500);
     expect(c.EVENT_BUFFER_MAX).toBe(100_000);
-    expect(c.ROLLUP_SHARDS).toBe(8);
     expect(c.ROLLUP_RETENTION_DAYS).toBe(90);
     expect(c.ROLLUP_PARTITION_PREMAKE_DAYS).toBe(7);
   });

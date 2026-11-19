@@ -65,6 +65,8 @@ export interface MigrateOptions {
   migrationsFolder?: string;
   /** How far ahead to create analytics partitions. */
   partitionPremakeDays?: number;
+  /** How long analytics partitions are kept. Applied where pg_partman manages them. */
+  partitionRetentionDays?: number;
   /** Progress, one line at a time. Silent by default. */
   log?: (message: string) => void;
 }
@@ -111,6 +113,17 @@ export async function migrate(options: MigrateOptions = {}): Promise<void> {
       await runMigrations(db, options.migrationsFolder ?? join(PACKAGE_ROOT, "drizzle"), schema);
       const premake = options.partitionPremakeDays ?? DEFAULT_PARTITION_PREMAKE_DAYS;
       await db.execute(sql`select featurekit_ensure_partitions(${premake})`);
+      if (options.partitionRetentionDays !== undefined) {
+        // Without pg_partman nothing drops old partitions, so there is nothing to configure.
+        const [partman] = await db.execute<{ present: boolean }>(
+          sql`select to_regclass('partman.part_config') is not null as present`,
+        );
+        if (partman?.present === true) {
+          await db.execute(sql`
+            update partman.part_config set retention = ${`${options.partitionRetentionDays} days`}
+            where parent_table = current_schema() || '.evaluation_summaries'`);
+        }
+      }
       log(`migrations applied to schema ${schema}`);
     } finally {
       await db.execute(sql`select pg_advisory_unlock(${MIGRATION_LOCK}::bigint)`);

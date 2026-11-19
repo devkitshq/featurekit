@@ -80,5 +80,5 @@ premake below the alert threshold means the alert fires immediately and forever.
 ## What is deliberately not read at runtime
 
 `ROLLUP_RETENTION_DAYS` is written into `partman.part_config` at migration time
-(§7.9). Nothing re-reads it every night, because nothing in Node owns partition
+(§7.9), when pg_partman is installed; without it nothing drops old partitions. Nothing re-reads it every night, because nothing in Node owns partition
 lifecycle.

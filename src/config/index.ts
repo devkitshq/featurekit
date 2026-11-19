@@ -151,15 +151,10 @@ export const configSchema = z
      */
     CLIENT_CONNECTION_TTL_SECONDS: z.coerce.number().int().min(30).max(86_400).default(900),
 
-    /** Client-tier fingerprint fan-out. */
-    CLIENT_EVAL_CACHE_MAX: z.coerce.number().int().min(100).default(50_000),
-    CLIENT_FANOUT_BATCH: z.coerce.number().int().min(1).default(500),
-
     EVENT_BUFFER_MAX: z.coerce.number().int().min(1000).default(100_000),
     EVENT_FLUSH_INTERVAL_MS: z.coerce.number().int().min(100).default(5_000),
-    ROLLUP_SHARDS: z.coerce.number().int().min(1).default(8),
     ROLLUP_BUCKET_SECONDS: z.coerce.number().int().min(60).default(60),
-    /** Written into partman.part_config at migration time — not read at runtime. */
+    /** Written into partman.part_config at migration time, when pg_partman is installed. */
     ROLLUP_RETENTION_DAYS: z.coerce.number().int().min(1).default(90),
     ROLLUP_PARTITION_PREMAKE_DAYS: z.coerce.number().int().min(2).default(7),
 
@@ -175,7 +170,6 @@ export const configSchema = z
     SCHEDULER_GRACE_MS: z.coerce.number().int().min(0).default(3_600_000),
 
     DB_MAX_CONNECTIONS: z.coerce.number().int().min(1).default(10),
-    WORKER_CONCURRENCY: z.coerce.number().int().min(1).default(10),
   });
 
 export type FeaturekitConfig = z.infer<typeof configSchema>;

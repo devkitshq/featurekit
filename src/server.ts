@@ -318,7 +318,15 @@ export class FeaturekitServer {
     /* migrations */
 
     if (this.options.autoMigrate ?? !isProduction) {
-      await this.#migrate(config.DATABASE_URL, config.DATABASE_SCHEMA, log);
+      // The same function a deploy job calls, so the two cannot drift apart and
+      // both take the same advisory lock.
+      await migrate({
+        databaseUrl: config.DATABASE_URL,
+        schema: config.DATABASE_SCHEMA,
+        partitionPremakeDays: config.ROLLUP_PARTITION_PREMAKE_DAYS,
+        partitionRetentionDays: config.ROLLUP_RETENTION_DAYS,
+        log,
+      });
     }
 
     /* the system itself */
@@ -563,24 +571,6 @@ export class FeaturekitServer {
 `,
       "utf8",
     );
-  }
-
-  /**
-   * Apply migrations behind an advisory lock.
-   *
-   * The lock is what makes two processes starting at once safe: the second
-   * waits, then finds nothing to do. Its own connection, closed straight after,
-   * because an advisory lock lives for the session and the pool's connections
-   * outlive this step.
-   */
-  async #migrate(
-    databaseUrl: string,
-    schema: string,
-    log: (message: string) => void,
-  ): Promise<void> {
-    // The same function a deploy job calls, so `autoMigrate` and a separate
-    // step cannot drift apart — and so both take the same advisory lock.
-    await migrate({ databaseUrl, schema, log });
   }
 
   /**
