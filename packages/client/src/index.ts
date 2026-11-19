@@ -234,6 +234,10 @@ export class FeaturekitClient {
     if (keyChanged) {
       this.values = {};
       this.currentHash = null;
+      // The open stream is still the previous user's: close it now, or a push
+      // landing before the new response would merge their values into this one.
+      this.abort?.abort();
+      this.abort = null;
       this.setState("identifying");
     }
     await this.refresh();
@@ -410,7 +414,7 @@ export class FeaturekitClient {
       let buffer = "";
       while (!this.closed) {
         const { value, done } = await reader.read();
-        if (done) break;
+        if (done || replaced()) break;
         buffer += decoder.decode(value, { stream: true });
         let split: number;
         while ((split = buffer.indexOf("\n\n")) !== -1) {

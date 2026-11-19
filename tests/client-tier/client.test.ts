@@ -541,6 +541,43 @@ describe("streaming value updates", () => {
     expect(client.get("beta-banner", false)).toBe(true);
   });
 
+  it("does not merge the previous user's pushes into a new identity", async () => {
+    const cp = await controlPlane();
+    const realFetch = globalThis.fetch;
+    const fetchImpl = (async (url: string | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body ?? "{}")) as { context?: { key?: string } };
+      if (body.context?.key === "usr_B") await new Promise((r) => setTimeout(r, 1_000));
+      return realFetch(url, init);
+    }) as unknown as typeof fetch;
+    const client = makeClient({
+      baseUrl: cp.baseUrl,
+      context: { key: "usr_A", plan: "pro" },
+      stream: true,
+      fetchImpl,
+    });
+    await client.ready({ timeoutMs: 2_000 });
+    await new Promise((r) => setTimeout(r, 300)); // let A's stream open
+
+    const pending = client.identify({ key: "usr_B", plan: "free" });
+    // While B's request is in flight, A's stream would push beta-banner=false.
+    const current = (await cp.store.get(ENV_ID))!;
+    const updated = {
+      ...current.snapshot,
+      version: current.version + 1,
+      flags: {
+        ...current.snapshot.flags,
+        "beta-banner": { ...current.snapshot.flags["beta-banner"]!, on: false },
+      },
+    };
+    await cp.store.put(ENV_ID, updated);
+    for (let i = 0; i < 10; i++) {
+      await cp.store.publish(ENV_ID, { version: updated.version, flagKey: "beta-banner" });
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    expect(client.get("beta-banner", true)).toBe(true); // B's default, not A's push
+    await pending;
+  });
+
   it("refuses a stream for a connection that was never established", async () => {
     // The stream carries no context of its own; inventing one would mean
     // evaluating as an identity nobody proved.
