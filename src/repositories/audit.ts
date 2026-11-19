@@ -11,7 +11,7 @@ import type { FlagConfig } from "./flag-config.js";
 import { createHash } from "node:crypto";
 import { and, asc, eq, inArray, sql, or, isNull } from "drizzle-orm";
 import type { Database } from "../db/client.js";
-import { auditLog, environments, members } from "../db/schema.js";
+import { auditLog, members } from "../db/schema.js";
 import { type Principal, actorOf } from "../auth/principal.js";
 
 export interface AuditInput {

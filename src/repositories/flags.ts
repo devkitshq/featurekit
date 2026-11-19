@@ -12,7 +12,6 @@
  * table of two hundred flags must not be the reason the database is busy.
  */
 
-import { readFlagConfig } from "./flag-config.js";
 import { and, asc, eq, inArray, sql, desc, gte, isNull } from "drizzle-orm";
 import type { Database } from "../db/client.js";
 import {
