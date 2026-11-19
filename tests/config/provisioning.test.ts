@@ -62,6 +62,19 @@ describe("resolveConfigVariations", () => {
   });
 });
 
+describe("resolveConfigVariations refuses what it cannot resolve", () => {
+  it("names an unknown variation instead of serving variation 0", () => {
+    const raw = { targets: [{ contextKind: "user", variation: "onn", keys: ["usr_1"] }] };
+    expect(() => resolveConfigVariations(raw as any, variations)).toThrow(/unknown variation "onn"/);
+  });
+
+  it("refuses a pattern the management API would refuse", () => {
+    const clause = { attribute: "email", op: "matches", values: ["^(a+)+$"] };
+    const raw = { rules: [{ clauses: [clause], variation: "on" }] };
+    expect(() => resolveConfigVariations(raw as any, variations)).toThrow(/config\.rules/);
+  });
+});
+
 describe("flagFileSchema with named variations", () => {
   it("validates flag files that use named variation references", () => {
     const file = {

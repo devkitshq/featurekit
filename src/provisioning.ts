@@ -103,8 +103,16 @@ export function resolveConfigVariations(
   raw: z.infer<typeof provisioningConfigSchema>,
   variations: Array<{ name?: string | undefined; value: unknown }>,
 ): Omit<FlagConfigBody, "expectedVersion"> {
-  const offVariation = resolveVariationIndex(raw.offVariation, variations);
-  const fallthroughVariation = resolveVariationIndex(raw.fallthroughVariation, variations);
+  const ref = (r: number | string): number => {
+    const index = resolveVariationIndex(r, variations);
+    if (index === undefined) {
+      throw new ProvisioningError(`featurekit: unknown variation ${JSON.stringify(r)}`);
+    }
+    return index;
+  };
+  const offVariation = raw.offVariation === undefined ? undefined : ref(raw.offVariation);
+  const fallthroughVariation =
+    raw.fallthroughVariation === undefined ? undefined : ref(raw.fallthroughVariation);
 
   const fallthroughRollout =
     raw.fallthroughRollout === undefined
@@ -118,7 +126,7 @@ export function resolveConfigVariations(
             : {}),
           ...(raw.fallthroughRollout.seed !== undefined ? { seed: raw.fallthroughRollout.seed } : {}),
           variations: raw.fallthroughRollout.variations.map((v) => ({
-            variation: resolveVariationIndex(v.variation, variations) ?? 0,
+            variation: ref(v.variation),
             weight: v.weight,
           })),
         };
@@ -126,7 +134,7 @@ export function resolveConfigVariations(
   const rules = raw.rules?.map((r) => ({
     ...(r.description !== undefined ? { description: r.description } : {}),
     clauses: r.clauses,
-    ...(r.variation !== undefined ? { variation: resolveVariationIndex(r.variation, variations) } : {}),
+    ...(r.variation !== undefined ? { variation: ref(r.variation) } : {}),
     ...(r.rollout !== undefined
       ? {
           rollout: {
@@ -134,7 +142,7 @@ export function resolveConfigVariations(
             ...(r.rollout.bucketBy !== undefined ? { bucketBy: r.rollout.bucketBy } : {}),
             ...(r.rollout.seed !== undefined ? { seed: r.rollout.seed } : {}),
             variations: r.rollout.variations.map((v) => ({
-              variation: resolveVariationIndex(v.variation, variations) ?? 0,
+              variation: ref(v.variation),
               weight: v.weight,
             })),
           },
@@ -144,11 +152,13 @@ export function resolveConfigVariations(
 
   const targets = raw.targets?.map((t) => ({
     contextKind: t.contextKind,
-    variation: resolveVariationIndex(t.variation, variations) ?? 0,
+    variation: ref(t.variation),
     keys: t.keys,
   }));
 
-  return {
+  // The same validation the management API applies, so a flag file cannot
+  // carry a configuration the API would have refused.
+  const checked = flagConfigSchema.omit({ expectedVersion: true }).safeParse({
     ...(raw.enabled !== undefined ? { enabled: raw.enabled } : {}),
     ...(offVariation !== undefined ? { offVariation } : {}),
     ...(fallthroughVariation !== undefined ? { fallthroughVariation } : {}),
@@ -156,7 +166,15 @@ export function resolveConfigVariations(
     ...(rules !== undefined ? { rules } : {}),
     ...(targets !== undefined ? { targets } : {}),
     ...(raw.prerequisites !== undefined ? { prerequisites: raw.prerequisites } : {}),
-  };
+  });
+  if (!checked.success) {
+    throw new ProvisioningError(
+      `featurekit: the flag file is not valid\n${checked.error.issues
+        .map((issue) => `  config.${issue.path.join(".")}: ${issue.message}`)
+        .join("\n")}`,
+    );
+  }
+  return checked.data;
 }
 
 /**
