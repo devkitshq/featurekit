@@ -27,7 +27,7 @@ export interface SummaryBatch {
   /** Start of the aggregation window, ms since epoch, truncated to the minute. */
   bucketAt: number;
   summaries: EvaluationSummary[];
-  /** Cumulative, so a server can see loss even if a whole batch is lost. */
+  /** Drops since the previous batch: the server adds these to a counter. */
   dropped: number;
 }
 
@@ -56,6 +56,7 @@ interface Bucket {
 export class EventSummarizer {
   private buckets = new Map<string, Bucket>();
   private droppedTotal = 0;
+  private droppedReported = 0;
   private windowStart: number;
 
   constructor(private readonly options: SummarizerOptions = {}) {
@@ -125,8 +126,9 @@ export class EventSummarizer {
         count: b.count,
         uniqueContexts: b.contexts.size,
       })),
-      dropped: this.droppedTotal,
+      dropped: this.droppedTotal - this.droppedReported,
     };
+    this.droppedReported = this.droppedTotal;
     this.buckets = new Map();
     this.windowStart = this.truncate(this.now());
     return batch;

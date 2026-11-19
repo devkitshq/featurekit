@@ -130,8 +130,8 @@ export class EventBuffer {
       }
     }
 
-    // The SDK reports its own drops cumulatively, so they are surfaced under a
-    // distinct reason rather than mixed with ours.
+    // The SDK's own drops since its last batch, under a distinct reason
+    // rather than mixed with ours.
     if (batch.dropped !== undefined && batch.dropped > 0) {
       this.options.onDropped?.(batch.dropped, "sdk_backpressure");
     }
