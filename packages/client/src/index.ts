@@ -246,7 +246,7 @@ export class FeaturekitClient {
     await this.refresh();
   }
 
-  private async refresh(): Promise<void> {
+  private async refresh(signatureRetried = false): Promise<void> {
     if (this.closed) return;
 
     // Allocated BEFORE the await, so ordering reflects call order.
@@ -278,7 +278,11 @@ export class FeaturekitClient {
           // values keep serving while a fresh pair is fetched.
           this.signature = null;
           await this.ensureSignature();
-          if (this.signature !== null) await this.refresh();
+          if (this.signature === null) return;
+          // One immediate retry; a provider that keeps minting pairs the server
+          // calls expired (clock skew) backs off instead of looping hot.
+          if (signatureRetried) this.scheduleRetry();
+          else await this.refresh(true);
           return;
         }
         // Invalid or missing: drop to caller defaults. Never a silent downgrade.

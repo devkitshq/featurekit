@@ -418,6 +418,28 @@ describe("secure mode", () => {
     expect(client.get("beta-banner", false)).toBe(true);
   });
 
+  it("backs off rather than looping when every fresh signature is already expired", async () => {
+    // Clock skew: the provider mints pairs the server considers expired.
+    const cp = await controlPlane({ secureModeSecrets: [SECRET], requireSignature: true });
+    const realFetch = globalThis.fetch;
+    let requests = 0;
+    const fetchImpl = (async (url: string | URL, init?: RequestInit) => {
+      requests++;
+      return realFetch(url, init);
+    }) as unknown as typeof fetch;
+    makeClient({
+      baseUrl: cp.baseUrl,
+      context: { key: "usr_1" },
+      fetchImpl,
+      onSignatureExpiring: () => {
+        const expiresAt = Math.floor(Date.now() / 1000) - 10;
+        return { signature: signContext("usr_1", expiresAt, [SECRET]), expiresAt };
+      },
+    });
+    await new Promise((r) => setTimeout(r, 500));
+    expect(requests).toBeLessThan(10);
+  });
+
   it("allows unsigned contexts when secure mode is not required", async () => {
     const cp = await controlPlane();
     const client = makeClient({ baseUrl: cp.baseUrl, context: { key: "usr_1", plan: "pro" } });
