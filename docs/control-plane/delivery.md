@@ -70,7 +70,8 @@ and it means a node that missed a message still converges.
 ## Capacity shedding
 
 Above `MAX_STREAM_CONNECTIONS` a new stream gets 503 `STREAM_CAPACITY` rather
-than a connection the node cannot serve. The SDK takes the hint and polls. The
+than a connection the node cannot serve. The SDK takes the hint and polls,
+retrying the stream on backoff so it streams again once a node has room. The
 tier degrades on a curve instead of a cliff.
 
 ## Events

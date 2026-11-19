@@ -235,6 +235,20 @@ describe("polling is a first-class fallback", () => {
     // Shed to polling rather than reconnect-looping against a full node.
     expect(sdk.get("new-checkout", ctx, false)).toBe(true);
   });
+
+  it("goes back to streaming once a shedding server has room", async () => {
+    let streams = 0;
+    const fetchImpl = (async (url: string) => {
+      if (!url.includes("/v1/stream/")) return new Response(null, { status: 500 });
+      return ++streams === 1
+        ? new Response(null, { status: 503 })
+        : new Response(new ReadableStream(), { status: 200 });
+    }) as unknown as typeof fetch;
+
+    const sdk = makeSdk({ baseUrl: "http://127.0.0.1:1", fetchImpl });
+    await vi.waitFor(() => expect(streams).toBe(2), { timeout: 3_000 });
+    expect(sdk.state).toBe("connected");
+  });
 });
 
 describe("failing should be invisible to your users", () => {

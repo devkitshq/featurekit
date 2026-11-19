@@ -368,10 +368,10 @@ export class FeaturekitSDK {
 
       if (response.status === 503) {
         // The server shed us to polling rather than accepting a connection it
-        // cannot serve. That is a curve, not a cliff — take the hint.
-        this.setState("connected");
+        // cannot serve. That is a curve, not a cliff — take the hint, polling
+        // once per backed-off stream retry so we stream again once it has room.
+        this.scheduleReconnect();
         await this.poll();
-        this.pollIntervalHandle();
         return;
       }
       if (!response.ok || response.body === null) {
