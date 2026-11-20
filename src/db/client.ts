@@ -110,5 +110,32 @@ export async function runMigrations(
   schema: string = DEFAULT_SCHEMA,
 ): Promise<void> {
   await db.execute(sqlTag`create schema if not exists ${sqlTag.identifier(schema)}`);
+  // Up to 0.1.x the history lived in drizzle's default `drizzle` schema. A
+  // database migrated there has our tables but no history here, and would
+  // replay 0000_init over them; move the history instead. A failed 0.2.0 boot
+  // leaves an empty history table here, which is no history at all.
+  const history = sqlTag`${sqlTag.identifier(schema)}.__drizzle_migrations`;
+  const [found] = (await db.execute(sqlTag`
+    select to_regclass(${`${schema}.flags`}) is not null
+       and to_regclass('drizzle.__drizzle_migrations') is not null as legacy,
+       to_regclass(${`${schema}.__drizzle_migrations`}) is not null as current`)) as unknown as Array<{
+    legacy: boolean;
+    current: boolean;
+  }>;
+  if (found?.legacy === true) {
+    let current = found.current;
+    if (current) {
+      const [row] = (await db.execute(
+        sqlTag`select not exists (select 1 from ${history}) as empty`,
+      )) as unknown as Array<{ empty: boolean }>;
+      if (row?.empty === true) {
+        await db.execute(sqlTag`drop table ${history}`);
+        current = false;
+      }
+    }
+    if (!current) {
+      await db.execute(sqlTag`alter table drizzle.__drizzle_migrations set schema ${sqlTag.identifier(schema)}`);
+    }
+  }
   await migrate(db, { migrationsFolder, migrationsSchema: schema });
 }

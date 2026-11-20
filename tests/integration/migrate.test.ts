@@ -120,4 +120,24 @@ describe.skipIf(reason !== null)("featurekit-server/migrate", () => {
     const status = await migrationStatus({ databaseUrl });
     expect(status.applied).toBeGreaterThan(0);
   }, 180_000);
+
+  it("adopts a 0.1.x history from the drizzle schema instead of replaying 0000_init", async () => {
+    // 0.1.x kept the history in `drizzle`; a failed 0.2.0 boot then left an
+    // empty one in `public`, and the replay died on `type "flag_kind" already exists`.
+    const before = await migrationStatus({ databaseUrl });
+    await db.execute(sql`create schema if not exists drizzle`);
+    await db.execute(sql`alter table public.__drizzle_migrations set schema drizzle`);
+    await db.execute(
+      sql`create table public.__drizzle_migrations (id serial primary key, hash text not null, created_at bigint)`,
+    );
+
+    await migrate({ databaseUrl });
+
+    const after = await migrationStatus({ databaseUrl });
+    expect(after.applied).toBe(before.applied);
+    const [legacy] = (await db.execute(
+      sql`select to_regclass('drizzle.__drizzle_migrations') is null as gone`,
+    )) as unknown as Array<{ gone: boolean }>;
+    expect(legacy?.gone).toBe(true);
+  }, 120_000);
 });
